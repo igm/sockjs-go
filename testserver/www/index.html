@@ -1,0 +1,23 @@
+<html>
+<head>
+	<title>SockJS example</title>
+	<script type="text/javascript" src="sockjs-0.3.2.min.js"></script>
+
+	<script type="text/javascript">
+		var sock = new SockJS('http://127.0.0.1:8080/echo');
+		sock.onopen = function() {
+		   	// console.log('open');
+		   	window.setInterval(function() {
+				sock.send('hello world!');
+		   	}, 2000);
+		};
+		sock.onmessage = function(e) {
+		   console.log('message', e.data);
+		};
+		sock.onclose = function() {
+		   console.log('close');
+		};
+	</script>
+<body>
+</body>
+</html>
