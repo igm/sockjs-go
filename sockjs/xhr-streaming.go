@@ -19,6 +19,10 @@ func xhrStreamingHandler(rw http.ResponseWriter, req *http.Request, sessId strin
 		go startHeartbeat(sessId, s)
 	}
 
+	setCors(rw.Header(), req)
+	setContentTypeWithoutCache(rw.Header(), "application/javascript; charset=UTF-8")
+	rw.WriteHeader(http.StatusOK)
+
 	hj, ok := rw.(http.Hijacker)
 	if !ok {
 		http.Error(rw, "webserver doesn't support hijacking", http.StatusInternalServerError)
@@ -30,15 +34,7 @@ func xhrStreamingHandler(rw http.ResponseWriter, req *http.Request, sessId strin
 		return
 	}
 	defer conn.Close()
-
-	header := http.Header{}
-	setCors(header, req)
-	setContentTypeWithoutCache(header, "application/javascript; charset=UTF-8")
-	header.Add("Transfer-Encoding", "chunked")
-
-	bufrw.Write([]byte("HTTP/1.1 200 OK\n"))
-	header.Write(bufrw)
-	bufrw.Write([]byte("\n"))
+	bufrw.Flush()
 
 	chunked := httputil.NewChunkedWriter(bufrw)
 
