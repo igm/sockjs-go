@@ -38,8 +38,8 @@ func newSockJSCon() *SockJsConn {
 }
 
 func newSockjsSession(sessId string) *SockJsConn {
-	sessions[sessId] = newSockJSCon()
-	return sessions[sessId]
+	conn, _ := sessions.GetOrCreate(sessId)
+	return conn
 }
 
 func startHeartbeat(sessId string, s *SockJSHandler) {
@@ -49,7 +49,7 @@ func startHeartbeat(sessId string, s *SockJSHandler) {
 			closeXhrSession(sessId)
 		}
 	}()
-	sockjs := sessions[sessId]
+	sockjs := sessions.Get(sessId)
 	for {
 		time.Sleep(time.Duration(s.Config.HeartbeatDelay) * time.Millisecond)
 		select {

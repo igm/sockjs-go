@@ -5,7 +5,8 @@ import (
 )
 
 func xhrPolling(rw http.ResponseWriter, req *http.Request, sessId string) {
-	sockjs := sessions[sessId]
+
+	sockjs := sessions.Get(sessId)
 
 	setContentTypeWithoutCache(rw.Header(), "application/javascript; encoding=UTF-8")
 	setCors(rw.Header(), req)

@@ -10,9 +10,12 @@ import (
 
 func eventSourceHandler(rw http.ResponseWriter, req *http.Request, sessId string, s *SockJSHandler) {
 	isNew := false
-	if sessions[sessId] == nil {
+
+	if sockjs, new := sessions.GetOrCreate(sessId); new {
+		// }
+		// if sessions[sessId] == nil {
 		isNew = true
-		sockjs := newSockjsSession(sessId)
+		// sockjs := newSockjsSession(sessId)
 		go s.Handler(sockjs)
 		go startHeartbeat(sessId, s)
 	}
@@ -56,7 +59,8 @@ func eventSource(conn net.Conn, bufrw *bufio.ReadWriter, chunkedWriter io.WriteC
 		bufrw.Flush()
 	}()
 
-	sockjs := sessions[sessId]
+	// sockjs := sessions[sessId]
+	sockjs := sessions.Get(sessId)
 	for sent := 0; sent < s.Config.ResponseLimit; {
 		select {
 		case val, ok := <-sockjs.out:

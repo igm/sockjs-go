@@ -7,8 +7,9 @@ import (
 )
 
 func xhrHandler(rw http.ResponseWriter, req *http.Request, sessId string, s *SockJSHandler) {
-	if sessions[sessId] == nil {
-		sockjs := newSockjsSession(sessId)
+	if sockjs, new := sessions.GetOrCreate(sessId); new {
+		// if sessions[sessId] == nil {
+		// 	sockjs := newSockjsSession(sessId)
 		go s.Handler(sockjs)
 		go startHeartbeat(sessId, s)
 
@@ -21,8 +22,9 @@ func xhrHandler(rw http.ResponseWriter, req *http.Request, sessId string, s *Soc
 }
 
 func xhrHandlerSend(rw http.ResponseWriter, req *http.Request, sessId string, s *SockJSHandler) {
-	if sessions[sessId] != nil {
-		sockjs := sessions[sessId]
+	if sockjs := sessions.Get(sessId); sockjs != nil {
+		// if sessions[sessId] != nil {
+		// sockjs := sessions[sessId]
 		decoder := json.NewDecoder(req.Body)
 		var value []string
 		if err := decoder.Decode(&value); err != nil {
@@ -52,9 +54,9 @@ func xhrHandlerOptions(rw http.ResponseWriter, req *http.Request) {
 }
 
 func closeXhrSession(sessId string) {
-	if sessions[sessId] != nil {
-		sockjs := sessions[sessId]
-		delete(sessions, sessId)
+	if sockjs := sessions.GetAndDelete(sessId); sockjs != nil {
+		// sockjs := sessions[sessId]
+		// delete(sessions, sessId)
 		sockjs.close()
 	}
 }

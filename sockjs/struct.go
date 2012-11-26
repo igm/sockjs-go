@@ -48,8 +48,6 @@ type SockJsConn struct {
 	closed bool        // closed flag
 }
 
-var sessions = map[string]*SockJsConn{}
-
 func (s *SockJsConn) ReadObject(obj interface{}) (err error) {
 	str, err := s.Read()
 	if err != nil {

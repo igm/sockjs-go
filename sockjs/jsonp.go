@@ -10,14 +10,17 @@ import (
 )
 
 func jsonpHandler(rw http.ResponseWriter, req *http.Request, sessId string, s *SockJSHandler) {
-	if sessions[sessId] == nil {
+
+	if sockjs, new := sessions.GetOrCreate(sessId); new {
+
+		// if sessions[sessId] == nil {
 		callback := req.FormValue("c")
 		if callback == "" {
 			rw.WriteHeader(http.StatusInternalServerError)
 			rw.Write([]byte("\"callback\" parameter required"))
 			return
 		}
-		sockjs := newSockjsSession(sessId)
+		// sockjs := newSockjsSession(sessId)
 		go s.Handler(sockjs)
 		go startHeartbeat(sessId, s)
 
@@ -30,8 +33,11 @@ func jsonpHandler(rw http.ResponseWriter, req *http.Request, sessId string, s *S
 }
 
 func jsonpHandlerSend(rw http.ResponseWriter, req *http.Request, sessId string, s *SockJSHandler) {
-	if sessions[sessId] != nil {
-		sockjs := sessions[sessId]
+
+	if sockjs := sessions.Get(sessId); sockjs != nil {
+
+		// if sessions[sessId] != nil {
+		// 	sockjs := sessions[sessId]
 		var value []string
 		input := req.FormValue("d")
 		if input == "" {
@@ -63,7 +69,7 @@ func jsonpHandlerSend(rw http.ResponseWriter, req *http.Request, sessId string, 
 }
 
 func jsonpPolling(rw http.ResponseWriter, req *http.Request, sessId string) {
-	sockjs := sessions[sessId]
+	sockjs := sessions.Get(sessId)
 
 	setContentTypeWithoutCache(rw.Header(), "application/javascript; encoding=UTF-8")
 	setCors(rw.Header(), req)

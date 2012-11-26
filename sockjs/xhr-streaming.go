@@ -10,9 +10,11 @@ import (
 
 func xhrStreamingHandler(rw http.ResponseWriter, req *http.Request, sessId string, s *SockJSHandler) {
 	isNew := false
-	if sessions[sessId] == nil {
+
+	if sockjs, new := sessions.GetOrCreate(sessId); new {
+		// if sessions[sessId] == nil {
 		isNew = true
-		sockjs := newSockjsSession(sessId)
+		// sockjs := newSockjsSession(sessId)
 		go s.Handler(sockjs)
 		go startHeartbeat(sessId, s)
 	}
@@ -61,7 +63,7 @@ func xhrStreaming(conn net.Conn, bufrw *bufio.ReadWriter, chunkedWriter io.Write
 		bufrw.Flush()
 	}()
 
-	sockjs := sessions[sessId]
+	sockjs := sessions.Get(sessId)
 
 	if sockjs.closed {
 		sendFrame(`c[3000,"Go away!"]`, "\n", chunkedWriter, nil)
