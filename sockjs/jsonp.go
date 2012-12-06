@@ -2,139 +2,238 @@ package sockjs
 
 import (
 	"bytes"
+	"code.google.com/p/gorilla/mux"
 	"encoding/json"
+	"errors"
+	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
-	"strings"
+	"net/url"
+	"time"
 )
 
-func jsonpHandler(rw http.ResponseWriter, req *http.Request, sessId string, s *SockJSHandler) {
-
-	if sockjs, new := sessions.GetOrCreate(sessId); new {
-
-		// if sessions[sessId] == nil {
-		callback := req.FormValue("c")
-		if callback == "" {
-			rw.WriteHeader(http.StatusInternalServerError)
-			rw.Write([]byte("\"callback\" parameter required"))
-			return
-		}
-		// sockjs := newSockjsSession(sessId)
-		go s.Handler(sockjs)
-		go startHeartbeat(sessId, s)
-
-		setCors(rw.Header(), req)
-		setContentTypeWithoutCache(rw.Header(), "application/javascript; charset=UTF-8")
-		sendJsonpOpenFrame(rw, callback)
-	} else {
-		jsonpPolling(rw, req, sessId)
-	}
+//jsonp specific connection
+type jsonpConn struct {
+	baseConn
+	requests chan jsonpRequest
 }
 
-func jsonpHandlerSend(rw http.ResponseWriter, req *http.Request, sessId string, s *SockJSHandler) {
+type jsonpRequest struct {
+	rw       http.ResponseWriter
+	req      *http.Request
+	done     chan bool
+	callback string
+}
 
-	if sockjs := sessions.Get(sessId); sockjs != nil {
+// state function type definition (for xhr connection states)
+type jsonpConnectionState func(*jsonpConn) jsonpConnectionState
 
-		// if sessions[sessId] != nil {
-		// 	sockjs := sessions[sessId]
-		var value []string
-		input := req.FormValue("d")
-		if input == "" {
-			all, _ := ioutil.ReadAll(req.Body)
-			input = string(all)
+// run the state machine
+func (this *jsonpConn) run(ctx *context, sessId string, initState jsonpConnectionState) {
+	for state := initState; state != nil; {
+		state = state(this)
+	}
+	ctx.delete(sessId)
+}
+
+func (this *context) JsonpHandler(rw http.ResponseWriter, req *http.Request) {
+	sessId := mux.Vars(req)["sessionid"]
+	err := req.ParseForm()
+	if err != nil {
+		http.Error(rw, "Bad query", http.StatusInternalServerError)
+		return
+	}
+	callback := req.Form.Get("c")
+	if callback == "" {
+		http.Error(rw, `"callback" parameter required`, http.StatusInternalServerError)
+		return
+	}
+
+	conn, exists := this.getOrCreate(sessId, func() conn {
+		conn := &jsonpConn{
+			baseConn: newBaseConn(this),
+			requests: make(chan jsonpRequest),
 		}
-		if err := json.Unmarshal([]byte(input), &value); err != nil {
-			rw.WriteHeader(http.StatusInternalServerError)
-			if json_err, ok := err.(*json.SyntaxError); ok {
-				if json_err.Offset == 0 {
-					rw.Write([]byte("Payload expected."))
-					return
-				} else {
-					rw.Write([]byte("Broken JSON encoding."))
-					return
+		return conn
+	})
+
+	jsonp_conn := conn.(*jsonpConn)
+	if !exists {
+		go jsonp_conn.run(this, sessId, JsonpNewConnection)
+		go this.HandlerFunc(jsonp_conn)
+	}
+
+	done := make(chan bool)
+	// go func() {
+	jsonp_conn.requests <- jsonpRequest{
+		rw:       rw,
+		req:      req,
+		done:     done,
+		callback: callback,
+	}
+	// }()
+	<-done
+}
+
+/**************************************************************************************************/
+/********** Jsonp state functions *****************************************************************/
+/**************************************************************************************************/
+func JsonpNewConnection(conn *jsonpConn) jsonpConnectionState {
+	req := <-conn.requests
+	defer func() { req.done <- true }()
+	setContentTypeWithoutCache(req.rw.Header(), "application/javascript; charset=UTF-8")
+	setCors(req.rw.Header(), req.req)
+	conn.setCookie(req.rw.Header(), req.req)
+	conn.sendOpenFrame(req.rw, req.callback)
+	return JsonpOpenConnection
+}
+
+func JsonpOpenConnection(conn *jsonpConn) jsonpConnectionState {
+	select {
+	case req := <-conn.requests:
+		defer func() { req.done <- true }()
+		setContentTypeWithoutCache(req.rw.Header(), "application/javascript; charset=UTF-8")
+		setCors(req.rw.Header(), req.req)
+		conn.setCookie(req.rw.Header(), req.req)
+
+		select {
+		case frame, ok := <-conn.output():
+			if !ok {
+				conn.sendCloseFrame(req.rw, req.callback, 3000, "Go away!")
+				return JsonpClosedConnection
+			}
+			frames := [][]byte{frame}
+			for drain := true; drain; {
+				select {
+				case frame, ok = <-conn.output():
+					frames = append(frames, frame)
+				default:
+					drain = false
 				}
 			}
-		} else {
-			queueMessage(value, sockjs.in)
-
-			setCors(rw.Header(), req)
-			setContentTypeWithoutCache(rw.Header(), "text/plain; charset=UTF-8")
-			rw.WriteHeader(http.StatusOK)
-			rw.Write([]byte("ok"))
+			conn.sendDataFrame(req.rw, req.callback, frames...)
+		case <-time.After(conn.HeartbeatDelay): // heartbeat
+			conn.sendHeartbeatFrame(req.rw, req.callback)
 		}
+		return JsonpOpenConnection
+	case <-time.After(conn.DisconnectDelay):
+		return nil
+	}
+	panic("unreachable")
+}
+func JsonpClosedConnection(conn *jsonpConn) jsonpConnectionState {
+	select {
+	case req := <-conn.requests:
+		defer func() { req.done <- true }()
+		conn.sendCloseFrame(req.rw, req.callback, 3000, "Go away!")
+		return JsonpClosedConnection
+	case <-time.After(conn.DisconnectDelay):
+		return nil
+	}
+	panic("unreachable")
+}
+
+func (this *context) JsonpSendHandler(rw http.ResponseWriter, req *http.Request) {
+
+	sessid := mux.Vars(req)["sessionid"]
+
+	if conn, exists := this.get(sessid); exists {
+		jsonp_conn := conn.(*jsonpConn)
+
+		payload, err := extractSendContent(req)
+
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		if len(payload) < 2 {
+			// see https://github.com/sockjs/sockjs-protocol/pull/62
+			rw.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(rw, "Payload expected.")
+			return
+		}
+		var a []interface{}
+		if json.Unmarshal(payload, &a) != nil {
+			// see https://github.com/sockjs/sockjs-protocol/pull/62
+			rw.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(rw, "Broken JSON encoding.")
+			return
+		}
+		go func() { conn.input() <- []byte(payload) }()
+		setContentTypeWithoutCache(rw.Header(), "text/plain; charset=UTF-8")
+		setCors(rw.Header(), req)
+		jsonp_conn.setCookie(rw.Header(), req)
+		rw.WriteHeader(http.StatusOK)
+		rw.Write([]byte("ok"))
 	} else {
 		rw.WriteHeader(http.StatusNotFound)
 	}
 }
 
-func jsonpPolling(rw http.ResponseWriter, req *http.Request, sessId string) {
-	sockjs := sessions.Get(sessId)
-
-	setContentTypeWithoutCache(rw.Header(), "application/javascript; encoding=UTF-8")
-	setCors(rw.Header(), req)
-
-	callback := req.FormValue("c")
-
-	if sockjs.closed {
-		rw.WriteHeader(http.StatusOK)
-		sendJsonpCloseFrame(rw, callback)
-		return
+func extractSendContent(req *http.Request) ([]byte, error) {
+	// What are the options? Is this it?
+	ctype := req.Header.Get("Content-Type")
+	buf := bytes.NewBuffer(nil)
+	io.Copy(buf, req.Body)
+	req.Body.Close()
+	switch ctype {
+	case "application/x-www-form-urlencoded":
+		values, err := url.ParseQuery(string(buf.Bytes()))
+		if err != nil {
+			return []byte{}, errors.New("Could not parse query")
+		}
+		return []byte(values.Get("d")), nil
+	case "text/plain":
+		return buf.Bytes(), nil
 	}
+	return []byte{}, errors.New("Unrecognized content type")
+}
 
-	select {
-	case val, ok := <-sockjs.out:
-		if !ok {
-			return
+/**************************************************************************************************/
+/********** Jsonp writers *************************************************************************/
+/**************************************************************************************************/
+func (conn *jsonpConn) setCookie(header http.Header, req *http.Request) {
+	if conn.CookieNeeded { // cookie is needed
+		cookie, err := req.Cookie(session_cookie)
+		if err == http.ErrNoCookie {
+			cookie = test_cookie
 		}
-		values := []string{val}
-		for loop := true; loop; {
-			select {
-			case value, ok := <-sockjs.out:
-				if !ok {
-					return
-				}
-				values = append(values, value)
-			default:
-				loop = false
-				sendJsonpDataFrame(rw, callback, values)
-			}
-		}
-	case _, ok := <-sockjs.hb:
-		if !ok {
-			return
-		}
-		sendJsonpHeartbeatFrame(rw, callback)
-		// sendFrame(callback+"(\"h", "\");\r\n", rw, nil)
-	case _, ok := <-sockjs.cch:
-		if !ok {
-			return
-		}
-		sendJsonpCloseFrame(rw, callback)
-		// sendFrame(callback+`("c[3000,\"Go away!\"]");`, "\r\n", rw, nil)
+		cookie.Path = "/"
+		header.Add("set-cookie", cookie.String())
 	}
 }
 
-func sendJsonpCloseFrame(rw io.Writer, callback string) (int, error) {
-	return sendFrame(callback+`("c[3000,\"Go away!\"]");`, "\r\n", rw, nil)
+func (*jsonpConn) sendOpenFrame(w io.Writer, callback string) (int64, error) {
+	n, err := fmt.Fprintf(w, "%s(\"o\");\r\n", callback)
+	return int64(n), err
 }
 
-func sendJsonpOpenFrame(rw io.Writer, callback string) (int, error) {
-	return sendFrame(callback+"(\"o", "\");\r\n", rw, nil)
+func (*jsonpConn) sendHeartbeatFrame(w io.Writer, callback string) (int64, error) {
+	n, err := fmt.Fprintf(w, "%s(\"h\");\r\n", callback)
+	return int64(n), err
 }
 
-func sendJsonpHeartbeatFrame(rw io.Writer, callback string) (int, error) {
-	return sendFrame(callback+"(\"h", "\");\r\n", rw, nil)
+func (*jsonpConn) sendDataFrame(w io.Writer, callback string, frames ...[]byte) (int64, error) {
+	b := &bytes.Buffer{}
+	fmt.Fprintf(b, "%s(\"a[", callback)
+	for n, frame := range frames {
+		if n > 0 {
+			b.Write([]byte(","))
+		}
+
+		sesc := re.ReplaceAllFunc(frame, func(s []byte) []byte {
+			return []byte(fmt.Sprintf(`\u%04x`, []rune(string(s))[0]))
+		})
+
+		bb, _ := json.Marshal(string(sesc))
+		b.Write(bb[1 : len(bb)-1])
+	}
+	fmt.Fprintf(b, "]\");\r\n")
+	return b.WriteTo(w)
 }
 
-func sendJsonpDataFrame(rw io.Writer, callback string, values interface{}) (int, error) {
-	vals, _ := json.Marshal(values)
-	b := bytes.Buffer{}
-	b.Write([]byte(callback + `("a`))
-	value := strings.Replace(string(vals), `"`, `\"`, -1)
-	value = strings.Replace(value, `\\"`, `\\\"`, -1)
-	b.Write([]byte(value))
-	// b.Write([]byte())
-	b.Write([]byte("\");\r\n"))
-	return rw.Write(b.Bytes())
+func (*jsonpConn) sendCloseFrame(w io.Writer, callback string, code int, msg string) (int64, error) {
+	n, err := fmt.Fprintf(w, "%s(\"c[%d,\\\"%s\\\"]\");\r\n", callback, code, msg)
+	return int64(n), err
 }

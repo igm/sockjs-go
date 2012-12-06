@@ -9,7 +9,7 @@ import (
 
 var tmpl, _ = template.New("asdas").Parse(iframe_body)
 
-func iframeHandler(rw http.ResponseWriter, req *http.Request, s *SockJSHandler) {
+func (this *context) iframeHandler(rw http.ResponseWriter, req *http.Request) {
 	etag_req := req.Header.Get("If-None-Match")
 	hash := md5.New()
 	hash.Write([]byte(iframe_body))
@@ -21,7 +21,7 @@ func iframeHandler(rw http.ResponseWriter, req *http.Request, s *SockJSHandler) 
 	setContentTypeWithoutCache(rw.Header(), "text/html; charset=UTF-8")
 	setExpires(rw.Header())
 	rw.Header().Add("ETag", etag)
-	tmpl.Execute(rw, s.Config.SockjsUrl)
+	tmpl.Execute(rw, this.SockjsUrl)
 }
 
 var iframe_body = `<!DOCTYPE html>

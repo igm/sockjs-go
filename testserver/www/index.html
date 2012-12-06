@@ -4,11 +4,16 @@
 	<script type="text/javascript" src="sockjs-0.3.2.min.js"></script>
 
 	<script type="text/javascript">
-		var sock = new SockJS('http://127.0.0.1:8080/echo');
+		var sock = new SockJS('http://127.0.0.1:8080/echo', null, {
+			'protocols_whitelist':['xhr-streaming']
+		});
+
+		//  "['websocket', 'xdr-streaming', 'xhr-streaming', 'iframe-eventsource', 'iframe-htmlfile', 'xdr-polling', 'xhr-polling', 'iframe-xhr-polling', 'jsonp-polling']"
+
 		sock.onopen = function() {
 		   	// console.log('open');
 		   	window.setInterval(function() {
-				sock.send('hello world!');
+				sock.send('{"name":"igor", "surname":"Mihalik"}');
 		   	}, 2000);
 		};
 		sock.onmessage = function(e) {
