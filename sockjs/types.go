@@ -9,6 +9,8 @@ import (
 	"io"
 )
 
+var ErrConnectionClosed = errors.New("Connection closed.")
+
 type context struct {
 	Config
 	HandlerFunc
@@ -41,7 +43,7 @@ func (this *conn) ReadMessage() ([]byte, error) {
 func (this *conn) WriteMessage(val []byte) (count int, err error) {
 	defer func() {
 		if recover() != nil {
-			err = errors.New("already closed")
+			err = ErrConnectionClosed
 		}
 	}()
 	val2 := make([]byte, len(val))
@@ -55,7 +57,7 @@ func (this *conn) WriteMessage(val []byte) (count int, err error) {
 func (this *conn) Close() (err error) {
 	defer func() {
 		if recover() != nil {
-			err = errors.New("already closed")
+			err = ErrConnectionClosed
 		}
 	}()
 	close(this.input_channel)
