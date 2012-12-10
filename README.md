@@ -48,6 +48,18 @@ func EchoHandler(conn sockjs.Conn) {
 }
 ```
 
+SockJS Protocol Tests Status
+----------------------------
+```
+ERROR: test_haproxy (__main__.WebsocketHixie76)
+ERROR: test_firefox_602_connection_header (__main__.WebsocketHybi10)
+ERROR: test_headersSanity (__main__.WebsocketHybi10)
+FAIL: test_streaming (__main__.Http10)
+
+Ran 68 tests in 1.441s
+FAILED (failures=1, errors=3)
+```
+
 Important
 ---------
 This library is not production ready and use is not recommended.
