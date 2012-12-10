@@ -62,18 +62,9 @@ func (htmlfileProtocol) writeClose(w io.Writer, code int, msg string) (int, erro
 
 func (htmlfileProtocol) writeData(w io.Writer, frames ...[]byte) (int, error) {
 	b := &bytes.Buffer{}
-	fmt.Fprintf(b, "a[")
-	for n, frame := range frames {
-		if n > 0 {
-			b.Write([]byte(","))
-		}
-		sesc := re.ReplaceAllFunc(frame, func(s []byte) []byte {
-			return []byte(fmt.Sprintf(`\u%04x`, []rune(string(s))[0]))
-		})
-		d, _ := json.Marshal(string(sesc))
-		b.Write(d[1 : len(d)-1])
-	}
-	fmt.Fprintf(b, "]")
+	frame := createDataFrame(frames...)
+	bb, _ := json.Marshal(string(frame))
+	b.Write(bb[1 : len(bb)-1])
 	a := b.Bytes()
 	return fmt.Fprintf(w, "<script>\np(\"%s\");\n</script>\r\n", string(a))
 }

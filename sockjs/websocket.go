@@ -1,7 +1,6 @@
 package sockjs
 
 import (
-	"bytes"
 	"code.google.com/p/go.net/websocket"
 	"encoding/json"
 	"fmt"
@@ -112,18 +111,5 @@ func (websocketProtocol) writeClose(w io.Writer, code int, msg string) (int, err
 }
 
 func (websocketProtocol) writeData(w io.Writer, frames ...[]byte) (int, error) {
-	b := &bytes.Buffer{}
-	fmt.Fprintf(b, "a[")
-	for n, frame := range frames {
-		if n > 0 {
-			b.Write([]byte(","))
-		}
-		sesc := re.ReplaceAllFunc(frame, func(s []byte) []byte {
-			return []byte(fmt.Sprintf(`\u%04x`, []rune(string(s))[0]))
-		})
-		b.Write(sesc)
-	}
-	fmt.Fprintf(b, "]")
-	n, err := b.WriteTo(w)
-	return int(n), err
+	return w.Write(createDataFrame(frames...))
 }

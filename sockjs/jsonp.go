@@ -54,18 +54,10 @@ func (this jsonpProtocol) writeClose(w io.Writer, code int, msg string) (int, er
 
 func (this jsonpProtocol) writeData(w io.Writer, frames ...[]byte) (int, error) {
 	b := &bytes.Buffer{}
-	fmt.Fprintf(b, "%s(\"a[", this.callback)
-	for n, frame := range frames {
-		if n > 0 {
-			b.Write([]byte(","))
-		}
-		sesc := re.ReplaceAllFunc(frame, func(s []byte) []byte {
-			return []byte(fmt.Sprintf(`\u%04x`, []rune(string(s))[0]))
-		})
-		bb, _ := json.Marshal(string(sesc))
-		b.Write(bb[1 : len(bb)-1])
-	}
-	fmt.Fprintf(b, "]\");\r\n")
-	n, err := b.WriteTo(w)
-	return int(n), err
+	fmt.Fprintf(b, "%s(\"", this.callback)
+	frame := createDataFrame(frames...)
+	bb, _ := json.Marshal(string(frame))
+	b.Write(bb[1 : len(bb)-1])
+	fmt.Fprintf(b, "\");\r\n")
+	return w.Write(b.Bytes())
 }
