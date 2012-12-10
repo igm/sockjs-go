@@ -51,22 +51,24 @@ func (this *context) baseHandler(httpTx *httpTransaction) {
 	setCors(header, httpTx.req)
 	setContentType(header, httpTx.contentType())
 	disableCache(header)
+	conn.handleCookie(httpTx.rw, httpTx.req)
+	httpTx.rw.WriteHeader(http.StatusOK)
 
-	// TODO refactor/extract functionality
+	conn.httpTransactions <- httpTx
+	<-httpTx.done
+	// log.Printf("request processed with protocol: %#v:\n", httpTx.protocolHelper)
+}
+
+func (conn *conn) handleCookie(rw http.ResponseWriter, req *http.Request) {
+	header := rw.Header()
 	if conn.CookieNeeded { // cookie is needed
-		cookie, err := httpTx.req.Cookie(session_cookie)
+		cookie, err := req.Cookie(session_cookie)
 		if err == http.ErrNoCookie {
 			cookie = test_cookie
 		}
 		cookie.Path = "/"
 		header.Add("set-cookie", cookie.String())
 	}
-
-	httpTx.rw.WriteHeader(http.StatusOK)
-
-	conn.httpTransactions <- httpTx
-	<-httpTx.done
-	// log.Printf("request processed with protocol: %#v:\n", httpTx.protocolHelper)
 }
 
 func openConnectionState(c *conn) connectionStateFn {

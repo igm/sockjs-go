@@ -24,17 +24,17 @@ func NewRouter(baseUrl string, h HandlerFunc, cfg Config) http.Handler {
 	ss.HandleFunc("/xhr", ctx.wrap((*context).XhrPollingHandler)).Methods("POST")
 	ss.HandleFunc("/xhr", xhrOptions).Methods("OPTIONS")
 	ss.HandleFunc("/eventsource", ctx.wrap((*context).EventSourceHandler)).Methods("GET")
-
 	ss.HandleFunc("/jsonp", ctx.wrap((*context).JsonpHandler)).Methods("GET")
 	ss.HandleFunc("/jsonp_send", ctx.wrap((*context).JsonpSendHandler)).Methods("POST")
 	ss.HandleFunc("/htmlfile", ctx.wrap((*context).HtmlfileHandler)).Methods("GET")
+	ss.HandleFunc("/websocket", webSocketPostHandler).Methods("POST")
+	ss.HandleFunc("/websocket", ctx.wrap((*context).WebSocketHandler)).Methods("GET")
+
 	sub.HandleFunc("/iframe.html", ctx.wrap((*context).iframeHandler)).Methods("GET")
 	sub.HandleFunc("/iframe-.html", ctx.wrap((*context).iframeHandler)).Methods("GET")
 	sub.HandleFunc("/iframe-{ver}.html", ctx.wrap((*context).iframeHandler)).Methods("GET")
 	sub.HandleFunc("/", welcomeHandler).Methods("GET")
 	sub.HandleFunc("/websocket", ctx.wrap((*context).RawWebSocketHandler)).Methods("GET")
-	ss.HandleFunc("/websocket", webSocketPostHandler).Methods("POST")
-	ss.HandleFunc("/websocket", ctx.wrap((*context).WebSocketHandler)).Methods("GET")
 	return router
 }
 
@@ -57,5 +57,4 @@ func welcomeHandler(rw http.ResponseWriter, req *http.Request) {
 	setContentType(rw.Header(), "text/plain; charset=UTF-8")
 	// disableCache(rw.Header())
 	rw.Write([]byte("Welcome to SockJS!\n"))
-
 }

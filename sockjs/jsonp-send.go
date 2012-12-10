@@ -23,7 +23,6 @@ func (this *context) JsonpSendHandler(rw http.ResponseWriter, req *http.Request)
 			fmt.Fprint(rw, err.Error())
 			return
 		}
-
 		if len(data) < 2 {
 			// see https://github.com/sockjs/sockjs-protocol/pull/62
 			rw.WriteHeader(http.StatusInternalServerError)
@@ -40,15 +39,8 @@ func (this *context) JsonpSendHandler(rw http.ResponseWriter, req *http.Request)
 		setCors(rw.Header(), req)
 		setContentType(rw.Header(), "text/plain; charset=UTF-8")
 		disableCache(rw.Header())
-		// TODO refactor
-		if conn.CookieNeeded { // cookie is needed
-			cookie, err := req.Cookie(session_cookie)
-			if err == http.ErrNoCookie {
-				cookie = test_cookie
-			}
-			cookie.Path = "/"
-			rw.Header().Add("set-cookie", cookie.String())
-		}
+		conn.handleCookie(rw, req)
+
 		rw.WriteHeader(http.StatusOK)
 		rw.Write([]byte("ok"))
 		go func() { conn.input_channel <- data }() // does not need to be extra routine?

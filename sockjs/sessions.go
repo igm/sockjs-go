@@ -12,7 +12,7 @@ func newConnections() connections {
 		connections: make(map[string]*conn),
 		req:         make(chan func()),
 	}
-	// go routine to perform concurrent-safe operations of data
+	// go routine to perform concurrent-safe operations with connections map
 	go func() {
 		for r := range connections.req {
 			r()

@@ -96,7 +96,6 @@ func (this *context) WebSocketHandler(rw http.ResponseWriter, req *http.Request)
 
 func (websocketProtocol) isStreaming() bool   { return true }
 func (websocketProtocol) contentType() string { return "" }
-
 func (websocketProtocol) writeOpenFrame(w io.Writer) (int, error) {
 	return fmt.Fprint(w, "o")
 }
@@ -109,7 +108,6 @@ func (websocketProtocol) writePrelude(w io.Writer) (int, error) {
 func (websocketProtocol) writeClose(w io.Writer, code int, msg string) (int, error) {
 	return fmt.Fprintf(w, "c[%d,\"%s\"]", code, msg)
 }
-
 func (websocketProtocol) writeData(w io.Writer, frames ...[]byte) (int, error) {
 	return w.Write(createDataFrame(frames...))
 }
