@@ -33,7 +33,7 @@ import (
 
 func main() {
     sockjs.Install("/echo", EchoHandler, sockjs.DefaultConfig)
-	err := http.ListenAndServe(":8080", new(NoRedirectServer))
+	err := http.ListenAndServe(":8080", nil)
 	log.Fatal(err)
 }
 
