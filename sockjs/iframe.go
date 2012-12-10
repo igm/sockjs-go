@@ -18,7 +18,8 @@ func (this *context) iframeHandler(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusNotModified)
 		return
 	}
-	setContentTypeWithoutCache(rw.Header(), "text/html; charset=UTF-8")
+	setContentType(rw.Header(), "text/html; charset=UTF-8")
+	disableCache(rw.Header())
 	setExpires(rw.Header())
 	rw.Header().Add("ETag", etag)
 	tmpl.Execute(rw, this.SockjsUrl)

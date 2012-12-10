@@ -31,10 +31,17 @@ func (this *context) XhrSendHandler(rw http.ResponseWriter, req *http.Request) {
 			log.Fatal(err)
 		}
 		setCors(rw.Header(), req)
-		setContentTypeWithoutCache(rw.Header(), "text/plain; charset=UTF-8")
+		setContentType(rw.Header(), "text/plain; charset=UTF-8")
+		disableCache(rw.Header())
 		rw.WriteHeader(http.StatusNoContent)
-		go func() { conn.input() <- data }() // does not need to be extra routine?
+		go func() { conn.input_channel <- data }() // does not need to be extra routine?
 	} else {
 		rw.WriteHeader(http.StatusNotFound)
 	}
+}
+func xhrOptions(rw http.ResponseWriter, req *http.Request) {
+	setCors(rw.Header(), req)
+	setAllowedMethods(rw.Header(), req, "OPTIONS, POST")
+	setExpires(rw.Header())
+	rw.WriteHeader(http.StatusNoContent)
 }

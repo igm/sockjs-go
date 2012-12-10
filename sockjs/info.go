@@ -25,7 +25,8 @@ func createInfoData(ctx *context) infoData {
 func (this *context) infoHandler(rw http.ResponseWriter, req *http.Request) {
 	header := rw.Header()
 	setCors(header, req)
-	setContentTypeWithoutCache(header, "application/json; charset=UTF-8")
+	setContentType(header, "application/json; charset=UTF-8")
+	disableCache(header)
 	rw.WriteHeader(http.StatusOK)
 	json, _ := json.Marshal(createInfoData(this))
 	rw.Write(json)
@@ -34,7 +35,7 @@ func (this *context) infoHandler(rw http.ResponseWriter, req *http.Request) {
 func infoOptionsHandler(rw http.ResponseWriter, req *http.Request) {
 	header := rw.Header()
 	setCors(header, req)
-	setCorsAllowedMethods(header, req, "OPTIONS, GET")
+	setAllowedMethods(header, req, "OPTIONS, GET")
 	setExpires(header)
 	rw.WriteHeader(http.StatusNoContent)
 }

@@ -15,8 +15,7 @@ func setCors(header http.Header, req *http.Request) {
 	}
 }
 
-func setCorsAllowedMethods(header http.Header, req *http.Request, allow_methods string) {
-	// setCors(header, req)
+func setAllowedMethods(header http.Header, req *http.Request, allow_methods string) {
 	header.Add("Access-Control-Allow-Methods", allow_methods)
 }
 
@@ -26,8 +25,11 @@ func setExpires(header http.Header) {
 	header.Add("Access-Control-Max-Age", fmt.Sprintf("%d", 365*24*60*60))
 }
 
-func setContentTypeWithoutCache(header http.Header, content_type string) {
+func setContentType(header http.Header, content_type string) {
 	header.Add("content-type", content_type)
+}
+
+func disableCache(header http.Header) {
 	header.Add("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
 }
 

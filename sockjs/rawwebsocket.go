@@ -8,13 +8,12 @@ import (
 func (this *context) RawWebSocketHandler(rw http.ResponseWriter, req *http.Request) {
 	wsh := websocket.Handler(func(net_conn *websocket.Conn) {
 		defer net_conn.Close()
-		conn := newBaseConn(this)
-		go this.HandlerFunc(&conn)
-		// conn.sendOpenFrame(net_conn)
+		conn := newConn(this)
+		go this.HandlerFunc(conn)
 
 		conn_interrupted := make(chan bool)
 		go func() {
-			data := make([]byte, 32768)
+			data := make([]byte, 32768) // TODO
 			for {
 				n, err := net_conn.Read(data)
 
@@ -24,13 +23,13 @@ func (this *context) RawWebSocketHandler(rw http.ResponseWriter, req *http.Reque
 				}
 				frame := make([]byte, n+2)
 				copy(frame[1:], data[:n])
-				conn.input() <- frame
+				conn.input_channel <- frame
 			}
 		}()
 
 		for {
 			select {
-			case frame, ok := <-conn.output():
+			case frame, ok := <-conn.output_channel:
 				if !ok {
 					return
 				}

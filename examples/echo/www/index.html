@@ -13,7 +13,7 @@
 		sock.onopen = function() {
 		   	// console.log('open');
 		   	window.setInterval(function() {
-				sock.send('{"name":"igor", "surname":"Mihalik"}');
+				sock.send('{"name":"john", "surname":"doe"}');
 		   	}, 2000);
 		};
 		sock.onmessage = function(e) {

@@ -15,34 +15,30 @@ type context struct {
 	connections
 }
 
-type conn interface {
-	Conn
-	input() chan []byte
-	output() chan []byte
-}
-
-type baseConn struct {
-	input_channel  chan []byte
-	output_channel chan []byte
+type conn struct {
 	context
+	input_channel    chan []byte
+	output_channel   chan []byte
+	httpTransactions chan *httpTransaction
 }
 
-func newBaseConn(ctx *context) baseConn {
-	return baseConn{
-		input_channel:  make(chan []byte),
-		output_channel: make(chan []byte),
-		context:        *ctx,
+func newConn(ctx *context) *conn {
+	return &conn{
+		input_channel:    make(chan []byte),
+		output_channel:   make(chan []byte),
+		httpTransactions: make(chan *httpTransaction),
+		context:          *ctx,
 	}
 }
 
-func (this *baseConn) ReadMessage() ([]byte, error) {
+func (this *conn) ReadMessage() ([]byte, error) {
 	if val, ok := <-this.input_channel; ok {
 		return val[1 : len(val)-1], nil
 	}
 	return []byte{}, io.EOF
 }
 
-func (this *baseConn) WriteMessage(val []byte) (count int, err error) {
+func (this *conn) WriteMessage(val []byte) (count int, err error) {
 	defer func() {
 		if recover() != nil {
 			err = errors.New("already closed")
@@ -56,7 +52,7 @@ func (this *baseConn) WriteMessage(val []byte) (count int, err error) {
 	return len(val), nil
 }
 
-func (this *baseConn) Close() (err error) {
+func (this *conn) Close() (err error) {
 	defer func() {
 		if recover() != nil {
 			err = errors.New("already closed")
@@ -67,10 +63,11 @@ func (this *baseConn) Close() (err error) {
 	return
 }
 
-func (this *baseConn) input() chan []byte {
-	return this.input_channel
-}
+type connectionStateFn func(*conn) connectionStateFn
 
-func (this *baseConn) output() chan []byte {
-	return this.output_channel
+func (this *conn) run(cleanupFn func()) {
+	for state := openConnectionState; state != nil; {
+		state = state(this)
+	}
+	cleanupFn()
 }
