@@ -12,6 +12,7 @@ import (
 //websocket specific connection
 type websocketProtocol struct{}
 
+// author: https://github.com/mrlauer/
 func webSocketPostHandler(w http.ResponseWriter, req *http.Request) {
 	rwc, buf, err := w.(http.Hijacker).Hijack()
 	if err != nil {
@@ -28,6 +29,7 @@ func webSocketPostHandler(w http.ResponseWriter, req *http.Request) {
 }
 
 func (this *context) WebSocketHandler(rw http.ResponseWriter, req *http.Request) {
+	// author: https://github.com/mrlauer/
 	// ****** following code was taken from https://github.com/mrlauer/gosockjs
 	// I think there is a bug in SockJS. Hybi v13 wants "Origin", not "Sec-WebSocket-Origin"
 	if req.Header.Get("Sec-WebSocket-Version") == "13" && req.Header.Get("Origin") == "" {

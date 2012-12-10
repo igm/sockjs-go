@@ -50,6 +50,7 @@ func (this *context) JsonpSendHandler(rw http.ResponseWriter, req *http.Request)
 
 }
 
+// author https://github.com/mrlauer/
 func extractSendContent(req *http.Request) ([]byte, error) {
 	// What are the options? Is this it?
 	ctype := req.Header.Get("Content-Type")

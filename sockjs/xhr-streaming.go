@@ -45,7 +45,6 @@ func (xhrStreamingProtocol) writeClose(w io.Writer, code int, msg string) (int, 
 	return fmt.Fprintf(w, "c[%d,\"%s\"]\n", code, msg)
 }
 
-
 func (xhrStreamingProtocol) writeData(w io.Writer, frames ...[]byte) (int, error) {
 	frame := createDataFrame(frames...)
 	b := &bytes.Buffer{}
@@ -55,7 +54,7 @@ func (xhrStreamingProtocol) writeData(w io.Writer, frames ...[]byte) (int, error
 	return int(n), err
 }
 
-// ****** following re was taken from https://github.com/mrlauer/gosockjs
+// author: https://github.com/mrlauer/
 var re = regexp.MustCompile("[\x00-\x1f\u200c-\u200f\u2028-\u202f\u2060-\u206f\ufff0-\uffff]")
 
 func createDataFrame(frames ...[]byte) []byte {
@@ -65,6 +64,7 @@ func createDataFrame(frames ...[]byte) []byte {
 		if n > 0 {
 			b.Write([]byte(","))
 		}
+		// author: https://github.com/mrlauer/
 		sesc := re.ReplaceAllFunc(frame, func(s []byte) []byte {
 			return []byte(fmt.Sprintf(`\u%04x`, []rune(string(s))[0]))
 		})
