@@ -32,28 +32,18 @@ import (
 )
 
 func main() {
-
-	http.Handle("/echo/", sockjs.SockJSHandler{
-		Handler: SockJSHandler,
-		Config: sockjs.Config{
-			SockjsUrl:     "http://cdn.sockjs.org/sockjs-0.3.2.min.js",
-			Websocket:     true,
-			ResponseLimit: 4096,
-			Prefix:        "/echo",
-		},
-	})
-	err := http.ListenAndServe(":8080", nil)
+    sockjs.Install("/echo", EchoHandler, sockjs.DefaultConfig)
+	err := http.ListenAndServe(":8080", new(NoRedirectServer))
 	log.Fatal(err)
-	
 }
 
-func SockJSHandler(session *sockjs.SockJsConn) {
+func EchoHandler(conn sockjs.Conn) {
 	for {
-		val, err := session.Read()
-		if err != nil {
-			break
+		if msg, err := conn.ReadMessage(); err == nil {
+			go conn.WriteMessage(msg)
+		} else {
+			return
 		}
-		go func() { session.Write(val) }()
 	}
 }
 ```
