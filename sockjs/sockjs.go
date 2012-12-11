@@ -4,9 +4,13 @@ import (
 	"time"
 )
 
+// Conn is a sockjs data-frame oriented network connection.
 type Conn interface {
+	// Reads message from the open connection. Or returns error if connection is closed.
 	ReadMessage() ([]byte, error)
+	// Writes message to the open connection. Or returns error if connection is closed.
 	WriteMessage([]byte) (int, error)
+	// Closes open conenction.  Or returns error if connection is already closed.
 	Close() error
 }
 

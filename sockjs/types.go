@@ -9,6 +9,7 @@ import (
 	"io"
 )
 
+// Error variable
 var ErrConnectionClosed = errors.New("Connection closed.")
 
 type context struct {
