@@ -30,7 +30,7 @@ type conn struct {
 func newConn(ctx *context) *conn {
 	return &conn{
 		input_channel:    make(chan []byte),
-		output_channel:   make(chan []byte),
+		output_channel:   make(chan []byte, 64),
 		httpTransactions: make(chan *httpTransaction),
 		timeout:          time.Second * 30,
 		context:          *ctx,
