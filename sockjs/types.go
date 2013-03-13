@@ -7,6 +7,7 @@ Cotains package internal types (not public)
 import (
 	"errors"
 	"io"
+	"time"
 )
 
 // Error variable
@@ -22,14 +23,16 @@ type conn struct {
 	context
 	input_channel    chan []byte
 	output_channel   chan []byte
+	timeout          time.Duration
 	httpTransactions chan *httpTransaction
 }
 
 func newConn(ctx *context) *conn {
 	return &conn{
 		input_channel:    make(chan []byte),
-		output_channel:   make(chan []byte),
+		output_channel:   make(chan []byte, 64),
 		httpTransactions: make(chan *httpTransaction),
+		timeout:          time.Second * 30,
 		context:          *ctx,
 	}
 }
@@ -42,16 +45,13 @@ func (this *conn) ReadMessage() ([]byte, error) {
 }
 
 func (this *conn) WriteMessage(val []byte) (count int, err error) {
-	defer func() {
-		if recover() != nil {
-			err = ErrConnectionClosed
-		}
-	}()
 	val2 := make([]byte, len(val))
 	copy(val2, val)
-	go func() {
-		this.output_channel <- val2
-	}()
+	select {
+	case this.output_channel <- val2:
+	case <-time.After(this.timeout):
+		return 0, ErrConnectionClosed
+	}
 	return len(val), nil
 }
 

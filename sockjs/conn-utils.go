@@ -27,6 +27,9 @@ func hijack(rw http.ResponseWriter) (conn net.Conn, err error) {
 func connectionClosedGuard(conn net.Conn, conn_interrupted chan<- bool) {
 	_, err := conn.Read([]byte{1})
 	if err != nil {
-		conn_interrupted <- true
+		select {
+		case conn_interrupted <- true:
+		default:
+		}
 	}
 }
