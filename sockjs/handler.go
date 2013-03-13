@@ -115,11 +115,11 @@ func activeConnectionState(c *conn) connectionStateFn {
 		}()
 
 		// start protocol handling
-		conn_closed := make(chan bool)
+		conn_closed := make(chan bool, 1)
 		defer func() { conn_closed <- true }()
 		go c.activeConnectionGuard(conn_closed)
 
-		conn_interrupted := make(chan bool)
+		conn_interrupted := make(chan bool, 1)
 		go connectionClosedGuard(conn, conn_interrupted)
 
 		bytes_sent := 0
