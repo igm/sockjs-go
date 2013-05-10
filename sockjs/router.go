@@ -1,7 +1,7 @@
 package sockjs
 
 import (
-	"code.google.com/p/gorilla/mux"
+	"github.com/gorilla/mux"
 	"net/http"
 )
 

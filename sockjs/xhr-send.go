@@ -1,9 +1,9 @@
 package sockjs
 
 import (
-	"code.google.com/p/gorilla/mux"
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/mux"
 	"io/ioutil"
 	"net/http"
 )
