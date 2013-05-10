@@ -11,9 +11,7 @@ This necessitates the use of a server, which this is one version of, for GO.
 SockJS-Go server
 ================
 
-SockJS-Go is a Node.js server side counterpart of
-[SockJS-client browser library](https://github.com/sockjs/sockjs-client)
-written in CoffeeScript.
+SockJS-Go is a [SockJS](https://github.com/sockjs/sockjs-client) server written in Go.
 
 To install `sockjs-go` run:
 

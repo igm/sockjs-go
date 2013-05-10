@@ -2,9 +2,9 @@ package sockjs
 
 import (
 	"bytes"
-	"code.google.com/p/gorilla/mux"
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/mux"
 	"io"
 	"net/http"
 	"strings"
