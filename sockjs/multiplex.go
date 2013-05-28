@@ -5,17 +5,35 @@ import (
 	"strings"
 	)
 
+
+type Channel struct {
+	name string
+	clients map[string]Conn
+	onConnect func(conn Conn)
+	onClose func(conn Conn)
+	onData func(conn Conn, msg string)	
+}
+
 type ConnectionMultiplexer struct {
-	channels map[string]map[Conn]bool
+	channels map[string]Channel
 	fallback func(conn Conn, msg string)
 }
 
 
-func NewMultiplexer(fallback func(conn Conn, msg string)) *ConnectionMultiplexer {
+func NewMultiplexer(fallback func(conn Conn, msg string)) ConnectionMultiplexer {
 	muxer := new(ConnectionMultiplexer)
 	muxer.fallback = fallback
-	muxer.channels = make(map[string]map[Conn]bool)
-	return muxer
+	muxer.channels = make(map[string]Channel)
+	return (*muxer)
+}
+
+func NewChannel(name string) Channel{
+	channel := new(Channel)
+	channel.clients = make(map[string]Conn)
+	channel.onConnect = func(conn Conn) { conn.WriteMessage([]byte("welcome!")) }
+	channel.onClose = func(conn Conn) { conn.WriteMessage([]byte("bye!")) }
+	channel.onData = func(conn Conn, msg string) { channel.Broadcast(msg) }
+	return (*channel)
 }
 
 func (this ConnectionMultiplexer) Handle(conn Conn) {
@@ -32,51 +50,67 @@ func (this ConnectionMultiplexer) Handle(conn Conn) {
 				msg_channel, parts = parts[len(parts)-1], parts[:len(parts) - 1]
 				msg_payload = strings.Join(parts,"")
 				if msg_type == "sub" {
-					go this.SubscribeClient(conn, msg_channel)
-				} else if _, exists := this.channels[msg_channel]; exists {
+					go this.subscribeClient(conn, msg_channel)
+				} else if channel, exists := this.channels[msg_channel]; exists {
 					if msg_type == "uns" {
-						go this.UnsubscribeClient(conn, msg_channel)
+						go channel.UnsubscribeClient(conn)
 					} else if msg_type == "msg" {
-						go this.Broadcast(msg_channel, msg_payload)
+						go channel.onData(conn, msg_payload)
 					}
 				} else {
 					go this.callFallback(conn, message)
 				}
 			}
 		} else {
-			log.Fatal(err)
 			break
 		}
 	}
 }
 
 
-func (this *ConnectionMultiplexer) SubscribeClient(conn Conn, channelName string) {
-	if _, exists := this.channels[channelName]; exists {
-		this.RegisterChannel(channelName)
-	} 
-	this.channels[channelName][conn] = true
-}
-
-func (this *ConnectionMultiplexer) UnsubscribeClient(conn Conn, channelName string) {
-	if _, exists := this.channels[channelName][conn]; exists {
-		delete(this.channels[channelName], conn)
-	}
-}
 
 func (this *ConnectionMultiplexer) callFallback(conn Conn, msg string) {
 	this.fallback(conn, msg)
 }
 
-func (this *ConnectionMultiplexer) RegisterChannel(channelName string) {
-	this.channels[channelName] = make(map[Conn]bool)
+func (this *ConnectionMultiplexer) RegisterChannel(channel Channel) {
+	this.channels[channel.name] = channel
 }
 
-func (this *ConnectionMultiplexer) Broadcast(channelName string, message string) {
-	for connection, _ := range this.channels[channelName] {
-		go connection.WriteMessage([]byte(message))
+func (this *ConnectionMultiplexer) subscribeClient(conn Conn, channel_name string) {
+	if channel, exists := this.channels[channel_name]; exists {
+		channel.SubscribeClient(conn)
+	} else {
+		channel := NewChannel(channel_name)
+		this.channels[channel_name] = channel
+		channel.SubscribeClient(conn)
 	}	
 }
+
+func (this *Channel) Broadcast(message string) {
+	for _, client := range this.clients {
+		go client.WriteMessage([]byte(message))
+	}	
+}
+
+func (this *Channel) SendToClient( client_id string, message string) {
+	if client, exists := this.clients[client_id]; exists {
+		go this.onData(client, message)
+	}
+}
+
+func (this *Channel) SubscribeClient(conn Conn) {
+	log.Println("sess: "+conn.GetSessionID())
+	sessid := conn.GetSessionID()
+	this.clients[sessid] = conn
+	this.onConnect(conn)
+}
+
+func (this *Channel) UnsubscribeClient(conn Conn) {
+	delete(this.clients, conn.GetSessionID())
+	this.onClose(conn)
+}
+
 
 func bytesToString(bytes []byte) string {
 	n := -1

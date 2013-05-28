@@ -37,6 +37,7 @@ func (this *connections) getOrCreate(sessid string, f connFactory) (conn *conn, 
 		conn, exists = this.connections[sessid]
 		if !exists {
 			this.connections[sessid] = f()
+			this.connections[sessid].sessid = sessid
 			conn = this.connections[sessid]
 		}
 		resp <- true

@@ -21,6 +21,7 @@ type context struct {
 
 type conn struct {
 	context
+	sessid           string
 	input_channel    chan []byte
 	output_channel   chan []byte
 	timeout          time.Duration
@@ -64,6 +65,11 @@ func (this *conn) Close() (err error) {
 	close(this.input_channel)
 	close(this.output_channel)
 	return
+}
+
+
+func (this *conn) GetSessionID() string {
+	return this.sessid
 }
 
 type connectionStateFn func(*conn) connectionStateFn

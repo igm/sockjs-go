@@ -12,6 +12,8 @@ type Conn interface {
 	WriteMessage([]byte) (int, error)
 	// Closes open conenction.  Or returns error if connection is already closed.
 	Close() error
+	//
+	GetSessionID() string
 }
 
 type HandlerFunc func(Conn)
