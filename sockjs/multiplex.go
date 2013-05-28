@@ -9,16 +9,15 @@ import (
 type Channel struct {
 	name string
 	clients map[string]Conn
-	onConnect func(conn Conn)
-	onClose func(conn Conn)
-	onData func(conn Conn, msg string)	
+	OnConnect func(conn Conn)
+	OnClose func(conn Conn)
+	OnData func(conn Conn, msg string)	
 }
 
 type ConnectionMultiplexer struct {
 	channels map[string]Channel
 	fallback func(conn Conn, msg string)
 }
-
 
 func NewMultiplexer(fallback func(conn Conn, msg string)) ConnectionMultiplexer {
 	muxer := new(ConnectionMultiplexer)
@@ -29,10 +28,11 @@ func NewMultiplexer(fallback func(conn Conn, msg string)) ConnectionMultiplexer 
 
 func NewChannel(name string) Channel{
 	channel := new(Channel)
+	channel.name = name
 	channel.clients = make(map[string]Conn)
-	channel.onConnect = func(conn Conn) { conn.WriteMessage([]byte("welcome!")) }
-	channel.onClose = func(conn Conn) { conn.WriteMessage([]byte("bye!")) }
-	channel.onData = func(conn Conn, msg string) { channel.Broadcast(msg) }
+	channel.OnConnect = func(conn Conn) { channel.SendToClient(conn, "welcome!")}
+	channel.OnClose = func(conn Conn) { conn.WriteMessage([]byte("\"bye!\"")) }
+	channel.OnData = func(conn Conn, msg string) { channel.Broadcast("something else entirely") }
 	return (*channel)
 }
 
@@ -40,14 +40,14 @@ func (this ConnectionMultiplexer) Handle(conn Conn) {
 	for {
 		if msg, err := conn.ReadMessage(); err == nil {
 			// add client to a channel
-			message := bytesToString(msg)
+			message := strings.Trim(bytesToString(msg), "\"")
 			parts := strings.Split(message, ",")
-			if (len(parts) >= 3) {
+			if (len(parts) >= 2) {
 				var msg_type string
 				var msg_channel string
 				var msg_payload string
-				msg_type, parts = parts[len(parts)-1], parts[:len(parts) - 1]
-				msg_channel, parts = parts[len(parts)-1], parts[:len(parts) - 1]
+				msg_type, parts = parts[0], parts[1:]
+				msg_channel, parts = parts[0], parts[1:]
 				msg_payload = strings.Join(parts,"")
 				if msg_type == "sub" {
 					go this.subscribeClient(conn, msg_channel)
@@ -55,11 +55,11 @@ func (this ConnectionMultiplexer) Handle(conn Conn) {
 					if msg_type == "uns" {
 						go channel.UnsubscribeClient(conn)
 					} else if msg_type == "msg" {
-						go channel.onData(conn, msg_payload)
+						go channel.OnData(conn, msg_payload)
 					}
-				} else {
-					go this.callFallback(conn, message)
 				}
+			} else {
+				log.Println(message)
 			}
 		} else {
 			break
@@ -89,26 +89,23 @@ func (this *ConnectionMultiplexer) subscribeClient(conn Conn, channel_name strin
 
 func (this *Channel) Broadcast(message string) {
 	for _, client := range this.clients {
-		go client.WriteMessage([]byte(message))
+		go this.SendToClient(client, message)
 	}	
 }
 
-func (this *Channel) SendToClient( client_id string, message string) {
-	if client, exists := this.clients[client_id]; exists {
-		go this.onData(client, message)
-	}
+func (this *Channel) SendToClient(client Conn, message string) {
+	message = "\"msg,"+this.name+","+message+"\""
+	go client.WriteMessage([]byte(message))
 }
 
 func (this *Channel) SubscribeClient(conn Conn) {
-	log.Println("sess: "+conn.GetSessionID())
-	sessid := conn.GetSessionID()
-	this.clients[sessid] = conn
-	this.onConnect(conn)
+	this.clients["foo"] = conn
+	this.OnConnect(conn)
 }
 
 func (this *Channel) UnsubscribeClient(conn Conn) {
 	delete(this.clients, conn.GetSessionID())
-	this.onClose(conn)
+	this.OnClose(conn)
 }
 
 
