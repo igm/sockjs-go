@@ -49,7 +49,7 @@ func New(fallback func(conn Conn, msg string)) *ConnectionMultiplexer {
 
 func (this *ConnectionMultiplexer) SubscribeClient(conn Conn, channelName string) {
 	if _, exists := this.channels[channelName]; exists {
-		this.channels[channelName] = make(map[Conn]bool)
+		this.RegisterChannel(channelName)
 	} 
 	this.channels[channelName][conn] = true
 }
@@ -64,7 +64,8 @@ func (this *ConnectionMultiplexer) callFallback(conn Conn, msg string) {
 	this.fallback(conn, msg)
 }
 
-func (this *ConnectionMultiplexer) RegisterChannel(channelName string) {	
+func (this *ConnectionMultiplexer) RegisterChannel(channelName string) {
+	this.channels[channelName] = make(map[Conn]bool)
 }
 
 func (this *ConnectionMultiplexer) Broadcast(channelName string, message string) {
