@@ -1,6 +1,7 @@
 package sockjs
 
 import (
+	"log"
 	"strings"
 	)
 
@@ -23,19 +24,20 @@ func (this ConnectionMultiplexer) Handle(conn Conn) {
 				msg_channel, parts = parts[len(parts)-1], parts[:len(parts) - 1]
 				msg_payload = strings.Join(parts,"")
 				if msg_type == "sub" {
-					this.SubscribeClient(conn, msg_channel)
+					go this.SubscribeClient(conn, msg_channel)
 				} else if _, exists := this.channels[msg_channel]; exists {
 					if msg_type == "uns" {
-						this.UnsubscribeClient(conn, msg_channel)
+						go this.UnsubscribeClient(conn, msg_channel)
 					} else if msg_type == "msg" {
-						this.Broadcast(msg_channel, msg_payload)
+						go this.Broadcast(msg_channel, msg_payload)
 					}
 				} else {
-					this.callFallback(conn, message)
+					go this.callFallback(conn, message)
 				}
 			}
 		} else {
-			
+			log.Fatal(err)
+			break
 		}
 	}
 }
