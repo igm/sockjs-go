@@ -10,6 +10,14 @@ type ConnectionMultiplexer struct {
 	fallback func(conn Conn, msg string)
 }
 
+
+func NewMultiplexer(fallback func(conn Conn, msg string)) *ConnectionMultiplexer {
+	muxer := new(ConnectionMultiplexer)
+	muxer.fallback = fallback
+	muxer.channels = make(map[string]map[Conn]bool)
+	return muxer
+}
+
 func (this ConnectionMultiplexer) Handle(conn Conn) {
 	for {
 		if msg, err := conn.ReadMessage(); err == nil {
@@ -42,12 +50,6 @@ func (this ConnectionMultiplexer) Handle(conn Conn) {
 	}
 }
 
-func Multiplexer(fallback func(conn Conn, msg string)) *ConnectionMultiplexer {
-	muxer := new(ConnectionMultiplexer)
-	muxer.fallback = fallback
-	muxer.channels = make(map[string]map[Conn]bool)
-	return muxer
-}
 
 func (this *ConnectionMultiplexer) SubscribeClient(conn Conn, channelName string) {
 	if _, exists := this.channels[channelName]; exists {
