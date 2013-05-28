@@ -42,7 +42,7 @@ func (this ConnectionMultiplexer) Handle(conn Conn) {
 	}
 }
 
-func New(fallback func(conn Conn, msg string)) *ConnectionMultiplexer {
+func Multiplexer(fallback func(conn Conn, msg string)) *ConnectionMultiplexer {
 	muxer := new(ConnectionMultiplexer)
 	muxer.fallback = fallback
 	muxer.channels = make(map[string]map[Conn]bool)
