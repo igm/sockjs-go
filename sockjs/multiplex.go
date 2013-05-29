@@ -3,14 +3,14 @@ package sockjs
 import (
 	"log"
 	"strings"
-	)
+)
 
 type Channel struct {
-	name string
-	clients map[Conn]bool
+	name      string
+	clients   map[Conn]bool
 	OnConnect func(channel Channel, conn Conn)
-	OnClose func(channel Channel, conn Conn)
-	OnData func(channel Channel, conn Conn, msg string)	
+	OnClose   func(channel Channel, conn Conn)
+	OnData    func(channel Channel, conn Conn, msg string)
 }
 
 type ConnectionMultiplexer struct {
@@ -25,11 +25,11 @@ func NewMultiplexer(fallback func(conn Conn, msg string)) ConnectionMultiplexer 
 	return (*muxer)
 }
 
-func NewChannel(name string) Channel{
+func NewChannel(name string) Channel {
 	channel := new(Channel)
 	channel.name = name
 	channel.clients = make(map[Conn]bool)
-	channel.OnConnect = func(this Channel, conn Conn) { this.SendToClient(conn, "welcome!")}
+	channel.OnConnect = func(this Channel, conn Conn) { this.SendToClient(conn, "welcome!") }
 	channel.OnClose = func(this Channel, conn Conn) { this.SendToClient(conn, "bye!") }
 	channel.OnData = func(this Channel, conn Conn, msg string) { this.Broadcast(msg) }
 	return (*channel)
@@ -41,13 +41,13 @@ func (this ConnectionMultiplexer) Handle(conn Conn) {
 			// add client to a channel
 			message := strings.Trim(bytesToString(msg), "\"")
 			parts := strings.Split(message, ",")
-			if (len(parts) >= 2) {
+			if len(parts) >= 2 {
 				var msg_type string
 				var msg_channel string
 				var msg_payload string
 				msg_type, parts = parts[0], parts[1:]
 				msg_channel, parts = parts[0], parts[1:]
-				msg_payload = strings.Join(parts,"")
+				msg_payload = strings.Join(parts, "")
 				if msg_type == "sub" {
 					go this.subscribeClient(conn, msg_channel)
 				} else if channel, exists := this.channels[msg_channel]; exists {
@@ -85,17 +85,17 @@ func (this *ConnectionMultiplexer) subscribeClient(conn Conn, channel_name strin
 		channel := NewChannel(channel_name)
 		this.channels[channel_name] = channel
 		channel.SubscribeClient(conn)
-	}	
+	}
 }
 
 func (this *Channel) Broadcast(message string) {
 	for client, _ := range this.clients {
 		go this.SendToClient(client, message)
-	}	
+	}
 }
 
 func (this *Channel) SendToClient(client Conn, message string) {
-	message = strings.Join([]string{"\"msg", this.name, message+"\""}, ",") 
+	message = strings.Join([]string{"\"msg", this.name, message + "\""}, ",")
 	go client.WriteMessage([]byte(message))
 }
 
@@ -108,7 +108,6 @@ func (this *Channel) UnsubscribeClient(conn Conn) {
 	delete(this.clients, conn)
 	this.OnClose((*this), conn)
 }
-
 
 func bytesToString(bytes []byte) string {
 	n := -1
