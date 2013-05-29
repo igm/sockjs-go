@@ -5,13 +5,12 @@ import (
 	"strings"
 	)
 
-
 type Channel struct {
 	name string
-	clients map[string]Conn
-	OnConnect func(conn Conn)
-	OnClose func(conn Conn)
-	OnData func(conn Conn, msg string)	
+	clients map[Conn]bool
+	OnConnect func(channel Channel, conn Conn)
+	OnClose func(channel Channel, conn Conn)
+	OnData func(channel Channel, conn Conn, msg string)	
 }
 
 type ConnectionMultiplexer struct {
@@ -29,10 +28,10 @@ func NewMultiplexer(fallback func(conn Conn, msg string)) ConnectionMultiplexer 
 func NewChannel(name string) Channel{
 	channel := new(Channel)
 	channel.name = name
-	channel.clients = make(map[string]Conn)
-	channel.OnConnect = func(conn Conn) { channel.SendToClient(conn, "welcome!")}
-	channel.OnClose = func(conn Conn) { conn.WriteMessage([]byte("\"bye!\"")) }
-	channel.OnData = func(conn Conn, msg string) { channel.Broadcast("something else entirely") }
+	channel.clients = make(map[Conn]bool)
+	channel.OnConnect = func(this Channel, conn Conn) { this.SendToClient(conn, "welcome!")}
+	channel.OnClose = func(this Channel, conn Conn) { this.SendToClient(conn, "bye!") }
+	channel.OnData = func(this Channel, conn Conn, msg string) { this.Broadcast(msg) }
 	return (*channel)
 }
 
@@ -55,7 +54,7 @@ func (this ConnectionMultiplexer) Handle(conn Conn) {
 					if msg_type == "uns" {
 						go channel.UnsubscribeClient(conn)
 					} else if msg_type == "msg" {
-						go channel.OnData(conn, msg_payload)
+						go channel.OnData(channel, conn, msg_payload)
 					}
 				}
 			} else {
@@ -67,7 +66,9 @@ func (this ConnectionMultiplexer) Handle(conn Conn) {
 	}
 }
 
-
+func (this *ConnectionMultiplexer) GetHandler() func(conn Conn) {
+	return func(conn Conn) { this.Handle(conn) }
+}
 
 func (this *ConnectionMultiplexer) callFallback(conn Conn, msg string) {
 	this.fallback(conn, msg)
@@ -88,24 +89,24 @@ func (this *ConnectionMultiplexer) subscribeClient(conn Conn, channel_name strin
 }
 
 func (this *Channel) Broadcast(message string) {
-	for _, client := range this.clients {
+	for client, _ := range this.clients {
 		go this.SendToClient(client, message)
 	}	
 }
 
 func (this *Channel) SendToClient(client Conn, message string) {
-	message = "\"msg,"+this.name+","+message+"\""
+	message = strings.Join([]string{"\"msg", this.name, message+"\""}, ",") 
 	go client.WriteMessage([]byte(message))
 }
 
 func (this *Channel) SubscribeClient(conn Conn) {
-	this.clients["foo"] = conn
-	this.OnConnect(conn)
+	this.clients[conn] = true
+	this.OnConnect((*this), conn)
 }
 
 func (this *Channel) UnsubscribeClient(conn Conn) {
-	delete(this.clients, conn.GetSessionID())
-	this.OnClose(conn)
+	delete(this.clients, conn)
+	this.OnClose((*this), conn)
 }
 
 
