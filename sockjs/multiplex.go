@@ -39,7 +39,7 @@ func (this ConnectionMultiplexer) Handle(conn Conn) {
 	for {
 		if msg, err := conn.ReadMessage(); err == nil {
 			// add client to a channel
-			message := strings.Trim(bytesToString(msg), "\"")
+			message := strings.Trim(BytesToString(msg), "\"")
 			parts := strings.Split(message, ",")
 			if len(parts) >= 2 {
 				var msg_type string
@@ -109,7 +109,7 @@ func (this *Channel) UnsubscribeClient(conn Conn) {
 	this.OnClose((*this), conn)
 }
 
-func bytesToString(bytes []byte) string {
+func BytesToString(bytes []byte) string {
 	n := -1
 	for i, b := range bytes {
 		if b == 0 {
