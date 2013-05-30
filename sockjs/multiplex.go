@@ -1,8 +1,10 @@
 package sockjs
 
 import (
+	"fmt"
 	"log"
 	"strings"
+	"strconv"
 )
 
 type Channel struct {
@@ -47,7 +49,7 @@ func (this ConnectionMultiplexer) Handle(conn Conn) {
 				var msg_payload string
 				msg_type, parts = parts[0], parts[1:]
 				msg_channel, parts = parts[0], parts[1:]
-				msg_payload = strings.Replace(strings.Join(parts, ","), "\\", "", -1)
+				msg_payload = strings.Join(parts, ",")
 				if msg_type == "sub" {
 					go this.subscribeClient(conn, msg_channel)
 				} else if channel, exists := this.channels[msg_channel]; exists {
@@ -95,7 +97,9 @@ func (this *Channel) Broadcast(message string) {
 }
 
 func (this *Channel) SendToClient(client Conn, message string) {
-	message = strings.Join([]string{"'msg", this.name, message + "'"}, ",")
+	
+	message = strconv.Quote(strings.Join([]string{`msg`, this.name, message}, ","))
+	log.Println(message)
 	go client.WriteMessage([]byte(message))
 }
 
@@ -110,12 +114,5 @@ func (this *Channel) UnsubscribeClient(conn Conn) {
 }
 
 func BytesToString(bytes []byte) string {
-	n := -1
-	for i, b := range bytes {
-		if b == 0 {
-			break
-		}
-		n = i
-	}
-	return string(bytes[:n+1])
+	return fmt.Sprintf("%s", bytes)
 }
