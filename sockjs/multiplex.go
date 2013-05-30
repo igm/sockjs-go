@@ -95,7 +95,7 @@ func (this *Channel) Broadcast(message string) {
 }
 
 func (this *Channel) SendToClient(client Conn, message string) {
-	message = strings.Join([]string{"\"msg", this.name, message + "\""}, ",")
+	message = strings.Join([]string{"'msg", this.name, message + "'"}, ",")
 	go client.WriteMessage([]byte(message))
 }
 
