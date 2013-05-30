@@ -47,7 +47,7 @@ func (this ConnectionMultiplexer) Handle(conn Conn) {
 				var msg_payload string
 				msg_type, parts = parts[0], parts[1:]
 				msg_channel, parts = parts[0], parts[1:]
-				msg_payload = strings.Join(parts, "")
+				msg_payload = strings.Replace(strings.Join(parts, ","), "\\", "", -1)
 				if msg_type == "sub" {
 					go this.subscribeClient(conn, msg_channel)
 				} else if channel, exists := this.channels[msg_channel]; exists {
