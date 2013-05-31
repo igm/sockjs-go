@@ -1,7 +1,6 @@
 package sockjs
 
 import (
-	"bufio"
 	"errors"
 	"net"
 	"net/http"
@@ -14,12 +13,10 @@ func hijack(rw http.ResponseWriter) (conn net.Conn, err error) {
 		err = errors.New("webserver doesn't support hijacking")
 		return
 	}
-	var buf *bufio.ReadWriter
-	conn, buf, err = hj.Hijack()
+	conn, _, err = hj.Hijack()
 	if err != nil {
 		return
 	}
-	buf.Flush()
 	return
 }
 

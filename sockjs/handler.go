@@ -80,7 +80,9 @@ func openConnectionState(c *conn) connectionStateFn {
 
 		writer := httpTx.rw
 		httpTx.writePrelude(writer)
+		writer.(http.Flusher).Flush()
 		httpTx.writeOpenFrame(writer)
+		writer.(http.Flusher).Flush()
 
 		if httpTx.isStreaming() {
 			go func() { c.httpTransactions <- httpTx }()
@@ -100,6 +102,7 @@ func activeConnectionState(c *conn) connectionStateFn {
 	case httpTx := <-c.httpTransactions:
 		writer := httpTx.rw
 		// continue with protocol handling with hijacked connection
+
 		conn, err := hijack(writer)
 		if err != nil {
 			// TODO
