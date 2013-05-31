@@ -12,10 +12,10 @@ import (
 )
 
 // TODO try to refactor and reuse code with xhr_send
-func (this *context) JsonpSendHandler(rw http.ResponseWriter, req *http.Request) {
+func (ctx *context) JsonpSendHandler(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	sessid := vars["sessionid"]
-	if conn, exists := this.get(sessid); exists {
+	if conn, exists := ctx.get(sessid); exists {
 		// data, err := ioutil.ReadAll(req.Body)
 		data, err := extractSendContent(req)
 		if err != nil {

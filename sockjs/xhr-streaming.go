@@ -12,7 +12,7 @@ import (
 
 type xhrStreamingProtocol struct{}
 
-func (this *context) XhrStreamingHandler(rw http.ResponseWriter, req *http.Request) {
+func (ctx *context) XhrStreamingHandler(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	sessid := vars["sessionid"]
 
@@ -23,7 +23,7 @@ func (this *context) XhrStreamingHandler(rw http.ResponseWriter, req *http.Reque
 		sessionId:      sessid,
 		done:           make(chan bool),
 	}
-	this.baseHandler(httpTx)
+	ctx.baseHandler(httpTx)
 }
 
 func (xhrStreamingProtocol) isStreaming() bool   { return true }

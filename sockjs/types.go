@@ -37,41 +37,41 @@ func newConn(ctx *context) *conn {
 	}
 }
 
-func (this *conn) ReadMessage() ([]byte, error) {
-	if val, ok := <-this.input_channel; ok {
+func (c *conn) ReadMessage() ([]byte, error) {
+	if val, ok := <-c.input_channel; ok {
 		return val[1 : len(val)-1], nil
 	}
 	return []byte{}, io.EOF
 }
 
-func (this *conn) WriteMessage(val []byte) (count int, err error) {
+func (c *conn) WriteMessage(val []byte) (count int, err error) {
 	val2 := make([]byte, len(val))
 	copy(val2, val)
 	select {
-	case this.output_channel <- val2:
-	case <-time.After(this.timeout):
+	case c.output_channel <- val2:
+	case <-time.After(c.timeout):
 		return 0, ErrConnectionClosed
 	}
 	return len(val), nil
 }
 
-func (this *conn) Close() (err error) {
+func (c *conn) Close() (err error) {
 	defer func() {
 		if recover() != nil {
 			err = ErrConnectionClosed
 		}
 	}()
-	close(this.input_channel)
-	close(this.output_channel)
+	close(c.input_channel)
+	close(c.output_channel)
 	return
 }
 
 type connectionStateFn func(*conn) connectionStateFn
 
-func (this *conn) run(cleanupFn func()) {
+func (c *conn) run(cleanupFn func()) {
 	for state := openConnectionState; state != nil; {
-		state = state(this)
+		state = state(c)
 	}
-	this.Close()
+	c.Close()
 	cleanupFn()
 }

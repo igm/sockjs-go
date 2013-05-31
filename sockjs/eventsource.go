@@ -10,7 +10,7 @@ import (
 
 type eventSourceProtocol struct{}
 
-func (this *context) EventSourceHandler(rw http.ResponseWriter, req *http.Request) {
+func (ctx *context) EventSourceHandler(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	sessid := vars["sessionid"]
 
@@ -21,7 +21,7 @@ func (this *context) EventSourceHandler(rw http.ResponseWriter, req *http.Reques
 		sessionId:      sessid,
 		done:           make(chan bool),
 	}
-	this.baseHandler(httpTx)
+	ctx.baseHandler(httpTx)
 }
 
 func (eventSourceProtocol) isStreaming() bool   { return true }

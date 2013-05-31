@@ -17,26 +17,26 @@ func newConnections() connections {
 	}
 }
 
-func (this *connections) get(sessid string) (conn *conn, exists bool) {
-	this.mu.RLock()
-	defer this.mu.RUnlock()
-	conn, exists = this.connections[sessid]
+func (c *connections) get(sessid string) (conn *conn, exists bool) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	conn, exists = c.connections[sessid]
 	return
 }
 
-func (this *connections) getOrCreate(sessid string, f connFactory) (conn *conn, exists bool) {
-	this.mu.Lock()
-	defer this.mu.Unlock()
-	conn, exists = this.connections[sessid]
+func (c *connections) getOrCreate(sessid string, f connFactory) (conn *conn, exists bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	conn, exists = c.connections[sessid]
 	if !exists {
-		this.connections[sessid] = f()
-		conn = this.connections[sessid]
+		c.connections[sessid] = f()
+		conn = c.connections[sessid]
 	}
 	return
 }
 
-func (this *connections) delete(sessid string) {
-	this.mu.Lock()
-	defer this.mu.Unlock()
-	delete(this.connections, sessid)
+func (c *connections) delete(sessid string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	delete(c.connections, sessid)
 }

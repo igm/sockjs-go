@@ -8,10 +8,10 @@ import (
 	"net/http"
 )
 
-func (this *context) XhrSendHandler(rw http.ResponseWriter, req *http.Request) {
+func (ctx *context) XhrSendHandler(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	sessid := vars["sessionid"]
-	if conn, exists := this.get(sessid); exists {
+	if conn, exists := ctx.get(sessid); exists {
 		data, err := ioutil.ReadAll(req.Body)
 		if err != nil {
 			rw.WriteHeader(http.StatusInternalServerError)

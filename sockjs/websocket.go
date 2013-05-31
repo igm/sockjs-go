@@ -28,7 +28,7 @@ func webSocketPostHandler(w http.ResponseWriter, req *http.Request) {
 	return
 }
 
-func (this *context) WebSocketHandler(rw http.ResponseWriter, req *http.Request) {
+func (ctx *context) WebSocketHandler(rw http.ResponseWriter, req *http.Request) {
 	// author: https://github.com/mrlauer/
 	// ****** following code was taken from https://github.com/mrlauer/gosockjs
 	// I think there is a bug in SockJS. Hybi v13 wants "Origin", not "Sec-WebSocket-Origin"
@@ -51,9 +51,9 @@ func (this *context) WebSocketHandler(rw http.ResponseWriter, req *http.Request)
 	proto := websocketProtocol{}
 	wsh := websocket.Handler(func(net_conn *websocket.Conn) {
 		proto.writeOpenFrame(net_conn)
-		conn := newConn(this)
+		conn := newConn(ctx)
 
-		go this.HandlerFunc(conn)
+		go ctx.HandlerFunc(conn)
 
 		conn_interrupted := make(chan bool, 1)
 		go func() {

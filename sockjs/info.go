@@ -22,13 +22,13 @@ func createInfoData(ctx *context) infoData {
 	}
 }
 
-func (this *context) infoHandler(rw http.ResponseWriter, req *http.Request) {
+func (ctx *context) infoHandler(rw http.ResponseWriter, req *http.Request) {
 	header := rw.Header()
 	setCors(header, req)
 	setContentType(header, "application/json; charset=UTF-8")
 	disableCache(header)
 	rw.WriteHeader(http.StatusOK)
-	json, _ := json.Marshal(createInfoData(this))
+	json, _ := json.Marshal(createInfoData(ctx))
 	rw.Write(json)
 }
 

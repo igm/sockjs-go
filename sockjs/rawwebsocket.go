@@ -5,11 +5,11 @@ import (
 	"net/http"
 )
 
-func (this *context) RawWebSocketHandler(rw http.ResponseWriter, req *http.Request) {
+func (ctx *context) RawWebSocketHandler(rw http.ResponseWriter, req *http.Request) {
 	wsh := websocket.Handler(func(net_conn *websocket.Conn) {
 		defer net_conn.Close()
-		conn := newConn(this)
-		go this.HandlerFunc(conn)
+		conn := newConn(ctx)
+		go ctx.HandlerFunc(conn)
 
 		conn_interrupted := make(chan bool, 1)
 		go func() {

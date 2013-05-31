@@ -8,7 +8,7 @@ import (
 
 type xhrPollingProtocol struct{ xhrStreamingProtocol }
 
-func (this *context) XhrPollingHandler(rw http.ResponseWriter, req *http.Request) {
+func (ctx *context) XhrPollingHandler(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	sessid := vars["sessionid"]
 
@@ -19,7 +19,7 @@ func (this *context) XhrPollingHandler(rw http.ResponseWriter, req *http.Request
 		sessionId:      sessid,
 		done:           make(chan bool),
 	}
-	this.baseHandler(httpTx)
+	ctx.baseHandler(httpTx)
 }
 func (xhrPollingProtocol) isStreaming() bool                           { return false }
 func (xhrPollingProtocol) contentType() string                         { return "application/javascript; charset=UTF-8" }

@@ -36,13 +36,13 @@ var test_cookie = &http.Cookie{
 	Value: "dummy",
 }
 
-func (this *context) baseHandler(httpTx *httpTransaction) {
+func (ctx *context) baseHandler(httpTx *httpTransaction) {
 	sessid := httpTx.sessionId
 
-	conn, _ := this.getOrCreate(sessid, func() *conn {
-		sockjsConnection := newConn(this)
-		go sockjsConnection.run(func() { this.delete(sessid) })
-		go this.HandlerFunc(sockjsConnection)
+	conn, _ := ctx.getOrCreate(sessid, func() *conn {
+		sockjsConnection := newConn(ctx)
+		go sockjsConnection.run(func() { ctx.delete(sessid) })
+		go ctx.HandlerFunc(sockjsConnection)
 		return sockjsConnection
 	})
 
@@ -59,9 +59,9 @@ func (this *context) baseHandler(httpTx *httpTransaction) {
 	// log.Printf("request processed with protocol: %#v:\n", httpTx.protocolHelper)
 }
 
-func (conn *conn) handleCookie(rw http.ResponseWriter, req *http.Request) {
+func (c *conn) handleCookie(rw http.ResponseWriter, req *http.Request) {
 	header := rw.Header()
-	if conn.CookieNeeded { // cookie is needed
+	if c.CookieNeeded { // cookie is needed
 		cookie, err := req.Cookie(session_cookie)
 		if err == http.ErrNoCookie {
 			cookie = test_cookie

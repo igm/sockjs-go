@@ -12,7 +12,7 @@ import (
 
 type htmlfileProtocol struct{ callback string }
 
-func (this *context) HtmlfileHandler(rw http.ResponseWriter, req *http.Request) {
+func (ctx *context) HtmlfileHandler(rw http.ResponseWriter, req *http.Request) {
 	vars := mux.Vars(req)
 	sessid := vars["sessionid"]
 
@@ -34,7 +34,7 @@ func (this *context) HtmlfileHandler(rw http.ResponseWriter, req *http.Request) 
 		sessionId:      sessid,
 		done:           make(chan bool),
 	}
-	this.baseHandler(httpTx)
+	ctx.baseHandler(httpTx)
 }
 
 func (htmlfileProtocol) isStreaming() bool   { return true }
@@ -46,8 +46,8 @@ func (htmlfileProtocol) writeOpenFrame(w io.Writer) (int, error) {
 func (htmlfileProtocol) writeHeartbeat(w io.Writer) (int, error) {
 	return fmt.Fprintf(w, "<script>\np(\"h\");\n</script>\r\n")
 }
-func (this htmlfileProtocol) writePrelude(w io.Writer) (int, error) {
-	prelude := fmt.Sprintf(_htmlFile, this.callback)
+func (proto htmlfileProtocol) writePrelude(w io.Writer) (int, error) {
+	prelude := fmt.Sprintf(_htmlFile, proto.callback)
 	// It must be at least 1024 bytes.
 	if len(prelude) < 1024 {
 		prelude += strings.Repeat(" ", 1024)
