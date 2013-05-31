@@ -31,7 +31,7 @@ func (eventSourceProtocol) writeOpenFrame(w io.Writer) (int, error) {
 	return fmt.Fprintf(w, "data: o\r\n\r\n")
 }
 func (eventSourceProtocol) writeHeartbeat(w io.Writer) (int, error) {
-	return fmt.Fprintln(w, "data: h\r\n\r\n")
+	return fmt.Fprintf(w, "data: h\r\n\r\n")
 }
 func (eventSourceProtocol) writePrelude(w io.Writer) (int, error) {
 	return fmt.Fprintf(w, "\r\n")
