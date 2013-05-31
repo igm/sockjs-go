@@ -91,7 +91,6 @@ func openConnectionState(c *conn) connectionStateFn {
 		}
 		return activeConnectionState
 	}
-	panic("unreachable")
 }
 
 func activeConnectionState(c *conn) connectionStateFn {
@@ -162,7 +161,6 @@ func activeConnectionState(c *conn) connectionStateFn {
 		}
 		return activeConnectionState
 	}
-	panic("unreachable")
 }
 
 func closedConnectionState(c *conn) connectionStateFn {
@@ -176,7 +174,6 @@ func closedConnectionState(c *conn) connectionStateFn {
 		// log.Println("timeout in closed:", c)
 		return nil
 	}
-	panic("unreachable")
 }
 
 //  reject other connectins while this one is active
