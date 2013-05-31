@@ -8,7 +8,7 @@ import (
 )
 
 type Channel struct {
-	name      string
+	Name      string
 	clients   map[Conn]bool
 	OnConnect func(channel Channel, conn Conn)
 	OnClose   func(channel Channel, conn Conn)
@@ -27,13 +27,13 @@ func NewMultiplexer(fallback func(conn Conn, msg string)) ConnectionMultiplexer 
 	return (*muxer)
 }
 
-func NewChannel(name string) Channel {
+func NewChannel(name string, onconnect func(this Channel, conn Conn), onclose func(this Channel, conn Conn), ondata func(this Channel, conn Conn, msg string)) Channel {
 	channel := new(Channel)
-	channel.name = name
+	channel.Name = name
 	channel.clients = make(map[Conn]bool)
-	channel.OnConnect = func(this Channel, conn Conn) { this.SendToClient(conn, "welcome!") }
-	channel.OnClose = func(this Channel, conn Conn) { this.SendToClient(conn, "bye!") }
-	channel.OnData = func(this Channel, conn Conn, msg string) { this.Broadcast(msg) }
+	channel.OnConnect = onconnect
+	channel.OnClose = onclose
+	channel.OnData = ondata
 	return (*channel)
 }
 
@@ -49,7 +49,7 @@ func (this ConnectionMultiplexer) Handle(conn Conn) {
 				var msg_payload string
 				msg_type, parts = parts[0], parts[1:]
 				msg_channel, parts = parts[0], parts[1:]
-				msg_payload = strings.Join(parts, ",")
+				msg_payload = strings.Replace(strings.Join(parts, ","), "\\", "", -1)
 				if msg_type == "sub" {
 					go this.subscribeClient(conn, msg_channel)
 				} else if channel, exists := this.channels[msg_channel]; exists {
@@ -77,15 +77,11 @@ func (this *ConnectionMultiplexer) callFallback(conn Conn, msg string) {
 }
 
 func (this *ConnectionMultiplexer) RegisterChannel(channel Channel) {
-	this.channels[channel.name] = channel
+	this.channels[channel.Name] = channel
 }
 
 func (this *ConnectionMultiplexer) subscribeClient(conn Conn, channel_name string) {
 	if channel, exists := this.channels[channel_name]; exists {
-		channel.SubscribeClient(conn)
-	} else {
-		channel := NewChannel(channel_name)
-		this.channels[channel_name] = channel
 		channel.SubscribeClient(conn)
 	}
 }
@@ -96,10 +92,8 @@ func (this *Channel) Broadcast(message string) {
 	}
 }
 
-func (this *Channel) SendToClient(client Conn, message string) {
-	
-	message = strconv.Quote(strings.Join([]string{`msg`, this.name, message}, ","))
-	log.Println(message)
+func (this *Channel) SendToClient(client Conn, message string) {	
+	message = strconv.Quote(strings.Join([]string{`msg`, this.Name, message}, ","))
 	go client.WriteMessage([]byte(message))
 }
 
