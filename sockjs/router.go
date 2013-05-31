@@ -45,14 +45,6 @@ func Install(baseUrl string, h HandlerFunc, cfg Config) http.Handler {
 	return handler
 }
 
-type ctxHandler func(*context, http.ResponseWriter, *http.Request)
-
-// func (this *context) wrap(f ctxHandler) func(w http.ResponseWriter, req *http.Request) {
-// 	return func(w http.ResponseWriter, req *http.Request) {
-// 		f(this, w, req)
-// 	}
-// }
-
 func welcomeHandler(rw http.ResponseWriter, req *http.Request) {
 	setContentType(rw.Header(), "text/plain; charset=UTF-8")
 	// disableCache(rw.Header())
