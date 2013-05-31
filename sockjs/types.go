@@ -72,5 +72,6 @@ func (this *conn) run(cleanupFn func()) {
 	for state := openConnectionState; state != nil; {
 		state = state(this)
 	}
+	this.Close()
 	cleanupFn()
 }
