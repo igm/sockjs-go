@@ -11,7 +11,7 @@ func (this *context) RawWebSocketHandler(rw http.ResponseWriter, req *http.Reque
 		conn := newConn(this)
 		go this.HandlerFunc(conn)
 
-		conn_interrupted := make(chan bool)
+		conn_interrupted := make(chan bool, 1)
 		go func() {
 			data := make([]byte, 32768) // TODO
 			for {

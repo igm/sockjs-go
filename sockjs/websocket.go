@@ -55,7 +55,7 @@ func (this *context) WebSocketHandler(rw http.ResponseWriter, req *http.Request)
 
 		go this.HandlerFunc(conn)
 
-		conn_interrupted := make(chan bool)
+		conn_interrupted := make(chan bool, 1)
 		go func() {
 			data := make([]byte, 32768)
 			for {
