@@ -5,8 +5,8 @@ import (
 )
 
 type connections struct {
+	sync.RWMutex
 	connections map[string]*conn
-	mu          sync.RWMutex
 }
 
 type connFactory func() *conn
@@ -18,15 +18,15 @@ func newConnections() connections {
 }
 
 func (c *connections) get(sessid string) (conn *conn, exists bool) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
+	c.RLock()
+	defer c.RUnlock()
 	conn, exists = c.connections[sessid]
 	return
 }
 
 func (c *connections) getOrCreate(sessid string, f connFactory) (conn *conn, exists bool) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.Lock()
+	defer c.Unlock()
 	conn, exists = c.connections[sessid]
 	if !exists {
 		c.connections[sessid] = f()
@@ -36,7 +36,7 @@ func (c *connections) getOrCreate(sessid string, f connFactory) (conn *conn, exi
 }
 
 func (c *connections) delete(sessid string) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+	c.Lock()
+	defer c.Unlock()
 	delete(c.connections, sessid)
 }
