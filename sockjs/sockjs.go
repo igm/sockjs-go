@@ -23,14 +23,16 @@ type Config struct {
 	HeartbeatDelay  time.Duration
 	DisconnectDelay time.Duration
 	CookieNeeded    bool
+	DecodeFrames    bool
 }
 
 // Default Configuration with 128kB response limit
 var DefaultConfig = Config{
-	SockjsUrl:       "http://cdn.sockjs.org/sockjs-0.3.2.min.js", // default JS
+	SockjsUrl:       "http://cdn.sockjs.org/sockjs-0.3.4.min.js", // default JS
 	Websocket:       true,                                        // enabled websocket
 	ResponseLimit:   128 * 1024,                                  // 128kB
 	HeartbeatDelay:  time.Duration(25 * time.Second),             // 25s
 	DisconnectDelay: time.Duration(5 * time.Second),              // 5s
 	CookieNeeded:    false,
+	DecodeFrames:    false,
 }

@@ -5,6 +5,7 @@ Cotains package internal types (not public)
 */
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"time"
@@ -44,7 +45,18 @@ func (c *conn) ReadMessage() ([]byte, error) {
 	case <-c.quit_channel:
 		return []byte{}, io.EOF
 	case val := <-c.input_channel:
-		return val[1 : len(val)-1], nil
+		if c.context.Config.DecodeFrames {
+			// Decode the msg JSON
+			msg := make([]string, 1)
+			err := json.Unmarshal(val, &msg)
+			if len(msg) == 1 && err == nil {
+				val = []byte(msg[0])
+			}
+		} else {
+			// Strip the [ and ] from the JSON and return a raw string
+			val = val[1 : len(val)-1]
+		}
+		return val, nil
 	}
 	panic("unreachable")
 }

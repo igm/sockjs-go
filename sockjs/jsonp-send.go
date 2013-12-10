@@ -43,7 +43,7 @@ func (ctx *context) JsonpSendHandler(rw http.ResponseWriter, req *http.Request) 
 
 		rw.WriteHeader(http.StatusOK)
 		rw.Write([]byte("ok"))
-		go func() { conn.input_channel <- data }() // does not need to be extra routine?
+		conn.input_channel <- data
 	} else {
 		rw.WriteHeader(http.StatusNotFound)
 	}

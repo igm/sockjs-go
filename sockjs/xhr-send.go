@@ -24,8 +24,8 @@ func (ctx *context) XhrSendHandler(rw http.ResponseWriter, req *http.Request) {
 			fmt.Fprint(rw, "Payload expected.")
 			return
 		}
-		var a []interface{}
-		if json.Unmarshal(data, &a) != nil {
+		dataStrings := make([]string, 1)
+		if json.Unmarshal(data, &dataStrings); err != nil {
 			// see https://github.com/sockjs/sockjs-protocol/pull/62
 			rw.WriteHeader(http.StatusInternalServerError)
 			fmt.Fprint(rw, "Broken JSON encoding.")
@@ -36,7 +36,12 @@ func (ctx *context) XhrSendHandler(rw http.ResponseWriter, req *http.Request) {
 		disableCache(rw.Header())
 		conn.handleCookie(rw, req)
 		rw.WriteHeader(http.StatusNoContent)
-		go func() { conn.input_channel <- data }() // does not need to be extra routine?
+		for _, s := range dataStrings {
+			// Convert multiple frames into single frames
+			tmpArray := [1]string{s}
+			b, _ := json.Marshal(tmpArray)
+			conn.input_channel <- b
+		}
 	} else {
 		rw.WriteHeader(http.StatusNotFound)
 	}
