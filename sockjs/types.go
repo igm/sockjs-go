@@ -47,7 +47,7 @@ func (c *conn) ReadMessage() ([]byte, error) {
 	case val := <-c.input_channel:
 		if c.context.Config.DecodeFrames {
 			// Decode the msg JSON
-			msg := make([]string, 1)
+			var msg []string
 			err := json.Unmarshal(val, &msg)
 			if len(msg) == 1 && err == nil {
 				val = []byte(msg[0])
@@ -62,10 +62,17 @@ func (c *conn) ReadMessage() ([]byte, error) {
 }
 
 func (c *conn) WriteMessage(val []byte) (count int, err error) {
-	val2 := make([]byte, len(val))
-	copy(val2, val)
+	var data_out []byte
+	if c.Config.DecodeFrames {
+		data_out, err = json.Marshal(string(val))
+		if err != nil {
+			return
+		}
+	} else {
+		data_out = append([]byte{}, val...)
+	}
 	select {
-	case c.output_channel <- val2:
+	case c.output_channel <- data_out:
 	case <-time.After(c.timeout):
 		return 0, ErrConnectionClosed
 	case <-c.quit_channel:

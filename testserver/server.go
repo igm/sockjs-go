@@ -45,6 +45,7 @@ func main() {
 
 	cfg_4096_limit := sockjs.DefaultConfig
 	cfg_4096_limit.ResponseLimit = 4096
+	cfg_4096_limit.DecodeFrames = true
 
 	cfg_cookie_needed := cfg_4096_limit
 	cfg_cookie_needed.CookieNeeded = true
@@ -54,14 +55,17 @@ func main() {
 	sockjs.Install("/cookie_needed_echo", EchoHandler, cfg_cookie_needed)
 	sockjs.Install("/disabled_websocket_echo", EchoHandler, cfg_ws_off)
 
-	err := http.ListenAndServe(":8080", new(NoRedirectServer))
+	err := http.ListenAndServe(":8081", new(NoRedirectServer))
 	log.Fatal(err)
 }
 
 func EchoHandler(conn sockjs.Conn) {
 	for {
 		if msg, err := conn.ReadMessage(); err == nil {
-			go conn.WriteMessage(msg)
+			_, err := conn.WriteMessage(msg)
+			if err != nil {
+				log.Fatal(err)
+			}
 		} else {
 			return
 		}
