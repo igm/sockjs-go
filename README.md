@@ -15,7 +15,7 @@ SockJS-Go is a [SockJS](https://github.com/sockjs/sockjs-client) server written 
 
 To install `sockjs-go` run:
 
-    go get gopkg.in/igm/sockjs-go.v0/sockjs
+    go get gopkg.in/igm/sockjs-go.v1/sockjs
 
 
 Versioning
