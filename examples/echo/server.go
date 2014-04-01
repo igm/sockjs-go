@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/igm/sockjs-go/sockjs"
 	"log"
 	"net/http"
+
+	"gopkg.in/igm/sockjs-go.v0/sockjs"
 )
 
 func main() {

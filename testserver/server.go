@@ -1,10 +1,11 @@
 package main
 
 import (
-	"github.com/igm/sockjs-go/sockjs"
 	"log"
 	"net/http"
 	"path"
+
+	"gopkg.in/igm/sockjs-go.v0/sockjs"
 )
 
 type NoRedirectServer struct {
