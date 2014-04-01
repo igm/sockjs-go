@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"path"
 
-	"gopkg.in/igm/sockjs-go.v0/sockjs"
+	"gopkg.in/igm/sockjs-go.v1/sockjs"
 )
 
 type NoRedirectServer struct {

@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"gopkg.in/igm/sockjs-go.v0/sockjs"
+	"gopkg.in/igm/sockjs-go.v1/sockjs"
 )
 
 func main() {
