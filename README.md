@@ -1,5 +1,5 @@
 What is SockJS?
-===============
+=
 
 SockJS is a JavaScript library (for browsers) that provides a WebSocket-like
 object. SockJS gives you a coherent, cross-browser, Javascript API
@@ -9,21 +9,25 @@ This necessitates the use of a server, which this is one version of, for GO.
 
 
 SockJS-Go server
-================
+=
 
 SockJS-Go is a [SockJS](https://github.com/sockjs/sockjs-client) server written in Go.
 
-To install `sockjs-go` run:
+To install **development** version of `sockjs-go` run:
 
-    go get gopkg.in/igm/sockjs-go.v0/sockjs
+    go get -u gopkg.in/igm/sockjs-go.v0/sockjs
+
+To install **stable** version of `sockjs-go` run (currently v1):
+
+    go get gopkg.in/igm/sockjs-go.v1/sockjs
 
 
 Versioning
-==========
+-
 
-SockJS-Go project adopted [gopkg.in](http://gopkg.in) approach for versioning. Current development version is v0 which "is equivalent to labeling the package as alpha or beta quality, and as such the use of these packages as dependencies of stable packages and applications is discouraged". This means that version 0.x.x denotes "master" and various API changes might and will be introduced here. 
+SockJS-Go project adopted [gopkg.in](http://gopkg.in) approach for versioning. Current development version is v0 which "is equivalent to labeling the package as alpha or beta quality, and as such the use of these packages as dependencies of stable packages and applications is discouraged". This means that version 0 denotes "master" and various API changes might and will be introduced here. 
 
-For stable version use v1, which will not break current API:
+For **stable** version use v1, which will not break API:
 
     go get gopkg.in/igm/sockjs-go.v1/sockjs
 
@@ -59,7 +63,7 @@ func EchoHandler(conn sockjs.Conn) {
 ```
 
 SockJS Protocol Tests Status
-----------------------------
+-
 ```
 ERROR: test_haproxy (__main__.WebsocketHixie76)
 ERROR: test_firefox_602_connection_header (__main__.WebsocketHybi10)
@@ -71,5 +75,5 @@ FAILED (failures=1, errors=3)
 ```
 
 Important
----------
+-
 This library is not production ready and use is not recommended.
