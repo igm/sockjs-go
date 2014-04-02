@@ -32,6 +32,9 @@ For **stable** version use v1, which will not break API:
     go get gopkg.in/igm/sockjs-go.v1/sockjs
 
 
+Example
+-
+
 A simplified echo SockJS server could look more or less like:    
 
 
