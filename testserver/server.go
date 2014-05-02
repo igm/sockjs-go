@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"sockjs-go.v3/sockjs"
+	"github.com/igm/sockjs-go/sockjs"
 )
 
 func main() {
