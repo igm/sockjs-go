@@ -3,7 +3,7 @@ package sockjs_test
 import (
 	"net/http"
 
-	"sockjs-go.v3/sockjs"
+	"github.com/igm/sockjs-go/sockjs"
 )
 
 func ExampleNewHandler_simple() {
