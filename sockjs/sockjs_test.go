@@ -1,44 +1,27 @@
-package sockjs_test
+package sockjs
 
 import (
-	"github.com/igm/sockjs-go/sockjs"
 	"net/http"
+	"net/http/httptest"
+	"regexp"
 	"testing"
 )
 
-func Test_Install(t *testing.T) {
-	t.Log("test started")
-
-}
-
-func ExampleInstall() {
-	// Echo Handler
-	var handler = func(c sockjs.Conn) {
-		for {
-			msg, err := c.ReadMessage()
-			if err == sockjs.ErrConnectionClosed {
-				return
-			}
-			c.WriteMessage(msg)
-		}
+func TestServeHTTP(t *testing.T) {
+	m := handler{mappings: make([]*mapping, 0)}
+	m.mappings = []*mapping{
+		&mapping{"POST", regexp.MustCompile("/foo/.*"), []http.HandlerFunc{func(http.ResponseWriter, *http.Request) {}}},
 	}
-	// install echo sockjs in default http handler
-	sockjs.Install("/echo", handler, sockjs.DefaultConfig)
-	http.ListenAndServe(":8080", nil)
-}
-
-func ExampleNewRouter() {
-	// Echo Handler
-	var handler = func(c sockjs.Conn) {
-		for {
-			msg, err := c.ReadMessage()
-			if err == sockjs.ErrConnectionClosed {
-				return
-			}
-			c.WriteMessage(msg)
-		}
+	req, _ := http.NewRequest("GET", "/foo/bar", nil)
+	rec := httptest.NewRecorder()
+	m.ServeHTTP(rec, req)
+	if rec.Code != http.StatusMethodNotAllowed {
+		t.Errorf("Unexpected response status, got '%d' expected '%d'", rec.Code, http.StatusMethodNotAllowed)
 	}
-	router := sockjs.NewRouter("/echo", handler, sockjs.DefaultConfig)
-	http.Handle("/echo", router)
-	http.ListenAndServe(":8080", nil)
+	req, _ = http.NewRequest("GET", "/bar", nil)
+	rec = httptest.NewRecorder()
+	m.ServeHTTP(rec, req)
+	if rec.Code != http.StatusNotFound {
+		t.Errorf("Unexpected response status, got '%d' expected '%d'", rec.Code, http.StatusNotFound)
+	}
 }

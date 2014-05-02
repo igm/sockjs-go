@@ -1,191 +1,80 @@
 package sockjs
 
 import (
-	"io"
-	"log"
+	"errors"
 	"net/http"
-	"net/http/httputil"
-	"time"
+	"net/url"
+	"regexp"
+	"strings"
+	"sync"
 )
 
-type (
-	protocolHelper interface {
-		contentType() string
-		writePrelude(io.Writer) (int, error)
-		writeOpenFrame(io.Writer) (int, error)
-		writeHeartbeat(io.Writer) (int, error)
+type handler struct {
+	prefix      string
+	options     Options
+	handlerFunc HandlerFunc
+	mappings    []*mapping
 
-		writeData(io.Writer, ...[]byte) (int, error)
-		writeClose(io.Writer, int, string) (int, error)
-		isStreaming() bool
-	}
+	sessionsMux sync.Mutex
+	sessions    map[string]*session
 
-	httpTransaction struct {
-		protocolHelper
-		req       *http.Request
-		rw        http.ResponseWriter
-		sessionId string
-		done      chan bool
-	}
-)
-
-const session_cookie = "JSESSIONID"
-
-var test_cookie = &http.Cookie{
-	Name:  session_cookie,
-	Value: "dummy",
+	newXhrReceiver func(http.ResponseWriter, uint32) receiver
 }
 
-func (ctx *context) baseHandler(httpTx *httpTransaction) {
-	sessid := httpTx.sessionId
-
-	conn, _ := ctx.getOrCreate(sessid, func() *conn {
-		sockjsConnection := newConn(ctx)
-		go sockjsConnection.run(func() { ctx.delete(sessid) })
-		go ctx.HandlerFunc(sockjsConnection)
-		return sockjsConnection
-	})
-
-	// proper HTTP header
-	header := httpTx.rw.Header()
-	setCors(header, httpTx.req)
-	setContentType(header, httpTx.contentType())
-	disableCache(header)
-	conn.handleCookie(httpTx.rw, httpTx.req)
-	httpTx.rw.WriteHeader(http.StatusOK)
-
-	conn.httpTransactions <- httpTx
-	<-httpTx.done
-	// log.Printf("request processed with protocol: %#v:\n", httpTx.protocolHelper)
-}
-
-func (c *conn) handleCookie(rw http.ResponseWriter, req *http.Request) {
-	header := rw.Header()
-	if c.CookieNeeded { // cookie is needed
-		cookie, err := req.Cookie(session_cookie)
-		if err == http.ErrNoCookie {
-			cookie = test_cookie
-		}
-		cookie.Path = "/"
-		header.Add("set-cookie", cookie.String())
+// NewHandler creates new HTTP handler that conforms to the basic net/http.Handler interface.
+// It takes path prefix, options and sockjs handler function as parameters
+func NewHandler(prefix string, opts Options, handlerFn HandlerFunc) *handler {
+	h := &handler{
+		prefix:      prefix,
+		options:     opts,
+		handlerFunc: handlerFn,
+		sessions:    make(map[string]*session),
+		// factory for various receiver types
+		newXhrReceiver: func(rw http.ResponseWriter, maxWriteCound uint32) receiver { return newXhrReceiver(rw, maxWriteCound) },
 	}
-}
 
-func openConnectionState(c *conn) connectionStateFn {
-	select {
-	case <-time.After(c.DisconnectDelay): // timout connection
-		// log.Println("timeout in open:", c)
-		return nil
-	case httpTx := <-c.httpTransactions:
-
-		writer := httpTx.rw
-		httpTx.writePrelude(writer)
-		writer.(http.Flusher).Flush()
-		httpTx.writeOpenFrame(writer)
-		writer.(http.Flusher).Flush()
-
-		if httpTx.isStreaming() {
-			go func() { c.httpTransactions <- httpTx }()
-		} else {
-			httpTx.done <- true // let baseHandler finish
-		}
-		return activeConnectionState
+	sessionPrefix := prefix + "/[^/.]+/[^/.]+"
+	h.mappings = []*mapping{
+		newMapping("GET", prefix+"[/]?$", welcomeHandler),
+		newMapping("OPTIONS", prefix+"/info?$", opts.cookie, xhrCors, cacheFor, opts.info),
+		newMapping("GET", prefix+"/info?$", xhrCors, noCache, opts.info),
+		//
+		// other mappings
+		newMapping("POST", sessionPrefix+"/xhr_send$", h.xhrSend),
+		newMapping("POST", sessionPrefix+"/xhr$", h.xhrPoll),
 	}
+	return h
 }
 
-func activeConnectionState(c *conn) connectionStateFn {
-	select {
-	case <-time.After(c.DisconnectDelay): // timout connection
-		// log.Println("timeout in active:", c)
-		return nil
-	case httpTx := <-c.httpTransactions:
-		writer := httpTx.rw
-		// continue with protocol handling with hijacked connection
+func (h *handler) Prefix() string { return h.prefix }
 
-		conn, err := hijack(writer)
-		if err != nil {
-			// TODO
-			log.Fatal(err)
-		}
-
-		httpTx.done <- true // let baseHandler finish
-		chunked := httputil.NewChunkedWriter(conn)
-		defer func() {
-			chunked.Close()
-			conn.Write([]byte("\r\n")) // close chunked data
-			conn.Close()
-		}()
-
-		// start protocol handling
-		conn_closed := make(chan bool, 1)
-		defer func() { conn_closed <- true }()
-		go c.activeConnectionGuard(conn_closed)
-
-		conn_interrupted := make(chan bool, 1)
-		go connectionClosedGuard(conn, conn_interrupted)
-
-		bytes_sent := 0
-		for loop := true; loop; {
-
-			select {
-			case frame, ok := <-c.output_channel:
-				if !ok {
-					httpTx.writeClose(chunked, 3000, "Go away!")
-					return closedConnectionState
-				}
-				frames := [][]byte{frame}
-				for drain := true; drain; {
-					select {
-					case frame, ok = <-c.output_channel:
-						frames = append(frames, frame)
-					default:
-						drain = false
-					}
-				}
-				n, _ := httpTx.writeData(chunked, frames...)
-				bytes_sent = bytes_sent + n
-			case <-time.After(c.HeartbeatDelay):
-				httpTx.writeHeartbeat(chunked)
-			case <-conn_interrupted:
-				c.Close()
-				return nil
+func (h *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	// iterate over mappings
+	allowedMethods := []string{}
+	for _, mapping := range h.mappings {
+		if match, method := mapping.matches(req); match == fullMatch {
+			for _, hf := range mapping.chain {
+				hf(rw, req)
 			}
-
-			if httpTx.isStreaming() {
-				if bytes_sent > c.ResponseLimit {
-					loop = false
-				}
-			} else {
-				loop = false
-			}
-		}
-		return activeConnectionState
-	}
-}
-
-func closedConnectionState(c *conn) connectionStateFn {
-	select {
-	case httpTx := <-c.httpTransactions:
-		httpTx.writePrelude(httpTx.rw)
-		httpTx.writeClose(httpTx.rw, 3000, "Go away!")
-		httpTx.done <- true
-		return closedConnectionState
-	case <-time.After(c.DisconnectDelay): // timout connection
-		// log.Println("timeout in closed:", c)
-		return nil
-	}
-}
-
-//  reject other connectins while this one is active
-func (c *conn) activeConnectionGuard(conn_closed <-chan bool) {
-	for {
-		select {
-		case httpTx := <-c.httpTransactions:
-			httpTx.writePrelude(httpTx.rw)
-			httpTx.writeClose(httpTx.rw, 2010, "Another connection still open")
-			httpTx.done <- true
-		case <-conn_closed:
 			return
+		} else if match == pathMatch {
+			allowedMethods = append(allowedMethods, method)
 		}
 	}
+	if len(allowedMethods) > 0 {
+		rw.Header().Set("allow", strings.Join(allowedMethods, ", "))
+		rw.Header().Set("Content-Type", "")
+		rw.WriteHeader(http.StatusMethodNotAllowed)
+		return
+	}
+	http.NotFound(rw, req)
+}
+
+func (h *handler) parseSessionID(url *url.URL) (string, error) {
+	session := regexp.MustCompile(h.prefix + "/(?P<server>[^/.]+)/(?P<session>[^/.]+)/.*")
+	matches := session.FindStringSubmatch(url.Path)
+	if len(matches) == 3 {
+		return matches[2], nil
+	}
+	return "", errors.New("unable to parse URL for session")
 }

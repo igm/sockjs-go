@@ -3,76 +3,54 @@ package main
 import (
 	"log"
 	"net/http"
-	"path"
+	"strings"
 
-	"gopkg.in/igm/sockjs-go.v1/sockjs"
+	"sockjs-go.v3/sockjs"
 )
 
-type NoRedirectServer struct {
-	*http.ServeMux
-}
-
-// Stolen from http package
-func cleanPath(p string) string {
-	if p == "" {
-		return "/"
-	}
-	if p[0] != '/' {
-		p = "/" + p
-	}
-	np := path.Clean(p)
-	// path.Clean removes trailing slash except for root;
-	// put the trailing slash back if necessary.
-	if p[len(p)-1] == '/' && np != "/" {
-		np += "/"
-	}
-	return np
-}
-
-func (m *NoRedirectServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	// To get the sockjs-protocol tests to work, barf if the path is not already clean.
-	if req.URL.Path != cleanPath(req.URL.Path) {
-		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
-		return
-	}
-	http.DefaultServeMux.ServeHTTP(w, req)
-}
-
 func main() {
-	log.Println("server started")
-
-	cfg_ws_off := sockjs.DefaultConfig
-	cfg_ws_off.Websocket = false
-
-	cfg_4096_limit := sockjs.DefaultConfig
-	cfg_4096_limit.ResponseLimit = 4096
-	cfg_4096_limit.DecodeFrames = true
-
-	cfg_cookie_needed := cfg_4096_limit
-	cfg_cookie_needed.CookieNeeded = true
-
-	sockjs.Install("/echo", EchoHandler, cfg_4096_limit)
-	sockjs.Install("/close", CloseHandler, sockjs.DefaultConfig)
-	sockjs.Install("/cookie_needed_echo", EchoHandler, cfg_cookie_needed)
-	sockjs.Install("/disabled_websocket_echo", EchoHandler, cfg_ws_off)
-
-	err := http.ListenAndServe(":8081", new(NoRedirectServer))
-	log.Fatal(err)
+	// prepare various options for tests
+	var echoOptions = sockjs.DefaultOptions
+	var disabledWebsocketOptions = sockjs.DefaultOptions
+	var cookieNeededOptions = sockjs.DefaultOptions
+	echoOptions.ResponseLimit = 4096
+	disabledWebsocketOptions.Websocket = false
+	cookieNeededOptions.CookieNeeded = true
+	// start test handler
+	log.Fatal(
+		http.ListenAndServe(":8081",
+			&testHandler{[]sockjs.Handler{
+				sockjs.NewHandler("/echo", sockjs.DefaultOptions, echoHandler),
+				sockjs.NewHandler("/close", sockjs.DefaultOptions, closeHandler),
+				sockjs.NewHandler("/disabled_websocket_echo", disabledWebsocketOptions, nil),
+			}}))
 }
 
-func EchoHandler(conn sockjs.Conn) {
-	for {
-		if msg, err := conn.ReadMessage(); err == nil {
-			_, err := conn.WriteMessage(msg)
-			if err != nil {
-				log.Fatal(err)
-			}
-		} else {
+// simple http Handler for testing purposes (no redirects, no subpaths ,...)
+type testHandler struct{ sockjsHandlers []sockjs.Handler }
+
+func (t *testHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	for _, handler := range t.sockjsHandlers {
+		if strings.HasPrefix(req.URL.Path, handler.Prefix()) {
+			handler.ServeHTTP(rw, req)
 			return
 		}
 	}
+	http.NotFound(rw, req)
 }
 
-func CloseHandler(conn sockjs.Conn) {
-	conn.Close()
+func echoHandler(conn sockjs.Conn) {
+	log.Println("New connection created")
+	for {
+		msg, err := conn.Recv()
+		if err != nil {
+			break
+		}
+		if conn.Send(msg) != nil {
+			break
+		}
+	}
+	log.Println("Connection closed")
 }
+
+func closeHandler(conn sockjs.Conn) { conn.Close(3000, "Go away!") }
