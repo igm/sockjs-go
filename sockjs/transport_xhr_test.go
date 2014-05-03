@@ -189,9 +189,7 @@ func TestXhrPollSessionTimeout(t *testing.T) {
 	h.options.DisconnectDelay = 10 * time.Millisecond
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/session/xhr", nil)
-	go func() {
-		close(doneCh)
-	}()
+	go func() { close(doneCh) }()
 	h.xhrPoll(rw, req)
 	time.Sleep(15 * time.Millisecond)
 	if _, exists := h.sessions["session"]; exists {
