@@ -32,10 +32,12 @@ type session struct {
 	// closeFrame to send after session is closed
 	closeFrame string
 
+	// internal timer used to handle session expiration if no receiver is attached, or heartbeats if recevier is attached
 	sessionTimeoutInterval time.Duration
 	heartbeatInterval      time.Duration
-	// internal timer used to handle session expiration if no receiver is attached, or heartbeats is recevier is attached
-	timer *time.Timer
+	timer                  *time.Timer
+	// once the session timeouts this channel also closes
+	closeCh chan interface{}
 }
 
 type receiver interface {
@@ -49,7 +51,7 @@ type receiver interface {
 
 // Session is a central component that handles receiving and sending frames. It maintains internal state
 func newSession(sessionTimeoutInterval, heartbeatInterval time.Duration) *session {
-	s := &session{receivedBuffer: make(chan string), sessionTimeoutInterval: sessionTimeoutInterval}
+	s := &session{receivedBuffer: make(chan string), sessionTimeoutInterval: sessionTimeoutInterval, closeCh: make(chan interface{})}
 	s.Lock()
 	s.timer = time.AfterFunc(sessionTimeoutInterval, s.sessionTimeout)
 	s.Unlock()
@@ -58,6 +60,7 @@ func newSession(sessionTimeoutInterval, heartbeatInterval time.Duration) *sessio
 
 func (s *session) sessionTimeout() {
 	s.close()
+	close(s.closeCh)
 }
 
 func (s *session) sendMessage(msg string) error {
@@ -121,7 +124,6 @@ func (s *session) accept(messages ...string) {
 	}
 }
 
-// Conn interface implementation
 func (s *session) close() {
 	s.Lock()
 	defer s.Unlock()
@@ -130,6 +132,7 @@ func (s *session) close() {
 	s.timer.Stop()
 }
 
+// Conn interface implementation
 func (s *session) Close(status uint32, reason string) error {
 	s.closeFrame = closeFrame(status, reason)
 	s.close()

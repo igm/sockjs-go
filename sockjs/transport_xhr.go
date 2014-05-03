@@ -43,6 +43,12 @@ func (h *handler) xhrPoll(rw http.ResponseWriter, req *http.Request) {
 		if h.handlerFunc != nil {
 			go h.handlerFunc(sess)
 		}
+		go func() {
+			<-sess.closeCh
+			h.sessionsMux.Lock()
+			delete(h.sessions, sessionID)
+			h.sessionsMux.Unlock()
+		}()
 	}
 	h.sessionsMux.Unlock()
 

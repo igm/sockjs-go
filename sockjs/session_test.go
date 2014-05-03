@@ -79,6 +79,11 @@ func TestSessionTimeout(t *testing.T) {
 		t.Errorf("Session did not timeout")
 	}
 	sess.Unlock()
+	select {
+	case <-sess.closeCh:
+	default:
+		t.Errorf("sess close notification channel should close")
+	}
 }
 
 func TestSessionTimeoutOfClosedSession(t *testing.T) {

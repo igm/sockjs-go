@@ -162,7 +162,10 @@ func TestXhrPoll(t *testing.T) {
 		sess.Unlock()
 		close(doneCh)
 		select {
-		case <-handlerFuncStarted: //ok
+		case conn := <-handlerFuncStarted:
+			if conn != sess {
+				t.Errorf("Handler func started with incorrect connection")
+			}
 		case <-time.After(100 * time.Millisecond):
 			t.Errorf("Handler function not started")
 		}
@@ -173,6 +176,26 @@ func TestXhrPoll(t *testing.T) {
 	}
 	if rw.Header().Get("content-type") != "application/javascript; charset=UTF-8" {
 		t.Errorf("Wrong content type received, got '%s'", rw.Header().Get("content-type"))
+	}
+}
+
+func TestXhrPollSessionTimeout(t *testing.T) {
+	doneCh := make(chan interface{})
+	rec := &testReceiver{doneCh, nil}
+	h := &handler{
+		sessions:       make(map[string]*session),
+		newXhrReceiver: func(http.ResponseWriter, uint32) receiver { return rec },
+	}
+	h.options.DisconnectDelay = 10 * time.Millisecond
+	rw := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/server/session/xhr", nil)
+	go func() {
+		close(doneCh)
+	}()
+	h.xhrPoll(rw, req)
+	time.Sleep(15 * time.Millisecond)
+	if _, exists := h.sessions["session"]; exists {
+		t.Errorf("Session should not exist in handler after timeout")
 	}
 }
 
