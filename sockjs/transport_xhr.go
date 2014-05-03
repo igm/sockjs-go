@@ -59,5 +59,13 @@ func (h *handler) xhrPoll(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	defer sess.detachReceiver()
-	<-receiver.done()
+	select {
+	case <-receiver.done():
+		// fmt.Println("receiver done")
+		// case <-rw.(http.CloseNotifier).CloseNotify():
+		// 	fmt.Println("http connection closed")
+		// 	h.sessionsMux.Lock()
+		// 	delete(h.sessions, sessionID)
+		// 	h.sessionsMux.Unlock()
+	}
 }
