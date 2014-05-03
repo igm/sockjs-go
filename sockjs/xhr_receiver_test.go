@@ -8,7 +8,7 @@ import (
 func TestXhrReceiverCreate(t *testing.T) {
 	rec := httptest.NewRecorder()
 	recv := newXhrReceiver(rec, 1024)
-	if recv.closedNotifCh != recv.done() {
+	if recv.doneCh != recv.done() {
 		t.Errorf("Calling done() must return close channel, but it does not")
 	}
 	if recv.rw != rec {
@@ -55,12 +55,12 @@ func TestXhrReceiverMaximumResponseSize(t *testing.T) {
 		t.Errorf("Incorrect response size calcualated, got '%d' expected '%d'", recv.currentResponseSize, 27)
 	}
 	select {
-	case <-recv.closedNotifCh:
+	case <-recv.doneCh:
 	default: // ok
 	}
 	recv.sendBulk("message 1", "message 2") // produces another 27 bytes of response in 1 frame to go over max resposne size
 	select {
-	case <-recv.closedNotifCh: // ok
+	case <-recv.doneCh: // ok
 	default:
 		t.Errorf("Receiver closed channel did not close")
 	}

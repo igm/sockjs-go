@@ -51,7 +51,11 @@ type receiver interface {
 
 // Session is a central component that handles receiving and sending frames. It maintains internal state
 func newSession(sessionTimeoutInterval, heartbeatInterval time.Duration) *session {
-	s := &session{receivedBuffer: make(chan string), sessionTimeoutInterval: sessionTimeoutInterval, closeCh: make(chan interface{})}
+	s := &session{
+		receivedBuffer:         make(chan string),
+		sessionTimeoutInterval: sessionTimeoutInterval,
+		heartbeatInterval:      heartbeatInterval,
+		closeCh:                make(chan interface{})}
 	s.Lock()
 	s.timer = time.AfterFunc(sessionTimeoutInterval, s.sessionTimeout)
 	s.Unlock()
@@ -105,8 +109,8 @@ func (s *session) heartbeat() {
 	defer s.Unlock()
 	if s.recv != nil { // timer could have fired between Lock and timer.Stop in detachReceiver
 		s.recv.sendFrame("h")
+		s.timer = time.AfterFunc(s.heartbeatInterval, s.heartbeat)
 	}
-	s.timer = time.AfterFunc(s.heartbeatInterval, s.heartbeat)
 }
 
 func (s *session) detachReceiver() {

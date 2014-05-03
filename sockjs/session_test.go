@@ -114,10 +114,10 @@ func TestAttachReceiverAndCheckHeartbeats(t *testing.T) {
 		},
 	}
 	session.attachReceiver(recv)
-	time.Sleep(105 * time.Millisecond)
+	time.Sleep(120 * time.Millisecond)
 	mux.Lock()
-	if len(frames) < 11 {
-		t.Fatalf("Wrong number of frames received")
+	if len(frames) < 10 || len(frames) > 13 { // should get around 10 heartbeats (120ms/10ms)
+		t.Fatalf("Wrong number of frames received, got '%d'", len(frames))
 	}
 	for i := 1; i < 10; i++ {
 		if frames[i] != "h" {

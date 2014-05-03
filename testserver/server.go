@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -45,9 +46,14 @@ func echoHandler(conn sockjs.Conn) {
 	log.Println("New connection created")
 	for {
 		if msg, err := conn.Recv(); err != nil {
+			fmt.Println("recv err:", err)
 			break
-		} else if conn.Send(msg) != nil {
-			break
+		} else {
+			fmt.Println(msg)
+			if err := conn.Send(msg); err != nil {
+				fmt.Println("send err:", err)
+				break
+			}
 		}
 	}
 	log.Println("Connection closed")
