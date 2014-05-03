@@ -2,7 +2,6 @@ package sockjs
 
 import (
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 )
@@ -63,7 +62,6 @@ func (h *handler) xhrPoll(rw http.ResponseWriter, req *http.Request) {
 
 	var closeNotifyCh <-chan bool
 	if closeNotifier, ok := rw.(http.CloseNotifier); ok {
-		fmt.Println("is closable")
 		closeNotifyCh = closeNotifier.CloseNotify()
 	}
 
