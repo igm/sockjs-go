@@ -5,32 +5,34 @@ import (
 	"net/http"
 	"strings"
 
+	// TODO(igm) change to gopkg.in v2
 	"github.com/igm/sockjs-go/sockjs"
 )
 
+type testHandler []sockjs.Handler
+
 func main() {
 	// prepare various options for tests
-	var echoOptions = sockjs.DefaultOptions
-	var disabledWebsocketOptions = sockjs.DefaultOptions
-	var cookieNeededOptions = sockjs.DefaultOptions
+	echoOptions := sockjs.DefaultOptions
 	echoOptions.ResponseLimit = 4096
+
+	disabledWebsocketOptions := sockjs.DefaultOptions
 	disabledWebsocketOptions.Websocket = false
+
+	cookieNeededOptions := sockjs.DefaultOptions
 	cookieNeededOptions.CookieNeeded = true
+	// register various test handlers
+	var handlers = []sockjs.Handler{
+		sockjs.NewHandler("/echo", echoOptions, echoHandler),
+		sockjs.NewHandler("/close", sockjs.DefaultOptions, closeHandler),
+		sockjs.NewHandler("/disabled_websocket_echo", disabledWebsocketOptions, nil),
+	}
 	// start test handler
-	log.Fatal(
-		http.ListenAndServe(":8081",
-			&testHandler{[]sockjs.Handler{
-				sockjs.NewHandler("/echo", sockjs.DefaultOptions, echoHandler),
-				sockjs.NewHandler("/close", sockjs.DefaultOptions, closeHandler),
-				sockjs.NewHandler("/disabled_websocket_echo", disabledWebsocketOptions, nil),
-			}}))
+	log.Fatal(http.ListenAndServe(":8081", testHandler(handlers)))
 }
 
-// simple http Handler for testing purposes (no redirects, no subpaths ,...)
-type testHandler struct{ sockjsHandlers []sockjs.Handler }
-
-func (t *testHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	for _, handler := range t.sockjsHandlers {
+func (t testHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	for _, handler := range t {
 		if strings.HasPrefix(req.URL.Path, handler.Prefix()) {
 			handler.ServeHTTP(rw, req)
 			return
@@ -42,15 +44,15 @@ func (t *testHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 func echoHandler(conn sockjs.Conn) {
 	log.Println("New connection created")
 	for {
-		msg, err := conn.Recv()
-		if err != nil {
+		if msg, err := conn.Recv(); err != nil {
 			break
-		}
-		if conn.Send(msg) != nil {
+		} else if conn.Send(msg) != nil {
 			break
 		}
 	}
 	log.Println("Connection closed")
 }
 
-func closeHandler(conn sockjs.Conn) { conn.Close(3000, "Go away!") }
+func closeHandler(conn sockjs.Conn) {
+	conn.Close(3000, "Go away!")
+}
