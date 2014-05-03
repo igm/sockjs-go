@@ -216,9 +216,12 @@ func TestXhrPollConnectionClosed(t *testing.T) {
 		close(rw.closeNotifCh)
 	}()
 	h.xhrPoll(rw, req)
+	time.Sleep(10 * time.Millisecond)
+	h.sessionsMux.Lock()
 	if len(h.sessions) != 0 {
 		t.Errorf("session should be removed from handler in case of interrupted connection")
 	}
+	h.sessionsMux.Unlock()
 }
 
 func TestXhrPollAnotherConnectionExists(t *testing.T) {

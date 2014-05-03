@@ -64,12 +64,9 @@ func (h *handler) xhrPoll(rw http.ResponseWriter, req *http.Request) {
 	if closeNotifier, ok := rw.(http.CloseNotifier); ok {
 		closeNotifyCh = closeNotifier.CloseNotify()
 	}
-
 	select {
 	case <-receiver.done():
 	case <-closeNotifyCh:
-		h.sessionsMux.Lock()
-		delete(h.sessions, sessionID)
-		h.sessionsMux.Unlock()
+		sess.close()
 	}
 }

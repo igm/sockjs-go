@@ -9,9 +9,14 @@ import (
 type sessionState uint32
 
 const (
+	// brand new session, need to send "h" to receiver
 	sessionOpening sessionState = iota
+	// active session
 	sessionActive
+	// session being closed, sending "closeFrame" to receivers
 	sessionClosing
+	// closed session, no activity at all, should be removed from handler completely and not reused
+	sessionClosed
 )
 
 var (
@@ -57,14 +62,22 @@ func newSession(sessionTimeoutInterval, heartbeatInterval time.Duration) *sessio
 		heartbeatInterval:      heartbeatInterval,
 		closeCh:                make(chan bool)}
 	s.Lock()
-	s.timer = time.AfterFunc(sessionTimeoutInterval, s.sessionTimeout)
+	s.timer = time.AfterFunc(sessionTimeoutInterval, s.close)
 	s.Unlock()
 	return s
 }
 
-func (s *session) sessionTimeout() {
-	s.close()
-	close(s.closeCh)
+func (s *session) close() {
+	s.Lock()
+	defer s.Unlock()
+	if s.state < sessionClosing {
+		close(s.receivedBuffer)
+	}
+	if s.state < sessionClosed {
+		close(s.closeCh)
+	}
+	s.state = sessionClosed
+	s.timer.Stop()
 }
 
 func (s *session) sendMessage(msg string) error {
@@ -117,7 +130,7 @@ func (s *session) detachReceiver() {
 	s.Lock()
 	defer s.Unlock()
 	s.timer.Stop()
-	s.timer = time.AfterFunc(s.sessionTimeoutInterval, s.sessionTimeout)
+	s.timer = time.AfterFunc(s.sessionTimeoutInterval, s.close)
 	s.recv = nil
 
 }
@@ -128,26 +141,34 @@ func (s *session) accept(messages ...string) {
 	}
 }
 
-func (s *session) close() {
+func (s *session) closing() {
 	s.Lock()
 	defer s.Unlock()
-	close(s.receivedBuffer)
-	s.state = sessionClosing
-	s.timer.Stop()
+	if s.state < sessionClosing {
+		close(s.receivedBuffer)
+		s.state = sessionClosing
+	}
 }
 
 // Conn interface implementation
 func (s *session) Close(status uint32, reason string) error {
 	s.closeFrame = closeFrame(status, reason)
-	s.close()
+	s.closing()
 	return nil
 }
 
 func (s *session) Recv() (string, error) {
+	s.Lock()
 	if s.state > sessionActive {
+		s.Unlock()
 		return "", errSessionNotOpen
 	}
-	return <-s.receivedBuffer, nil
+	s.Unlock()
+	val, ok := <-s.receivedBuffer
+	if ok {
+		return val, nil
+	}
+	return "", errSessionNotOpen
 }
 
 func (s *session) Send(msg string) error {

@@ -75,7 +75,7 @@ func TestSessionTimeout(t *testing.T) {
 	sess := newSession(10*time.Millisecond, 10*time.Second)
 	time.Sleep(11 * time.Millisecond)
 	sess.Lock()
-	if sess.state != sessionClosing {
+	if sess.state != sessionClosed {
 		t.Errorf("Session did not timeout")
 	}
 	sess.Unlock()
@@ -92,8 +92,10 @@ func TestSessionTimeoutOfClosedSession(t *testing.T) {
 			t.Errorf("Unexcpected error '%v'", r)
 		}
 	}()
-	sess := newSession(time.Millisecond, time.Second)
-	sess.close()
+	sess := newSession(1*time.Millisecond, time.Second)
+	sess.closing()
+	time.Sleep(1 * time.Millisecond)
+	sess.closing()
 }
 
 func TestAttachReceiverAndCheckHeartbeats(t *testing.T) {
@@ -192,9 +194,9 @@ func TestReceiveMessage(t *testing.T) {
 	}
 }
 
-func TestSessionClose(t *testing.T) {
+func TestSessionClosing(t *testing.T) {
 	session := newTestSession()
-	session.close()
+	session.closing()
 	if _, ok := <-session.receivedBuffer; ok {
 		t.Errorf("Session's receive buffer channel should close")
 	}
@@ -224,8 +226,14 @@ func TestSessionConnRecv(t *testing.T) {
 	if msg != "message 1" || err != nil {
 		t.Errorf("Should receive a message without error, got '%s' err '%v'", msg, err)
 	}
-	s.close()
-	msg, err = s.Recv()
+	go func() {
+		s.closing()
+		_, err := s.Recv()
+		if err != errSessionNotOpen {
+			t.Errorf("Session not in correct state, got '%v', expected '%v'", err, errSessionNotOpen)
+		}
+	}()
+	_, err = s.Recv()
 	if err != errSessionNotOpen {
 		t.Errorf("Session not in correct state, got '%v', expected '%v'", err, errSessionNotOpen)
 	}
