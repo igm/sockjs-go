@@ -125,16 +125,16 @@ func TestXhrSendSessionNotFound(t *testing.T) {
 //
 
 type testReceiver struct {
-	doneCh chan interface{}
+	doneCh chan bool
 	frames []string
 }
 
-func (t *testReceiver) done() chan interface{}      { return t.doneCh }
+func (t *testReceiver) done() <-chan bool           { return t.doneCh }
 func (t *testReceiver) sendBulk(messages ...string) {}
 func (t *testReceiver) sendFrame(frame string)      { t.frames = append(t.frames, frame) }
 
 func TestXhrPoll(t *testing.T) {
-	doneCh := make(chan interface{})
+	doneCh := make(chan bool)
 	rec := &testReceiver{doneCh, nil}
 	h := &handler{
 		sessions:       make(map[string]*session),
@@ -180,7 +180,7 @@ func TestXhrPoll(t *testing.T) {
 }
 
 func TestXhrPollSessionTimeout(t *testing.T) {
-	doneCh := make(chan interface{})
+	doneCh := make(chan bool)
 	rec := &testReceiver{doneCh, nil}
 	h := &handler{
 		sessions:       make(map[string]*session),
@@ -197,8 +197,32 @@ func TestXhrPollSessionTimeout(t *testing.T) {
 	}
 }
 
+type ClosableRecorder struct {
+	*httptest.ResponseRecorder
+	closeNotifCh chan bool
+}
+
+func (cr *ClosableRecorder) CloseNotify() <-chan bool { return cr.closeNotifCh }
+
+func TestXhrPollConnectionClosed(t *testing.T) {
+	rec := &testReceiver{nil, nil}
+	h := &handler{
+		sessions:       make(map[string]*session),
+		newXhrReceiver: func(http.ResponseWriter, uint32) receiver { return rec },
+	}
+	req, _ := http.NewRequest("POST", "/server/session/xhr", nil)
+	rw := &ClosableRecorder{httptest.NewRecorder(), make(chan bool)}
+	go func() {
+		close(rw.closeNotifCh)
+	}()
+	h.xhrPoll(rw, req)
+	if len(h.sessions) != 0 {
+		t.Errorf("session should be removed from handler in case of interrupted connection")
+	}
+}
+
 func TestXhrPollAnotherConnectionExists(t *testing.T) {
-	doneCh := make(chan interface{})
+	doneCh := make(chan bool)
 
 	rec1 := &testReceiver{doneCh, nil}
 	rec2 := &testReceiver{doneCh, nil}

@@ -11,14 +11,14 @@ type xhrReceiver struct {
 	rw                  http.ResponseWriter
 	maxResponseSize     uint32
 	currentResponseSize uint32
-	doneCh              chan interface{}
+	doneCh              chan bool
 }
 
 func newXhrReceiver(rw http.ResponseWriter, maxResponse uint32) *xhrReceiver {
 	return &xhrReceiver{
 		rw:              rw,
 		maxResponseSize: maxResponse,
-		doneCh:          make(chan interface{}),
+		doneCh:          make(chan bool),
 	}
 }
 
@@ -41,6 +41,6 @@ func (recv *xhrReceiver) sendFrame(value string) {
 	}
 }
 
-func (recv *xhrReceiver) done() chan interface{} {
+func (recv *xhrReceiver) done() <-chan bool {
 	return recv.doneCh
 }

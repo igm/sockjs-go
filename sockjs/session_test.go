@@ -210,7 +210,7 @@ type testRecv struct {
 
 func (t *testRecv) sendBulk(messages ...string) { t.messages = append(t.messages, messages...) }
 func (t *testRecv) sendFrame(frame string)      { t.openHeaderSent = true }
-func (t *testRecv) done() chan interface{}      { return nil }
+func (t *testRecv) done() <-chan bool           { return nil }
 
 // Session as Conn Tests
 func TestSessionAsConn(t *testing.T) { var _ Conn = newSession(0, 0) }
@@ -272,9 +272,9 @@ func TestSessionConnClose(t *testing.T) {
 type mockRecv struct {
 	_sendBulk  func(...string)
 	_sendFrame func(string)
-	_done      func() chan interface{}
+	_done      func() chan bool
 }
 
 func (r *mockRecv) sendBulk(messages ...string) { r._sendBulk(messages...) }
 func (r *mockRecv) sendFrame(frame string)      { r._sendFrame(frame) }
-func (r *mockRecv) done() chan interface{}      { return r._done() }
+func (r *mockRecv) done() <-chan bool           { return r._done() }

@@ -2,6 +2,7 @@ package sockjs
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 )
@@ -59,13 +60,18 @@ func (h *handler) xhrPoll(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	defer sess.detachReceiver()
+
+	var closeNotifyCh <-chan bool
+	if closeNotifier, ok := rw.(http.CloseNotifier); ok {
+		fmt.Println("is closable")
+		closeNotifyCh = closeNotifier.CloseNotify()
+	}
+
 	select {
 	case <-receiver.done():
-		// fmt.Println("receiver done")
-		// case <-rw.(http.CloseNotifier).CloseNotify():
-		// 	fmt.Println("http connection closed")
-		// 	h.sessionsMux.Lock()
-		// 	delete(h.sessions, sessionID)
-		// 	h.sessionsMux.Unlock()
+	case <-closeNotifyCh:
+		h.sessionsMux.Lock()
+		delete(h.sessions, sessionID)
+		h.sessionsMux.Unlock()
 	}
 }

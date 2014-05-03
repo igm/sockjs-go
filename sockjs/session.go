@@ -37,7 +37,7 @@ type session struct {
 	heartbeatInterval      time.Duration
 	timer                  *time.Timer
 	// once the session timeouts this channel also closes
-	closeCh chan interface{}
+	closeCh chan bool
 }
 
 type receiver interface {
@@ -46,7 +46,7 @@ type receiver interface {
 	// sendFrame sends given frame over the wire (with possible chunking depending on receiver)
 	sendFrame(string)
 	// done notification channel gets closed whenever receiver ends
-	done() chan interface{}
+	done() <-chan bool
 }
 
 // Session is a central component that handles receiving and sending frames. It maintains internal state
@@ -55,7 +55,7 @@ func newSession(sessionTimeoutInterval, heartbeatInterval time.Duration) *sessio
 		receivedBuffer:         make(chan string),
 		sessionTimeoutInterval: sessionTimeoutInterval,
 		heartbeatInterval:      heartbeatInterval,
-		closeCh:                make(chan interface{})}
+		closeCh:                make(chan bool)}
 	s.Lock()
 	s.timer = time.AfterFunc(sessionTimeoutInterval, s.sessionTimeout)
 	s.Unlock()
