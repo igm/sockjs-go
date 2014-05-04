@@ -158,12 +158,6 @@ func (s *session) Close(status uint32, reason string) error {
 }
 
 func (s *session) Recv() (string, error) {
-	s.Lock()
-	if s.state > sessionActive {
-		s.Unlock()
-		return "", errSessionNotOpen
-	}
-	s.Unlock()
 	val, ok := <-s.receivedBuffer
 	if ok {
 		return val, nil
