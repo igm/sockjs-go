@@ -3,6 +3,7 @@ package sockjs
 import (
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"strings"
 	"sync"
 	"testing"
@@ -216,7 +217,8 @@ func TestXhrPollConnectionClosed(t *testing.T) {
 		close(rw.closeNotifCh)
 	}()
 	h.xhrPoll(rw, req)
-	time.Sleep(10 * time.Millisecond)
+	runtime.Gosched()
+	// time.Sleep(10 * time.Millisecond)
 	h.sessionsMux.Lock()
 	if len(h.sessions) != 0 {
 		t.Errorf("session should be removed from handler in case of interrupted connection")

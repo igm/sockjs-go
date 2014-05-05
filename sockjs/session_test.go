@@ -181,10 +181,16 @@ func TestSendWithRecv(t *testing.T) {
 }
 
 func TestReceiveMessage(t *testing.T) {
+	defer func() {
+		if r := recover(); r != nil {
+			t.Errorf("Panic should not happen")
+		}
+	}()
 	session := newTestSession()
 	go func() {
 		session.accept("message A")
 		session.accept("message B")
+		session.accept("message C")
 	}()
 	if msg := <-session.receivedBuffer; msg != "message A" {
 		t.Errorf("Got %s, should be %s", msg, "message A")
@@ -192,6 +198,7 @@ func TestReceiveMessage(t *testing.T) {
 	if msg := <-session.receivedBuffer; msg != "message B" {
 		t.Errorf("Got %s, should be %s", msg, "message B")
 	}
+	session.close()
 }
 
 func TestSessionClosing(t *testing.T) {

@@ -20,8 +20,8 @@ const (
 )
 
 var (
-	errSessionNotOpen          = errors.New("session not in open state")
-	errSessionReceiverAttached = errors.New("another receiver already attached")
+	errSessionNotOpen          = errors.New("sockjs: session not in open state")
+	errSessionReceiverAttached = errors.New("sockjs: another receiver already attached")
 )
 
 type session struct {
@@ -137,7 +137,13 @@ func (s *session) detachReceiver() {
 
 func (s *session) accept(messages ...string) {
 	for _, msg := range messages {
-		s.receivedBuffer <- msg
+		s.Lock()
+		if s.state < sessionClosing {
+			s.Unlock()
+			s.receivedBuffer <- msg
+		} else {
+			s.Unlock()
+		}
 	}
 }
 
@@ -158,6 +164,7 @@ func (s *session) Close(status uint32, reason string) error {
 }
 
 func (s *session) Recv() (string, error) {
+	// TODO(igm) replace channel with io.Reader (via io.Pipe)
 	val, ok := <-s.receivedBuffer
 	if ok {
 		return val, nil
