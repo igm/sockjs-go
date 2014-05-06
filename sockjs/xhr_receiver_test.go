@@ -58,6 +58,7 @@ func TestXhrReceiver_MaximumResponseSize(t *testing.T) {
 	}
 	select {
 	case <-recv.doneCh:
+		t.Errorf("Receiver should not be done yet")
 	default: // ok
 	}
 	recv.sendBulk("message 1", "message 2") // produces another 27 bytes of response in 1 frame to go over max resposne size
