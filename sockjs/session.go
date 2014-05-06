@@ -74,7 +74,7 @@ func newSession(sessionTimeoutInterval, heartbeatInterval time.Duration) *sessio
 		sessionTimeoutInterval: sessionTimeoutInterval,
 		heartbeatInterval:      heartbeatInterval,
 		closeCh:                make(chan bool)}
-	s.Lock()
+	s.Lock() // "go test -race" complains if ommited, not sure why
 	s.timer = time.AfterFunc(sessionTimeoutInterval, s.close)
 	s.Unlock()
 	return s
