@@ -22,7 +22,7 @@ const (
 )
 
 var (
-	errSessionNotOpen          = errors.New("sockjs: session not in open state")
+	ErrSessionNotOpen          = errors.New("sockjs: session not in open state")
 	errSessionReceiverAttached = errors.New("sockjs: another receiver already attached")
 )
 
@@ -63,14 +63,12 @@ type receiver interface {
 // Session is a central component that handles receiving and sending frames. It maintains internal state
 func newSession(sessionTimeoutInterval, heartbeatInterval time.Duration) *session {
 	r, w := io.Pipe()
-	e := gob.NewEncoder(w)
-	d := gob.NewDecoder(r)
 	s := &session{
 		// receivedBuffer:         make(chan string),
 		msgReader:              r,
 		msgWriter:              w,
-		msgEncoder:             e,
-		msgDecoder:             d,
+		msgEncoder:             gob.NewEncoder(w),
+		msgDecoder:             gob.NewDecoder(r),
 		sessionTimeoutInterval: sessionTimeoutInterval,
 		heartbeatInterval:      heartbeatInterval,
 		closeCh:                make(chan bool)}
@@ -98,7 +96,7 @@ func (s *session) sendMessage(msg string) error {
 	s.Lock()
 	defer s.Unlock()
 	if s.state > sessionActive {
-		return errSessionNotOpen
+		return ErrSessionNotOpen
 	}
 	s.sendBuffer = append(s.sendBuffer, msg)
 	if s.recv != nil {
@@ -179,7 +177,7 @@ func (s *session) Recv() (string, error) {
 	var msg string
 	err := s.msgDecoder.Decode(&msg)
 	if err == io.ErrClosedPipe {
-		err = errSessionNotOpen
+		err = ErrSessionNotOpen
 	}
 	return msg, err
 }

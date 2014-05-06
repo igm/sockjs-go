@@ -210,7 +210,7 @@ func TestSessionClosing(t *testing.T) {
 	if _, err := session.Recv(); err == nil {
 		t.Errorf("Session's receive buffer channel should close")
 	}
-	if err := session.sendMessage("some message"); err != errSessionNotOpen {
+	if err := session.sendMessage("some message"); err != ErrSessionNotOpen {
 		t.Errorf("Session should not accept new message after close")
 	}
 }
@@ -239,13 +239,13 @@ func TestSessionConnRecv(t *testing.T) {
 	go func() {
 		s.closing()
 		_, err := s.Recv()
-		if err != errSessionNotOpen {
-			t.Errorf("Session not in correct state, got '%v', expected '%v'", err, errSessionNotOpen)
+		if err != ErrSessionNotOpen {
+			t.Errorf("Session not in correct state, got '%v', expected '%v'", err, ErrSessionNotOpen)
 		}
 	}()
 	_, err = s.Recv()
-	if err != errSessionNotOpen {
-		t.Errorf("Session not in correct state, got '%v', expected '%v'", err, errSessionNotOpen)
+	if err != ErrSessionNotOpen {
+		t.Errorf("Session not in correct state, got '%v', expected '%v'", err, ErrSessionNotOpen)
 	}
 }
 
