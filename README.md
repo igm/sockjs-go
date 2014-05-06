@@ -57,6 +57,7 @@ func main() {
 	handler := sockjs.NewHandler("/echo", sockjs.DefaultOptions, func(sockjs.Conn) {}) 
 	log.Fatal(http.ListenAndServe(":8081", handler))
 }
+```
 
 
 SockJS Protocol Tests Status
