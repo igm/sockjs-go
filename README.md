@@ -54,18 +54,10 @@ import (
 
 func main() {
 	// TODO(igm) add simple echo sockjs handler example
+	handler := sockjs.NewHandler("/echo", sockjs.DefaultOptions, func(sockjs.Conn) {}) 
+	log.Fatal(http.ListenAndServe(":8081", handler))
 }
 
-func EchoHandler(conn sockjs.Conn) {
-	for {
-		if msg, err := conn.ReadMessage(); err == nil {
-			go conn.WriteMessage(msg)
-		} else {
-			return
-		}
-	}
-}
-```
 
 SockJS Protocol Tests Status
 -
