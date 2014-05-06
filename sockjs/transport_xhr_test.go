@@ -61,11 +61,16 @@ func TestXhrSendInvalidInput(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/server/session/xhr_send", strings.NewReader("some invalid message frame"))
 	rec := httptest.NewRecorder()
 	h.xhrSend(rec, req)
-	if rec.Code != http.StatusInternalServerError {
-		t.Errorf("Unexpected response status, got '%d' expected '%d'", rec.Code, http.StatusInternalServerError)
+	if rec.Code != http.StatusInternalServerError || rec.Body.String() != "Broken JSON encoding." {
+		t.Errorf("Unexpected response, got '%d,%s' expected '%d,Broken JSON encoding.'", rec.Code, rec.Body.String(), http.StatusInternalServerError)
 	}
-	if rec.Body.String() != "Broken JSON encoding." {
-		t.Errorf("Unexcpected body received: '%s'", rec.Body.String())
+
+	// unexpected EOF
+	req, _ = http.NewRequest("POST", "/server/session/xhr_send", strings.NewReader("[\"x"))
+	rec = httptest.NewRecorder()
+	h.xhrSend(rec, req)
+	if rec.Code != http.StatusInternalServerError || rec.Body.String() != "Broken JSON encoding." {
+		t.Errorf("Unexpected response, got '%d,%s' expected '%d,Broken JSON encoding.'", rec.Code, rec.Body.String(), http.StatusInternalServerError)
 	}
 }
 

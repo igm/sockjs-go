@@ -17,7 +17,11 @@ To install **development** version of `sockjs-go` run:
 
     go get -u gopkg.in/igm/sockjs-go.v0/sockjs
 
-To install **stable** version of `sockjs-go` run (currently v1):
+To install **stable** version of `sockjs-go` run (currently v2):
+
+    go get gopkg.in/igm/sockjs-go.v2/sockjs
+
+To install **previoud stable**(deprecated) version of `sockjs-go` run:
 
     go get gopkg.in/igm/sockjs-go.v1/sockjs
 
@@ -45,13 +49,11 @@ import (
 	"log"
 	"net/http"
 
-	"gopkg.in/igm/sockjs-go.v1/sockjs"
+	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
 
 func main() {
-    sockjs.Install("/echo", EchoHandler, sockjs.DefaultConfig)
-	err := http.ListenAndServe(":8080", nil)
-	log.Fatal(err)
+	// TODO(igm) add simple echo sockjs handler example
 }
 
 func EchoHandler(conn sockjs.Conn) {
@@ -67,16 +69,10 @@ func EchoHandler(conn sockjs.Conn) {
 
 SockJS Protocol Tests Status
 -
-```
-ERROR: test_haproxy (__main__.WebsocketHixie76)
-ERROR: test_firefox_602_connection_header (__main__.WebsocketHybi10)
-ERROR: test_headersSanity (__main__.WebsocketHybi10)
-FAIL: test_streaming (__main__.Http10)
 
-Ran 68 tests in 1.441s
-FAILED (failures=1, errors=3)
+```
+ERROR: test_transport (__main__.XhrPolling)
+ - this test does not pass dut to a feature in net/http that removes content-type header in case of StatusNoContent response code
+ 
 ```
 
-Important
--
-This library is not production ready and use is not recommended.

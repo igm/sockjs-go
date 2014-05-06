@@ -17,7 +17,7 @@ func (h *handler) xhrSend(rw http.ResponseWriter, req *http.Request) {
 		httpError(rw, "Payload expected.", http.StatusInternalServerError)
 		return
 	}
-	if _, ok := err.(*json.SyntaxError); ok {
+	if _, ok := err.(*json.SyntaxError); ok || err == io.ErrUnexpectedEOF {
 		httpError(rw, "Broken JSON encoding.", http.StatusInternalServerError)
 		return
 	}
@@ -25,7 +25,7 @@ func (h *handler) xhrSend(rw http.ResponseWriter, req *http.Request) {
 	if sess, ok := h.sessions[sessionID]; !ok {
 		http.NotFound(rw, req)
 	} else {
-		rw.Header().Set("content-type", "text/plain; charset=UTF-8")
+		rw.Header().Set("content-type", "text/plain; charset=UTF-8") // Ignored by net/http (but protocol test complains)
 		rw.WriteHeader(http.StatusNoContent)
 		err := sess.accept(messages...)
 		_ = err // TODO(igm) handle err, sockjs-protocol test does not specify, send 410? 404? or ignore? (session is closing/closed)
@@ -68,4 +68,7 @@ func (h *handler) xhrPoll(rw http.ResponseWriter, req *http.Request) {
 	case <-closeNotifyCh:
 		sess.close()
 	}
+}
+
+func (h *handler) xhrStreaming(rw http.ResponseWriter, req *http.Request) {
 }

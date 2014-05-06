@@ -78,20 +78,6 @@ func newSession(sessionTimeoutInterval, heartbeatInterval time.Duration) *sessio
 	return s
 }
 
-func (s *session) close() {
-	s.Lock()
-	defer s.Unlock()
-	if s.state < sessionClosing {
-		s.msgWriter.Close()
-		s.msgReader.Close()
-	}
-	if s.state < sessionClosed {
-		close(s.closeCh)
-	}
-	s.state = sessionClosed
-	s.timer.Stop()
-}
-
 func (s *session) sendMessage(msg string) error {
 	s.Lock()
 	defer s.Unlock()
@@ -164,6 +150,20 @@ func (s *session) closing() {
 		s.msgWriter.Close()
 		s.state = sessionClosing
 	}
+}
+
+func (s *session) close() {
+	s.Lock()
+	defer s.Unlock()
+	if s.state < sessionClosing {
+		s.msgWriter.Close()
+		s.msgReader.Close()
+	}
+	if s.state < sessionClosed {
+		close(s.closeCh)
+	}
+	s.state = sessionClosed
+	s.timer.Stop()
 }
 
 // Conn interface implementation

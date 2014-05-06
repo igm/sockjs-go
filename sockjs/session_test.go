@@ -192,7 +192,7 @@ func TestReceiveMessage(t *testing.T) {
 		session.accept("message A")
 		session.accept("message B")
 		if err := session.accept("message C"); err != io.ErrClosedPipe {
-			t.Errorf("Unexpected error, got '%v' expected '%v'", err, io.ErrClosedPipe)
+			t.Errorf("Session should not accept new messages if closed, got '%v' expected '%v'", err, io.ErrClosedPipe)
 		}
 	}()
 	if msg, _ := session.Recv(); msg != "message A" {
