@@ -31,9 +31,10 @@ func TestXhrReceiver_SendEmptyFrames(t *testing.T) {
 func TestXhrReceiver_SendFrame(t *testing.T) {
 	rec := httptest.NewRecorder()
 	recv := newXhrReceiver(rec, 1024)
-	recv.sendFrame("some frame content")
-	if rec.Body.String() != "some frame content\n" {
-		t.Errorf("Incorrent body content received, go '%s'", rec.Body.String())
+	var frame = "some frame content"
+	recv.sendFrame(frame)
+	if rec.Body.String() != frame+"\n" {
+		t.Errorf("Incorrect body content received, got '%s', expected '%s'", rec.Body.String(), frame)
 	}
 
 }
@@ -42,8 +43,9 @@ func TestXhrReceiver_SendBulk(t *testing.T) {
 	rec := httptest.NewRecorder()
 	recv := newXhrReceiver(rec, 1024)
 	recv.sendBulk("message 1", "message 2", "message 3")
-	if rec.Body.String() != "a[\"message 1\",\"message 2\",\"message 3\"]\n" {
-		t.Errorf("Incorrect body content received from receiver '%s'", rec.Body.String())
+	expected := "a[\"message 1\",\"message 2\",\"message 3\"]\n"
+	if rec.Body.String() != expected {
+		t.Errorf("Incorrect body content received from receiver, got '%s' expected '%s'", rec.Body.String(), expected)
 	}
 }
 
