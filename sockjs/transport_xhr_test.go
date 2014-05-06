@@ -36,6 +36,16 @@ func TestHandler_XhrSendEmptyBody(t *testing.T) {
 	}
 }
 
+func TestHandler_XHrSendWrongUrlPath(t *testing.T) {
+	h := newTestHandler()
+	rec := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "incorrect", strings.NewReader("[\"a\"]"))
+	h.xhrSend(rec, req)
+	if rec.Code != http.StatusInternalServerError {
+		t.Errorf("Unexcpected response status, got '%d', expected '%d'", rec.Code, http.StatusInternalServerError)
+	}
+}
+
 func TestHandler_SessionByRequest(t *testing.T) {
 	h := newTestHandler()
 	var handlerFuncCalled = make(chan Conn)
@@ -69,11 +79,16 @@ func TestHandler_XhrSendToExistingSession(t *testing.T) {
 
 	rec := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/session/xhr_send", strings.NewReader("[\"some message\"]"))
-	go func() { h.xhrSend(rec, req) }()
+	var done = make(chan bool)
+	go func() {
+		h.xhrSend(rec, req)
+		done <- true
+	}()
 	msg, _ := sess.Recv()
 	if msg != "some message" {
 		t.Errorf("Incorrect message in the channel, should be '%s', was '%s'", "some message", msg)
 	}
+	<-done
 	if rec.Code != http.StatusNoContent {
 		t.Errorf("Wrong response status received %d, should be %d", rec.Code, http.StatusNoContent)
 	}

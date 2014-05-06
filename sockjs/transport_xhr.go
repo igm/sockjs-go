@@ -21,14 +21,17 @@ func (h *handler) xhrSend(rw http.ResponseWriter, req *http.Request) {
 		httpError(rw, "Broken JSON encoding.", http.StatusInternalServerError)
 		return
 	}
-	sessionID, _ := h.parseSessionID(req.URL) // TODO(igm) handle error
+	sessionID, err := h.parseSessionID(req.URL)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	if sess, ok := h.sessions[sessionID]; !ok {
 		http.NotFound(rw, req)
 	} else {
-		rw.Header().Set("content-type", "text/plain; charset=UTF-8") // Ignored by net/http (but protocol test complains)
+		_ = sess.accept(messages...)                                 // TODO(igm) reponse with SISE in case of err?
+		rw.Header().Set("content-type", "text/plain; charset=UTF-8") // Ignored by net/http (but protocol test complains), see https://code.google.com/p/go/source/detail?r=902dc062bff8
 		rw.WriteHeader(http.StatusNoContent)
-		err := sess.accept(messages...)
-		_ = err // TODO(igm) handle err, sockjs-protocol test does not specify, send 410? 404? or ignore? (session is closing/closed)
 	}
 }
 
