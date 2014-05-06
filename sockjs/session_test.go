@@ -12,7 +12,7 @@ func newTestSession() *session {
 	return newSession(1000*time.Second, 1000*time.Second)
 }
 
-func TestCreateSesion(t *testing.T) {
+func TestSession_Create(t *testing.T) {
 	session := newTestSession()
 	session.sendMessage("this is a message")
 	if len(session.sendBuffer) != 1 {
@@ -27,7 +27,7 @@ func TestCreateSesion(t *testing.T) {
 	}
 }
 
-func TestConcurrentSend(t *testing.T) {
+func TestSession_ConcurrentSend(t *testing.T) {
 	session := newTestSession()
 	done := make(chan bool)
 	for i := 0; i < 100; i++ {
@@ -44,7 +44,7 @@ func TestConcurrentSend(t *testing.T) {
 	}
 }
 
-func TestAttachReceiver(t *testing.T) {
+func TestSession_AttachReceiver(t *testing.T) {
 	session := newTestSession()
 	recv := &mockRecv{
 		_sendFrame: func(frame string) {
@@ -72,7 +72,7 @@ func TestAttachReceiver(t *testing.T) {
 	}
 }
 
-func TestSessionTimeout(t *testing.T) {
+func TestSession_Timeout(t *testing.T) {
 	sess := newSession(10*time.Millisecond, 10*time.Second)
 	time.Sleep(11 * time.Millisecond)
 	sess.Lock()
@@ -87,7 +87,7 @@ func TestSessionTimeout(t *testing.T) {
 	}
 }
 
-func TestSessionTimeoutOfClosedSession(t *testing.T) {
+func TestSession_TimeoutOfClosedSession(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("Unexcpected error '%v'", r)
@@ -99,7 +99,7 @@ func TestSessionTimeoutOfClosedSession(t *testing.T) {
 	sess.closing()
 }
 
-func TestAttachReceiverAndCheckHeartbeats(t *testing.T) {
+func TestSession_AttachReceiverAndCheckHeartbeats(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("Unexcpected error '%v'", r)
@@ -129,34 +129,34 @@ func TestAttachReceiverAndCheckHeartbeats(t *testing.T) {
 	}
 }
 
-func TestAttachReceiverAndRefuse(t *testing.T) {
+func TestSession_AttachReceiverAndRefuse(t *testing.T) {
 	session := newTestSession()
 	if err := session.attachReceiver(&testRecv{}); err != nil {
 		t.Errorf("Should not return error")
 	}
-	end := make(chan bool, 100)
+	var a sync.WaitGroup
+	a.Add(100)
 	for i := 0; i < 100; i++ {
 		go func() {
+			defer a.Done()
 			if err := session.attachReceiver(&testRecv{}); err != errSessionReceiverAttached {
 				t.Errorf("Should return error as another receiver is already attached")
 			}
-			end <- true
 		}()
 	}
-	for i := 0; i < 100; i++ {
-		<-end
-	}
+	a.Wait()
 }
 
-func TestDetachRecevier(t *testing.T) {
+func TestSession_DetachRecevier(t *testing.T) {
 	session := newTestSession()
 	session.detachReceiver()
+	session.detachReceiver() // idempotent operation
 	session.attachReceiver(&testRecv{})
 	session.detachReceiver()
 
 }
 
-func TestSendWithRecv(t *testing.T) {
+func TestSession_SendWithRecv(t *testing.T) {
 	session := newTestSession()
 	session.sendMessage("message A")
 	session.sendMessage("message B")
@@ -181,7 +181,7 @@ func TestSendWithRecv(t *testing.T) {
 	}
 }
 
-func TestReceiveMessage(t *testing.T) {
+func TestSession_Recv(t *testing.T) {
 	defer func() {
 		if r := recover(); r != nil {
 			t.Errorf("Panic should not happen")
@@ -204,7 +204,7 @@ func TestReceiveMessage(t *testing.T) {
 	session.close()
 }
 
-func TestSessionClosing(t *testing.T) {
+func TestSession_Closing(t *testing.T) {
 	session := newTestSession()
 	session.closing()
 	if _, err := session.Recv(); err == nil {
@@ -225,9 +225,9 @@ func (t *testRecv) sendFrame(frame string)      { t.openHeaderSent = true }
 func (t *testRecv) done() <-chan bool           { return nil }
 
 // Session as Conn Tests
-func TestSessionAsConn(t *testing.T) { var _ Conn = newSession(0, 0) }
+func TestSession_AsConn(t *testing.T) { var _ Conn = newSession(0, 0) }
 
-func TestSessionConnRecv(t *testing.T) {
+func TestSession_ConnRecv(t *testing.T) {
 	s := newTestSession()
 	go func() {
 		s.accept("message 1")
@@ -249,7 +249,7 @@ func TestSessionConnRecv(t *testing.T) {
 	}
 }
 
-func TestSessionConnSend(t *testing.T) {
+func TestSession_ConnSend(t *testing.T) {
 	s := newTestSession()
 	err := s.Send("message A")
 	if err != nil {
@@ -260,7 +260,7 @@ func TestSessionConnSend(t *testing.T) {
 	}
 }
 
-func TestSessionConnClose(t *testing.T) {
+func TestSession_ConnClose(t *testing.T) {
 	s := newTestSession()
 	s.state = sessionActive
 	err := s.Close(1, "some reason")

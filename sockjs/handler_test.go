@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestCreateHandler(t *testing.T) {
+func TestHandler_Create(t *testing.T) {
 	handler := NewHandler("/echo", DefaultOptions, nil)
 	if handler.Prefix() != "/echo" {
 		t.Errorf("Prefix not properly set, got '%s' expected '%s'", handler.Prefix(), "/echo")
@@ -28,7 +28,7 @@ func TestCreateHandler(t *testing.T) {
 	}
 }
 
-func TestParseSessionId(t *testing.T) {
+func TestHandler_ParseSessionId(t *testing.T) {
 	h := handler{prefix: "/prefix"}
 	url, _ := url.Parse("http://server:port/prefix/server/session/whatever")
 	if session, err := h.parseSessionID(url); session != "session" || err != nil {
@@ -40,7 +40,7 @@ func TestParseSessionId(t *testing.T) {
 	}
 }
 
-func TestHandlerCreateReceivers(t *testing.T) {
+func TestHandler_CreateReceivers(t *testing.T) {
 	handler := NewHandler("/echo", DefaultOptions, nil)
 	if handler.newXhrReceiver(nil, 10) == nil {
 		t.Errorf("Receiver not created properly, got 'nil'")

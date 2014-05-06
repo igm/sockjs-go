@@ -72,7 +72,8 @@ SockJS Protocol Tests Status
 
 ```
 ERROR: test_transport (__main__.XhrPolling)
- - this test does not pass due to a feature in net/http that removes content-type header in case of StatusNoContent response code
+ - this test does not pass due to a feature in net/http that does not send content-type header
+   in case of StatusNoContent response code (even if explicitelly set in the code)
  
 ```
 

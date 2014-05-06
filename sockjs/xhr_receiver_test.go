@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestXhrReceiverCreate(t *testing.T) {
+func TestXhrReceiver_Create(t *testing.T) {
 	rec := httptest.NewRecorder()
 	recv := newXhrReceiver(rec, 1024)
 	if recv.doneCh != recv.done() {
@@ -19,7 +19,7 @@ func TestXhrReceiverCreate(t *testing.T) {
 	}
 }
 
-func TestXhrReceiverSendEmptyFrames(t *testing.T) {
+func TestXhrReceiver_SendEmptyFrames(t *testing.T) {
 	rec := httptest.NewRecorder()
 	recv := newXhrReceiver(rec, 1024)
 	recv.sendBulk()
@@ -28,7 +28,7 @@ func TestXhrReceiverSendEmptyFrames(t *testing.T) {
 	}
 }
 
-func TestXhrReceiverSendFrame(t *testing.T) {
+func TestXhrReceiver_SendFrame(t *testing.T) {
 	rec := httptest.NewRecorder()
 	recv := newXhrReceiver(rec, 1024)
 	recv.sendFrame("some frame content")
@@ -38,7 +38,7 @@ func TestXhrReceiverSendFrame(t *testing.T) {
 
 }
 
-func TestXhrReceiverSendBulk(t *testing.T) {
+func TestXhrReceiver_SendBulk(t *testing.T) {
 	rec := httptest.NewRecorder()
 	recv := newXhrReceiver(rec, 1024)
 	recv.sendBulk("message 1", "message 2", "message 3")
@@ -47,7 +47,7 @@ func TestXhrReceiverSendBulk(t *testing.T) {
 	}
 }
 
-func TestXhrReceiverMaximumResponseSize(t *testing.T) {
+func TestXhrReceiver_MaximumResponseSize(t *testing.T) {
 	rec := httptest.NewRecorder()
 	recv := newXhrReceiver(rec, 54)
 	recv.sendBulk("message 1", "message 2") // produces 27 bytes of response in 1 frame

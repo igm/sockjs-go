@@ -33,23 +33,7 @@ func (h *handler) xhrSend(rw http.ResponseWriter, req *http.Request) {
 }
 
 func (h *handler) xhrPoll(rw http.ResponseWriter, req *http.Request) {
-	h.sessionsMux.Lock()
-	sessionID, _ := h.parseSessionID(req.URL) // TODO(igm) add err handling, although err should not happen as handler should not pass req in that case
-	sess, exists := h.sessions[sessionID]
-	if !exists {
-		sess = newSession(h.options.DisconnectDelay, h.options.HeartbeatDelay)
-		h.sessions[sessionID] = sess
-		if h.handlerFunc != nil {
-			go h.handlerFunc(sess)
-		}
-		go func() {
-			<-sess.closeCh
-			h.sessionsMux.Lock()
-			delete(h.sessions, sessionID)
-			h.sessionsMux.Unlock()
-		}()
-	}
-	h.sessionsMux.Unlock()
+	sess, _ := h.sessionByRequest(req) // TODO(igm) add err handling, although err should not happen as handler should not pass req in that case
 
 	rw.Header().Set("content-type", "application/javascript; charset=UTF-8")
 	receiver := h.newXhrReceiver(rw, 1)
@@ -59,16 +43,43 @@ func (h *handler) xhrPoll(rw http.ResponseWriter, req *http.Request) {
 	}
 	defer sess.detachReceiver()
 
-	var closeNotifyCh <-chan bool
+	var httpCloseNotif <-chan bool // invalidate session if connection gets interrupted
 	if closeNotifier, ok := rw.(http.CloseNotifier); ok {
-		closeNotifyCh = closeNotifier.CloseNotify()
+		httpCloseNotif = closeNotifier.CloseNotify()
 	}
+
 	select {
 	case <-receiver.done():
-	case <-closeNotifyCh:
+	case <-httpCloseNotif:
 		sess.close()
 	}
 }
 
 func (h *handler) xhrStreaming(rw http.ResponseWriter, req *http.Request) {
+}
+
+func (h *handler) sessionByRequest(req *http.Request) (*session, error) {
+	h.sessionsMux.Lock()
+	defer h.sessionsMux.Unlock()
+
+	sessionID, err := h.parseSessionID(req.URL)
+	if err != nil {
+		return nil, err
+	}
+	sess, exists := h.sessions[sessionID]
+
+	if !exists {
+		sess = newSession(h.options.DisconnectDelay, h.options.HeartbeatDelay)
+		h.sessions[sessionID] = sess
+		if h.handlerFunc != nil {
+			go h.handlerFunc(sess) // TODO(igm) maybe: session.close() after handlerFunc() exits (timeouts atm)
+		}
+		go func() {
+			<-sess.closeCh
+			h.sessionsMux.Lock()
+			delete(h.sessions, sessionID)
+			h.sessionsMux.Unlock()
+		}()
+	}
+	return sess, nil
 }

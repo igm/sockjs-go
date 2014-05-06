@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func TestXhrSendNilBody(t *testing.T) {
+func TestHandler_XhrSendNilBody(t *testing.T) {
 	h := newTestHandler()
 	rec := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/non_existing_session/xhr_send", nil)
@@ -23,7 +23,7 @@ func TestXhrSendNilBody(t *testing.T) {
 	}
 }
 
-func TestXhrSendEmptyBody(t *testing.T) {
+func TestHandler_XhrSendEmptyBody(t *testing.T) {
 	h := newTestHandler()
 	rec := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/non_existing_session/xhr_send", strings.NewReader(""))
@@ -36,7 +36,33 @@ func TestXhrSendEmptyBody(t *testing.T) {
 	}
 }
 
-func TestXhrSendToExistingSession(t *testing.T) {
+func TestHandler_SessionByRequest(t *testing.T) {
+	h := newTestHandler()
+	var handlerFuncCalled = make(chan Conn)
+	h.handlerFunc = func(conn Conn) {
+		handlerFuncCalled <- conn
+	}
+	req, _ := http.NewRequest("POST", "/server/sessionid/whatever/follows", nil)
+	if sess, err := h.sessionByRequest(req); sess == nil || err != nil {
+		t.Errorf("Session should be returned")
+	} else {
+		select {
+		case conn := <-handlerFuncCalled: // ok
+			if conn != sess {
+				t.Errorf("Handler was not passed correct session")
+			}
+		case <-time.After(100 * time.Millisecond):
+			t.Errorf("HandlerFunc was not called")
+		}
+	}
+
+	req2, _ := http.NewRequest("POST", "/server/sessionid", nil)
+	if sess, err := h.sessionByRequest(req2); sess != nil || err == nil {
+		t.Errorf("Expected error, got session: '%v'", sess)
+	}
+}
+
+func TestHandler_XhrSendToExistingSession(t *testing.T) {
 	h := newTestHandler()
 	sess := newSession(time.Second, time.Second)
 	h.sessions["session"] = sess
@@ -56,7 +82,7 @@ func TestXhrSendToExistingSession(t *testing.T) {
 	}
 }
 
-func TestXhrSendInvalidInput(t *testing.T) {
+func TestHandler_XhrSendInvalidInput(t *testing.T) {
 	h := newTestHandler()
 	req, _ := http.NewRequest("POST", "/server/session/xhr_send", strings.NewReader("some invalid message frame"))
 	rec := httptest.NewRecorder()
@@ -74,7 +100,7 @@ func TestXhrSendInvalidInput(t *testing.T) {
 	}
 }
 
-func TestXhrSendSessionNotFound(t *testing.T) {
+func TestHandler_XhrSendSessionNotFound(t *testing.T) {
 	h := handler{}
 	req, _ := http.NewRequest("POST", "/server/session/xhr_send", strings.NewReader("[\"some message\"]"))
 	rec := httptest.NewRecorder()
@@ -93,7 +119,7 @@ func (t *testReceiver) done() <-chan bool           { return t.doneCh }
 func (t *testReceiver) sendBulk(messages ...string) {}
 func (t *testReceiver) sendFrame(frame string)      { t.frames = append(t.frames, frame) }
 
-func TestXhrPoll(t *testing.T) {
+func TestHandler_XhrPoll(t *testing.T) {
 	doneCh := make(chan bool)
 	rec := &testReceiver{doneCh, nil}
 	h := &handler{
@@ -103,16 +129,11 @@ func TestXhrPoll(t *testing.T) {
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/session/xhr", nil)
 	var sess *session
-	var handlerFuncStarted = make(chan Conn)
-	h.handlerFunc = func(conn Conn) {
-		handlerFuncStarted <- conn
-	}
 	go func() {
 		h.sessionsMux.Lock()
 		defer h.sessionsMux.Unlock()
 
-		sess = h.sessions["session"]
-		if sess == nil {
+		if sess = h.sessions["session"]; sess == nil {
 			t.Errorf("Session not properly created")
 		}
 		sess.Lock()
@@ -121,14 +142,6 @@ func TestXhrPoll(t *testing.T) {
 		}
 		sess.Unlock()
 		close(doneCh)
-		select {
-		case conn := <-handlerFuncStarted:
-			if conn != sess {
-				t.Errorf("Handler func started with incorrect connection")
-			}
-		case <-time.After(100 * time.Millisecond):
-			t.Errorf("Handler function not started")
-		}
 	}()
 	h.xhrPoll(rw, req)
 	if sess.recv != nil {
@@ -139,22 +152,23 @@ func TestXhrPoll(t *testing.T) {
 	}
 }
 
-func TestXhrPollSessionTimeout(t *testing.T) {
-	doneCh := make(chan bool)
-	rec := &testReceiver{doneCh, nil}
-	h := &handler{
-		sessions:       make(map[string]*session),
-		newXhrReceiver: func(http.ResponseWriter, uint32) receiver { return rec },
-	}
+func TestHandler_SessionTimeout(t *testing.T) {
+	h := newTestHandler()
 	h.options.DisconnectDelay = 10 * time.Millisecond
-	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/session/xhr", nil)
-	go func() { close(doneCh) }()
-	h.xhrPoll(rw, req)
+	h.sessionByRequest(req)
+
+	h.sessionsMux.Lock()
+	if _, exists := h.sessions["session"]; !exists {
+		t.Errorf("Session should exist in handler after timeout")
+	}
+	h.sessionsMux.Unlock()
 	time.Sleep(15 * time.Millisecond)
+	h.sessionsMux.Lock()
 	if _, exists := h.sessions["session"]; exists {
 		t.Errorf("Session should not exist in handler after timeout")
 	}
+	h.sessionsMux.Unlock()
 }
 
 type ClosableRecorder struct {
@@ -164,7 +178,7 @@ type ClosableRecorder struct {
 
 func (cr *ClosableRecorder) CloseNotify() <-chan bool { return cr.closeNotifCh }
 
-func TestXhrPollConnectionClosed(t *testing.T) {
+func TestHandler_XhrPollConnectionInterrupted(t *testing.T) {
 	rec := &testReceiver{nil, nil}
 	h := &handler{
 		sessions:       make(map[string]*session),
@@ -184,7 +198,7 @@ func TestXhrPollConnectionClosed(t *testing.T) {
 	h.sessionsMux.Unlock()
 }
 
-func TestXhrPollAnotherConnectionExists(t *testing.T) {
+func TestHandler_XhrPollAnotherConnectionExists(t *testing.T) {
 	doneCh := make(chan bool)
 
 	rec1 := &testReceiver{doneCh, nil}

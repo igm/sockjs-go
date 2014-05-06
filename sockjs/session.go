@@ -153,17 +153,14 @@ func (s *session) closing() {
 }
 
 func (s *session) close() {
+	s.closing()
 	s.Lock()
 	defer s.Unlock()
-	if s.state < sessionClosing {
-		s.msgWriter.Close()
-		s.msgReader.Close()
-	}
 	if s.state < sessionClosed {
+		s.state = sessionClosed
+		s.timer.Stop()
 		close(s.closeCh)
 	}
-	s.state = sessionClosed
-	s.timer.Stop()
 }
 
 // Conn interface implementation

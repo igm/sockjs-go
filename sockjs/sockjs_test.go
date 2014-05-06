@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-func TestServeHTTP(t *testing.T) {
+func TestSockJS_ServeHTTP(t *testing.T) {
 	m := handler{mappings: make([]*mapping, 0)}
 	m.mappings = []*mapping{
 		&mapping{"POST", regexp.MustCompile("/foo/.*"), []http.HandlerFunc{func(http.ResponseWriter, *http.Request) {}}},
