@@ -31,9 +31,9 @@ Versioning
 
 SockJS-Go project adopted [gopkg.in](http://gopkg.in) approach for versioning. Current development version is v0 which "is equivalent to labeling the package as alpha or beta quality, and as such the use of these packages as dependencies of stable packages and applications is discouraged". This means that version 0 denotes "master" and various API changes might and will be introduced here. 
 
-For **stable** version use v1, which will not break API:
+For **stable** version use v2, which will not break API:
 
-    go get gopkg.in/igm/sockjs-go.v1/sockjs
+    go get gopkg.in/igm/sockjs-go.v2/sockjs
 
 
 Example
