@@ -231,7 +231,6 @@ func TestSessionConnRecv(t *testing.T) {
 	s := newTestSession()
 	go func() {
 		s.accept("message 1")
-		// s.receivedBuffer <- "message 1"
 	}()
 	msg, err := s.Recv()
 	if msg != "message 1" || err != nil {

@@ -45,7 +45,6 @@ func TestXhrSendToExistingSession(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/server/session/xhr_send", strings.NewReader("[\"some message\"]"))
 	go func() { h.xhrSend(rec, req) }()
 	msg, _ := sess.Recv()
-	// msg := <-sess.receivedBuffer
 	if msg != "some message" {
 		t.Errorf("Incorrect message in the channel, should be '%s', was '%s'", "some message", msg)
 	}
@@ -79,52 +78,6 @@ func TestXhrSendSessionNotFound(t *testing.T) {
 		t.Errorf("Unexpected response status, got '%d' expected '%d'", rec.Code, http.StatusNotFound)
 	}
 }
-
-// func TestXhrSend(t *testing.T) {
-// 	h := newTestHandler()
-// 	h.sessions["sess"] = new(session)
-// 	rec := httptest.NewRecorder()
-// 	req, _ := http.NewRequest("POST", "/server/sess/xhr_send", strings.NewReader("[\"some message\"]"))
-// 	go func() {
-// 		h.xhrSend(rec, req)
-// 	}()
-// 	// TODO(igm) does not test anything useful
-// }
-
-// func TestXhrPollingNewSession(t *testing.T) {
-// 	h := newTestHandler()
-// 	rec := httptest.NewRecorder()
-// 	req, _ := http.NewRequest("POST", "/server/session/xhr", nil)
-// 	h.xhrPoll(rec, req)
-// 	if rec.Code != http.StatusOK {
-// 		t.Errorf("Unexpected status = '%d', should be '%d'", rec.Code, http.StatusOK)
-// 	}
-// 	if rec.Header().Get("content-type") != "application/javascript; charset=UTF-8" {
-// 		t.Errorf("Wrong content-type, got '%s' expected '%s'", rec.Header().Get("content-type"), "application/javascript; charset=UTF-8")
-// 	}
-// 	sess, exists := h.sessions["session"]
-// 	if !exists {
-// 		t.Errorf("Session should be created in handler")
-// 	}
-// 	if sess.recv == nil {
-// 		t.Errorf("Receiver not created and properly attached to session")
-// 	}
-// 	// TODO(igm)
-// }
-//
-// func TestXhrPollingExistingSession(t *testing.T) {
-// 	h := newTestHandler()
-// 	rec := httptest.NewRecorder()
-// 	req, _ := http.NewRequest("POST", "/server/session/xhr", nil)
-// 	h.xhrPoll(rec, req)
-// 	sess, _ := h.sessions["session"]
-// 	h.xhrPoll(rec, req)
-// 	sess2, _ := h.sessions["session"]
-// 	if sess != sess2 {
-// 		t.Error("Session should be reused")
-// 	}
-// }
-//
 
 type testReceiver struct {
 	doneCh chan bool
@@ -219,7 +172,6 @@ func TestXhrPollConnectionClosed(t *testing.T) {
 	}()
 	h.xhrPoll(rw, req)
 	runtime.Gosched()
-	// time.Sleep(10 * time.Millisecond)
 	h.sessionsMux.Lock()
 	if len(h.sessions) != 0 {
 		t.Errorf("session should be removed from handler in case of interrupted connection")
