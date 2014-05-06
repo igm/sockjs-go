@@ -44,7 +44,8 @@ func TestXhrSendToExistingSession(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/session/xhr_send", strings.NewReader("[\"some message\"]"))
 	go func() { h.xhrSend(rec, req) }()
-	msg := <-sess.receivedBuffer
+	msg, _ := sess.Recv()
+	// msg := <-sess.receivedBuffer
 	if msg != "some message" {
 		t.Errorf("Incorrect message in the channel, should be '%s', was '%s'", "some message", msg)
 	}

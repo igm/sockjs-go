@@ -1,6 +1,7 @@
 package sockjs
 
 import (
+	"io"
 	"sync"
 	"testing"
 	"time"
@@ -190,12 +191,14 @@ func TestReceiveMessage(t *testing.T) {
 	go func() {
 		session.accept("message A")
 		session.accept("message B")
-		session.accept("message C")
+		if err := session.accept("message C"); err != io.ErrClosedPipe {
+			t.Errorf("Unexpected error, got '%v' expected '%v'", err, io.ErrClosedPipe)
+		}
 	}()
-	if msg := <-session.receivedBuffer; msg != "message A" {
+	if msg, _ := session.Recv(); msg != "message A" {
 		t.Errorf("Got %s, should be %s", msg, "message A")
 	}
-	if msg := <-session.receivedBuffer; msg != "message B" {
+	if msg, _ := session.Recv(); msg != "message B" {
 		t.Errorf("Got %s, should be %s", msg, "message B")
 	}
 	session.close()
@@ -204,7 +207,7 @@ func TestReceiveMessage(t *testing.T) {
 func TestSessionClosing(t *testing.T) {
 	session := newTestSession()
 	session.closing()
-	if _, ok := <-session.receivedBuffer; ok {
+	if _, err := session.Recv(); err == nil {
 		t.Errorf("Session's receive buffer channel should close")
 	}
 	if err := session.sendMessage("some message"); err != errSessionNotOpen {
@@ -227,7 +230,8 @@ func TestSessionAsConn(t *testing.T) { var _ Conn = newSession(0, 0) }
 func TestSessionConnRecv(t *testing.T) {
 	s := newTestSession()
 	go func() {
-		s.receivedBuffer <- "message 1"
+		s.accept("message 1")
+		// s.receivedBuffer <- "message 1"
 	}()
 	msg, err := s.Recv()
 	if msg != "message 1" || err != nil {

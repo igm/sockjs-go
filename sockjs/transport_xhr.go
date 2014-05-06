@@ -27,9 +27,11 @@ func (h *handler) xhrSend(rw http.ResponseWriter, req *http.Request) {
 	} else {
 		rw.Header().Set("content-type", "text/plain; charset=UTF-8")
 		rw.WriteHeader(http.StatusNoContent)
-		for _, msg := range messages {
-			sess.receivedBuffer <- msg
-		}
+		sess.accept(messages...)
+		// for _, msg := range mes {
+		// 	sess.accept(
+		// 	sess.receivedBuffer <- msg
+		// }
 	}
 }
 

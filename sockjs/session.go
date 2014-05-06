@@ -1,7 +1,9 @@
 package sockjs
 
 import (
+	"encoding/gob"
 	"errors"
+	"io"
 	"sync"
 	"time"
 )
@@ -32,7 +34,11 @@ type session struct {
 	// messages to be sent to client
 	sendBuffer []string
 	// messages received from client to be consumed by application
-	receivedBuffer chan string
+	// receivedBuffer chan string
+	msgReader  *io.PipeReader
+	msgWriter  *io.PipeWriter
+	msgEncoder *gob.Encoder
+	msgDecoder *gob.Decoder
 
 	// closeFrame to send after session is closed
 	closeFrame string
@@ -56,8 +62,15 @@ type receiver interface {
 
 // Session is a central component that handles receiving and sending frames. It maintains internal state
 func newSession(sessionTimeoutInterval, heartbeatInterval time.Duration) *session {
+	r, w := io.Pipe()
+	e := gob.NewEncoder(w)
+	d := gob.NewDecoder(r)
 	s := &session{
-		receivedBuffer:         make(chan string),
+		// receivedBuffer:         make(chan string),
+		msgReader:              r,
+		msgWriter:              w,
+		msgEncoder:             e,
+		msgDecoder:             d,
 		sessionTimeoutInterval: sessionTimeoutInterval,
 		heartbeatInterval:      heartbeatInterval,
 		closeCh:                make(chan bool)}
@@ -71,7 +84,8 @@ func (s *session) close() {
 	s.Lock()
 	defer s.Unlock()
 	if s.state < sessionClosing {
-		close(s.receivedBuffer)
+		s.msgWriter.Close()
+		s.msgReader.Close()
 	}
 	if s.state < sessionClosed {
 		close(s.closeCh)
@@ -135,23 +149,21 @@ func (s *session) detachReceiver() {
 
 }
 
-func (s *session) accept(messages ...string) {
+func (s *session) accept(messages ...string) error {
 	for _, msg := range messages {
-		s.Lock()
-		if s.state < sessionClosing {
-			s.Unlock()
-			s.receivedBuffer <- msg
-		} else {
-			s.Unlock()
+		if err := s.msgEncoder.Encode(msg); err != nil {
+			return err
 		}
 	}
+	return nil
 }
 
 func (s *session) closing() {
 	s.Lock()
 	defer s.Unlock()
 	if s.state < sessionClosing {
-		close(s.receivedBuffer)
+		s.msgReader.Close()
+		s.msgWriter.Close()
 		s.state = sessionClosing
 	}
 }
@@ -164,12 +176,12 @@ func (s *session) Close(status uint32, reason string) error {
 }
 
 func (s *session) Recv() (string, error) {
-	// TODO(igm) replace channel with io.Reader (via io.Pipe)
-	val, ok := <-s.receivedBuffer
-	if ok {
-		return val, nil
+	var msg string
+	err := s.msgDecoder.Decode(&msg)
+	if err == io.ErrClosedPipe {
+		err = errSessionNotOpen
 	}
-	return "", errSessionNotOpen
+	return msg, err
 }
 
 func (s *session) Send(msg string) error {
