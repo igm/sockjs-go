@@ -62,8 +62,10 @@ func main() {
 
 SockJS Protocol Tests Status
 -
+SockJS defines a set of [protocol tests](https://github.com/sockjs/sockjs-protocol) to quarantee a server compatibility with sockjs client library and various browsers. SockJS-Go server library aims to provide full compatibility, however there are couple of tests that don't and probably will never pass due to reasons explained in table below:
+
 
 | Failing Test | Explanation |
 | -------------| ------------|
-| **XhrPolling.test_transport** | this test does not pass due to a feature in net/http that does not send content-type header in case of StatusNoContent response code (even if explicitelly set in the code) |
+| **XhrPolling.test_transport** | does not pass due to a feature in net/http that does not send content-type header in case of StatusNoContent response code (even if explicitelly set in the code), [details](https://code.google.com/p/go/source/detail?r=902dc062bff8) |
 | **WebSocket.\*** |  TODO(igm) explain why WebSocket tests fail |
