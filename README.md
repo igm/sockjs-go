@@ -67,5 +67,5 @@ SockJS defines a set of [protocol tests](https://github.com/sockjs/sockjs-protoc
 
 | Failing Test | Explanation |
 | -------------| ------------|
-| **XhrPolling.test_transport** | does not pass due to a feature in net/http that does not send content-type header in case of StatusNoContent response code (even if explicitelly set in the code), [details](https://code.google.com/p/go/source/detail?r=902dc062bff8) |
+| **XhrPolling.test_transport** | does not pass due to a feature in net/http that does not send content-type header in case of StatusNoContent response code (even if explicitly set in the code), [details](https://code.google.com/p/go/source/detail?r=902dc062bff8) |
 | **WebSocket.\*** |  TODO(igm) explain why WebSocket tests fail |
