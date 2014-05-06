@@ -21,7 +21,7 @@ To install **stable** version of `sockjs-go` run (currently v2):
 
     go get gopkg.in/igm/sockjs-go.v2/sockjs
 
-To install **previoud stable**(deprecated) version of `sockjs-go` run:
+To install **previous stable**(deprecated) version of `sockjs-go` run:
 
     go get gopkg.in/igm/sockjs-go.v1/sockjs
 
@@ -72,7 +72,7 @@ SockJS Protocol Tests Status
 
 ```
 ERROR: test_transport (__main__.XhrPolling)
- - this test does not pass dut to a feature in net/http that removes content-type header in case of StatusNoContent response code
+ - this test does not pass due to a feature in net/http that removes content-type header in case of StatusNoContent response code
  
 ```
 
