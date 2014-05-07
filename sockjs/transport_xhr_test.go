@@ -148,11 +148,9 @@ func TestHandler_XhrPollConnectionInterrupted(t *testing.T) {
 	sess := newTestSession()
 	sess.state = sessionActive
 	h.sessions["session"] = sess
-
 	req, _ := http.NewRequest("POST", "/server/session/xhr", nil)
 	rw := newClosableRecorder()
 	close(rw.closeNotifCh)
-
 	h.xhrPoll(rw, req)
 	if sess.state != sessionClosed {
 		t.Errorf("Session should be closed")
@@ -165,14 +163,12 @@ func TestHandler_XhrPollAnotherConnectionExists(t *testing.T) {
 	sess := newSession(time.Hour, time.Hour)
 	h.sessions["session"] = sess
 	sess.attachReceiver(&testReceiver{})
-
 	req, _ := http.NewRequest("POST", "/server/session/xhr", nil)
 	rw2 := httptest.NewRecorder()
 	h.xhrPoll(rw2, req)
 	if rw2.Body.String() != "c[2010,\"Another connection still open\"]\n" {
 		t.Errorf("Unexpected body, got '%s'", rw2.Body)
 	}
-
 }
 
 func TestHandler_XhrStreaming(t *testing.T) {
@@ -189,7 +185,6 @@ func TestHandler_XhrStreaming(t *testing.T) {
 func TestHandler_XhrStreamingAnotherReceiver(t *testing.T) {
 	h := newTestHandler()
 	h.options.ResponseLimit = 4096
-
 	rw1 := newClosableRecorder()
 	req, _ := http.NewRequest("POST", "/server/session/xhr_streaming", nil)
 	go func() {
