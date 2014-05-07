@@ -2,7 +2,6 @@ package sockjs
 
 import (
 	"fmt"
-	"io"
 	"net/http"
 	"strings"
 )
@@ -32,8 +31,9 @@ func (recv *xhrReceiver) sendBulk(messages ...string) {
 }
 
 func (recv *xhrReceiver) sendFrame(value string) {
-	n, _ := io.WriteString(recv.rw, value+"\n")
-	recv.currentResponseSize += uint32(n)
+	// n, _ := io.WriteString(recv.rw, value+"\n")
+	fmt.Fprintf(recv.rw, "%s\n", value)
+	recv.currentResponseSize += uint32(len(value) + 1)
 	if recv.currentResponseSize >= recv.maxResponseSize {
 		close(recv.doneCh)
 	} else {

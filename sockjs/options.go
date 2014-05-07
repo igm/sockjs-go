@@ -21,7 +21,7 @@ type Options struct {
 	SockJSURL       string
 	Websocket       bool
 	CookieNeeded    bool
-	ResponseLimit   int
+	ResponseLimit   uint32
 }
 
 // DefaultOptions is a convenient set of options to be used for sockjs

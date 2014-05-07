@@ -2,8 +2,10 @@ package sockjs
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+	"strings"
 )
 
 func (h *handler) xhrSend(rw http.ResponseWriter, req *http.Request) {
@@ -59,18 +61,39 @@ func (h *handler) xhrPoll(rw http.ResponseWriter, req *http.Request) {
 }
 
 func (h *handler) xhrStreaming(rw http.ResponseWriter, req *http.Request) {
+	sess, _ := h.sessionByRequest(req)
+
+	rw.Header().Set("content-type", "application/javascript; charset=UTF-8")
+
+	receiver := h.newXhrReceiver(rw, h.options.ResponseLimit)
+
+	fmt.Fprintf(rw, "%s\n", strings.Repeat("h", 2048))
+	rw.(http.Flusher).Flush()
+	if err := sess.attachReceiver(receiver); err != nil {
+		receiver.sendFrame(closeFrame(2010, "Another connection still open"))
+		return
+	}
+	defer sess.detachReceiver()
+
+	var httpCloseNotif <-chan bool // invalidate session if connection gets interrupted
+	if closeNotifier, ok := rw.(http.CloseNotifier); ok {
+		httpCloseNotif = closeNotifier.CloseNotify()
+	}
+	select {
+	case <-receiver.done():
+	case <-httpCloseNotif:
+		// sess.close()
+	}
 }
 
 func (h *handler) sessionByRequest(req *http.Request) (*session, error) {
 	h.sessionsMux.Lock()
 	defer h.sessionsMux.Unlock()
-
 	sessionID, err := h.parseSessionID(req.URL)
 	if err != nil {
 		return nil, err
 	}
 	sess, exists := h.sessions[sessionID]
-
 	if !exists {
 		sess = newSession(h.options.DisconnectDelay, h.options.HeartbeatDelay)
 		h.sessions[sessionID] = sess

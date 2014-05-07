@@ -49,7 +49,6 @@ func echoHandler(conn sockjs.Conn) {
 			fmt.Println("recv err:", err)
 			break
 		} else {
-			fmt.Println(msg)
 			if err := conn.Send(msg); err != nil {
 				fmt.Println("send err:", err)
 				break

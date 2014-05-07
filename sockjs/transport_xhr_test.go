@@ -265,3 +265,30 @@ var dummyXhreceiver = func(http.ResponseWriter, uint32) receiver {
 	rec := httptest.NewRecorder()
 	return newXhrReceiver(rec, 10)
 }
+
+func TestHandler_XhrStreaming(t *testing.T) {
+	h := newTestHandler()
+	doneCh := make(chan bool)
+	rec := &testReceiver{doneCh, nil}
+	h.newXhrReceiver = func(http.ResponseWriter, uint32) receiver { return rec }
+	rw := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/server/session/xhr_streaming", nil)
+	go func() {
+		doneCh <- true
+	}()
+	h.xhrStreaming(rw, req)
+	prelude := strings.Repeat("h", 2048) + "\n"
+	if len(rec.frames) != 1 {
+		t.Fatalf("Expecting 2 frames, 'o' and 2048*'x' prelude, got '%d' frames", len(rec.frames))
+	}
+	if rec.frames[0] != "o" {
+		t.Errorf("Open header not received")
+	}
+	if rw.Header().Get("content-type") != "application/javascript; charset=UTF-8" {
+		t.Errorf("Unexpected content-type, got '%s'", rw.Header().Get("content-type"))
+	}
+	if rw.Body.String() != prelude {
+		t.Errorf("Prelude not received, got '%s'", rw.Body.String())
+	}
+
+}
