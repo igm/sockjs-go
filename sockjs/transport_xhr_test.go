@@ -3,9 +3,7 @@ package sockjs
 import (
 	"net/http"
 	"net/http/httptest"
-	"runtime"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 )
@@ -43,32 +41,6 @@ func TestHandler_XHrSendWrongUrlPath(t *testing.T) {
 	h.xhrSend(rec, req)
 	if rec.Code != http.StatusInternalServerError {
 		t.Errorf("Unexcpected response status, got '%d', expected '%d'", rec.Code, http.StatusInternalServerError)
-	}
-}
-
-func TestHandler_SessionByRequest(t *testing.T) {
-	h := newTestHandler()
-	var handlerFuncCalled = make(chan Conn)
-	h.handlerFunc = func(conn Conn) {
-		handlerFuncCalled <- conn
-	}
-	req, _ := http.NewRequest("POST", "/server/sessionid/whatever/follows", nil)
-	if sess, err := h.sessionByRequest(req); sess == nil || err != nil {
-		t.Errorf("Session should be returned")
-	} else {
-		select {
-		case conn := <-handlerFuncCalled: // ok
-			if conn != sess {
-				t.Errorf("Handler was not passed correct session")
-			}
-		case <-time.After(100 * time.Millisecond):
-			t.Errorf("HandlerFunc was not called")
-		}
-	}
-
-	req2, _ := http.NewRequest("POST", "/server/sessionid", nil)
-	if sess, err := h.sessionByRequest(req2); sess != nil || err == nil {
-		t.Errorf("Expected error, got session: '%v'", sess)
 	}
 }
 
@@ -125,154 +97,87 @@ func TestHandler_XhrSendSessionNotFound(t *testing.T) {
 	}
 }
 
-type testReceiver struct {
-	doneCh chan bool
-	frames []string
+func TestHandler_SessionByRequest(t *testing.T) {
+	h := newTestHandler()
+	h.options.DisconnectDelay = 10 * time.Millisecond
+	var handlerFuncCalled = make(chan Conn)
+	h.handlerFunc = func(conn Conn) { handlerFuncCalled <- conn }
+	req, _ := http.NewRequest("POST", "/server/sessionid/whatever/follows", nil)
+	sess, err := h.sessionByRequest(req)
+	if sess == nil || err != nil {
+		t.Errorf("Session should be returned")
+		// test handlerFunc was called
+		select {
+		case conn := <-handlerFuncCalled: // ok
+			if conn != sess {
+				t.Errorf("Handler was not passed correct session")
+			}
+		case <-time.After(100 * time.Millisecond):
+			t.Errorf("HandlerFunc was not called")
+		}
+	}
+	// test session is reused for multiple requests with same sessionID
+	req2, _ := http.NewRequest("POST", "/server/sessionid/whatever", nil)
+	if sess2, err := h.sessionByRequest(req2); sess2 != sess || err != nil {
+		t.Errorf("Expected error, got session: '%v'", sess)
+	}
+	// test session expires after timeout
+	time.Sleep(15 * time.Millisecond)
+	if _, exists := h.sessions["sessionid"]; exists {
+		t.Errorf("Session should not exist in handler after timeout")
+	}
+	// test proper behaviour in case URL is not correct
+	req, _ = http.NewRequest("POST", "", nil)
+	if _, err := h.sessionByRequest(req); err == nil {
+		t.Errorf("Expected parser sessionID from URL error, got 'nil'")
+	}
 }
 
-func (t *testReceiver) done() <-chan bool           { return t.doneCh }
-func (t *testReceiver) sendBulk(messages ...string) {}
-func (t *testReceiver) sendFrame(frame string)      { t.frames = append(t.frames, frame) }
-
 func TestHandler_XhrPoll(t *testing.T) {
-	doneCh := make(chan bool)
-	rec := &testReceiver{doneCh, nil}
-	h := &handler{
-		sessions:       make(map[string]*session),
-		newXhrReceiver: func(http.ResponseWriter, uint32) receiver { return rec },
-	}
+	h := newTestHandler()
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/session/xhr", nil)
-	var sess *session
-	go func() {
-		h.sessionsMux.Lock()
-		defer h.sessionsMux.Unlock()
-
-		if sess = h.sessions["session"]; sess == nil {
-			t.Errorf("Session not properly created")
-		}
-		sess.Lock()
-		if sess.recv != rec {
-			t.Errorf("Receiver not properly attached to session")
-		}
-		sess.Unlock()
-		close(doneCh)
-	}()
 	h.xhrPoll(rw, req)
-	if sess.recv != nil {
-		t.Errorf("receiver did not deattach from session")
-	}
 	if rw.Header().Get("content-type") != "application/javascript; charset=UTF-8" {
 		t.Errorf("Wrong content type received, got '%s'", rw.Header().Get("content-type"))
 	}
 }
 
-func TestHandler_SessionTimeout(t *testing.T) {
-	h := newTestHandler()
-	h.options.DisconnectDelay = 10 * time.Millisecond
-	req, _ := http.NewRequest("POST", "/server/session/xhr", nil)
-	h.sessionByRequest(req)
-
-	h.sessionsMux.Lock()
-	if _, exists := h.sessions["session"]; !exists {
-		t.Errorf("Session should exist in handler after timeout")
-	}
-	h.sessionsMux.Unlock()
-	time.Sleep(15 * time.Millisecond)
-	h.sessionsMux.Lock()
-	if _, exists := h.sessions["session"]; exists {
-		t.Errorf("Session should not exist in handler after timeout")
-	}
-	h.sessionsMux.Unlock()
-}
-
-type ClosableRecorder struct {
-	*httptest.ResponseRecorder
-	closeNotifCh chan bool
-}
-
-func newClosableRecorder() *ClosableRecorder {
-	return &ClosableRecorder{httptest.NewRecorder(), make(chan bool)}
-}
-
-func (cr *ClosableRecorder) CloseNotify() <-chan bool { return cr.closeNotifCh }
-
 func TestHandler_XhrPollConnectionInterrupted(t *testing.T) {
-	rec := &testReceiver{nil, nil}
-	h := &handler{
-		sessions:       make(map[string]*session),
-		newXhrReceiver: func(http.ResponseWriter, uint32) receiver { return rec },
-	}
+	h := newTestHandler()
+	sess := newTestSession()
+	sess.state = sessionActive
+	h.sessions["session"] = sess
+
 	req, _ := http.NewRequest("POST", "/server/session/xhr", nil)
 	rw := newClosableRecorder()
-	go func() {
-		close(rw.closeNotifCh)
-	}()
+	close(rw.closeNotifCh)
+
 	h.xhrPoll(rw, req)
-	runtime.Gosched()
-	h.sessionsMux.Lock()
-	if len(h.sessions) != 0 {
-		t.Errorf("session should be removed from handler in case of interrupted connection")
+	if sess.state != sessionClosed {
+		t.Errorf("Session should be closed")
 	}
-	h.sessionsMux.Unlock()
 }
 
 func TestHandler_XhrPollAnotherConnectionExists(t *testing.T) {
-	doneCh := make(chan bool)
-
-	rec1 := &testReceiver{doneCh, nil}
-	rec2 := &testReceiver{doneCh, nil}
-
-	receivers := []receiver{rec1, rec2}
-
-	var ll sync.Mutex
-	h := &handler{
-		sessions: make(map[string]*session),
-		newXhrReceiver: func(http.ResponseWriter, uint32) receiver {
-			ll.Lock()
-			defer ll.Unlock()
-
-			ret := receivers[0]
-			receivers = receivers[1:]
-			return ret
-		},
-	}
+	h := newTestHandler()
 	// turn of timeoutes and heartbeats
-	h.options.HeartbeatDelay = time.Hour
-	h.options.DisconnectDelay = time.Hour
+	sess := newSession(time.Hour, time.Hour)
+	h.sessions["session"] = sess
+	sess.attachReceiver(&testReceiver{})
 
-	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/session/xhr", nil)
-	go func() {
-		rw := httptest.NewRecorder()
-		h.xhrPoll(rw, req)
-		if len(rec2.frames) != 1 || rec2.frames[0] != "c[2010,\"Another connection still open\"]" {
-			t.Errorf("Incorrect close frame retrieved, got '%s'", rec2.frames[0])
-		}
-		close(doneCh)
-	}()
-	h.xhrPoll(rw, req)
-	if len(rec1.frames) != 1 || rec1.frames[0] != "o" {
-		t.Errorf("Missing or wrong open frame '%v'", rec1.frames)
+	rw2 := httptest.NewRecorder()
+	h.xhrPoll(rw2, req)
+	if rw2.Body.String() != "c[2010,\"Another connection still open\"]\n" {
+		t.Errorf("Unexpected body, got '%s'", rw2.Body)
 	}
 
-}
-
-func newTestHandler() *handler {
-	h := &handler{sessions: make(map[string]*session), newXhrReceiver: dummyXhreceiver}
-	h.options.HeartbeatDelay = time.Hour
-	h.options.DisconnectDelay = time.Hour
-	return h
-}
-
-var dummyXhreceiver = func(http.ResponseWriter, uint32) receiver {
-	rec := httptest.NewRecorder()
-	return newXhrReceiver(rec, 10)
 }
 
 func TestHandler_XhrStreaming(t *testing.T) {
 	h := newTestHandler()
-	rw := httptest.NewRecorder()
+	rw := newClosableRecorder()
 	req, _ := http.NewRequest("POST", "/server/session/xhr_streaming", nil)
 	h.xhrStreaming(rw, req)
 	expected_body := strings.Repeat("h", 2048) + "\no\n"
@@ -298,3 +203,31 @@ func TestHandler_XhrStreamingAnotherReceiver(t *testing.T) {
 	}()
 	h.xhrStreaming(rw1, req)
 }
+
+// various test only structs
+func newTestHandler() *handler {
+	h := &handler{sessions: make(map[string]*session)}
+	h.options.HeartbeatDelay = time.Hour
+	h.options.DisconnectDelay = time.Hour
+	return h
+}
+
+type testReceiver struct {
+	doneCh chan bool
+	frames []string
+}
+
+func (t *testReceiver) done() <-chan bool           { return t.doneCh }
+func (t *testReceiver) sendBulk(messages ...string) {}
+func (t *testReceiver) sendFrame(frame string)      { t.frames = append(t.frames, frame) }
+
+type ClosableRecorder struct {
+	*httptest.ResponseRecorder
+	closeNotifCh chan bool
+}
+
+func newClosableRecorder() *ClosableRecorder {
+	return &ClosableRecorder{httptest.NewRecorder(), make(chan bool)}
+}
+
+func (cr *ClosableRecorder) CloseNotify() <-chan bool { return cr.closeNotifCh }

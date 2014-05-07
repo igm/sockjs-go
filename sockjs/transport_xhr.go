@@ -40,7 +40,7 @@ func (h *handler) xhrSend(rw http.ResponseWriter, req *http.Request) {
 func (h *handler) xhrPoll(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Set("content-type", "application/javascript; charset=UTF-8")
 	sess, _ := h.sessionByRequest(req) // TODO(igm) add err handling, although err should not happen as handler should not pass req in that case
-	receiver := h.newXhrReceiver(rw, 1)
+	receiver := newXhrReceiver(rw, 1)
 	if err := sess.attachReceiver(receiver); err != nil {
 		receiver.sendFrame(closeFrame(2010, "Another connection still open"))
 		return

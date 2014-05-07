@@ -39,10 +39,3 @@ func TestHandler_ParseSessionId(t *testing.T) {
 		t.Errorf("Should return error")
 	}
 }
-
-func TestHandler_CreateReceivers(t *testing.T) {
-	handler := NewHandler("/echo", DefaultOptions, nil)
-	if handler.newXhrReceiver(nil, 10) == nil {
-		t.Errorf("Receiver not created properly, got 'nil'")
-	}
-}

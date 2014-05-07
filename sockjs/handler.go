@@ -18,7 +18,7 @@ type handler struct {
 	sessionsMux sync.Mutex
 	sessions    map[string]*session
 
-	newXhrReceiver func(http.ResponseWriter, uint32) receiver
+	// newXhrReceiver func(http.ResponseWriter, uint32) receiver
 }
 
 // NewHandler creates new HTTP handler that conforms to the basic net/http.Handler interface.
@@ -30,7 +30,7 @@ func NewHandler(prefix string, opts Options, handlerFn HandlerFunc) *handler {
 		handlerFunc: handlerFn,
 		sessions:    make(map[string]*session),
 		// factory for various receiver types
-		newXhrReceiver: func(rw http.ResponseWriter, maxWriteCound uint32) receiver { return newXhrReceiver(rw, maxWriteCound) },
+		// newXhrReceiver: func(rw http.ResponseWriter, maxWriteCound uint32) receiver { return newXhrReceiver(rw, maxWriteCound) },
 	}
 
 	sessionPrefix := prefix + "/[^/.]+/[^/.]+"
