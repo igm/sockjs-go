@@ -38,9 +38,8 @@ func (h *handler) xhrSend(rw http.ResponseWriter, req *http.Request) {
 }
 
 func (h *handler) xhrPoll(rw http.ResponseWriter, req *http.Request) {
-	sess, _ := h.sessionByRequest(req) // TODO(igm) add err handling, although err should not happen as handler should not pass req in that case
-
 	rw.Header().Set("content-type", "application/javascript; charset=UTF-8")
+	sess, _ := h.sessionByRequest(req) // TODO(igm) add err handling, although err should not happen as handler should not pass req in that case
 	receiver := h.newXhrReceiver(rw, 1)
 	if err := sess.attachReceiver(receiver); err != nil {
 		receiver.sendFrame(closeFrame(2010, "Another connection still open"))
@@ -60,17 +59,18 @@ func (h *handler) xhrPoll(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
+var xhrStreamingPrelude = strings.Repeat("h", 2048)
+var cFrame = closeFrame(2010, "Another connection still open")
+
 func (h *handler) xhrStreaming(rw http.ResponseWriter, req *http.Request) {
-	sess, _ := h.sessionByRequest(req)
-
 	rw.Header().Set("content-type", "application/javascript; charset=UTF-8")
-
-	receiver := h.newXhrReceiver(rw, h.options.ResponseLimit)
-
-	fmt.Fprintf(rw, "%s\n", strings.Repeat("h", 2048))
+	fmt.Fprintf(rw, "%s\n", xhrStreamingPrelude)
 	rw.(http.Flusher).Flush()
+
+	sess, _ := h.sessionByRequest(req)
+	receiver := newXhrReceiver(rw, h.options.ResponseLimit)
 	if err := sess.attachReceiver(receiver); err != nil {
-		receiver.sendFrame(closeFrame(2010, "Another connection still open"))
+		receiver.sendFrame(cFrame)
 		return
 	}
 	defer sess.detachReceiver()
@@ -82,7 +82,7 @@ func (h *handler) xhrStreaming(rw http.ResponseWriter, req *http.Request) {
 	select {
 	case <-receiver.done():
 	case <-httpCloseNotif:
-		// sess.close()
+		sess.close()
 	}
 }
 

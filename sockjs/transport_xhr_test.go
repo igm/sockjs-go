@@ -191,6 +191,10 @@ type ClosableRecorder struct {
 	closeNotifCh chan bool
 }
 
+func newClosableRecorder() *ClosableRecorder {
+	return &ClosableRecorder{httptest.NewRecorder(), make(chan bool)}
+}
+
 func (cr *ClosableRecorder) CloseNotify() <-chan bool { return cr.closeNotifCh }
 
 func TestHandler_XhrPollConnectionInterrupted(t *testing.T) {
@@ -200,7 +204,7 @@ func TestHandler_XhrPollConnectionInterrupted(t *testing.T) {
 		newXhrReceiver: func(http.ResponseWriter, uint32) receiver { return rec },
 	}
 	req, _ := http.NewRequest("POST", "/server/session/xhr", nil)
-	rw := &ClosableRecorder{httptest.NewRecorder(), make(chan bool)}
+	rw := newClosableRecorder()
 	go func() {
 		close(rw.closeNotifCh)
 	}()
@@ -268,27 +272,29 @@ var dummyXhreceiver = func(http.ResponseWriter, uint32) receiver {
 
 func TestHandler_XhrStreaming(t *testing.T) {
 	h := newTestHandler()
-	doneCh := make(chan bool)
-	rec := &testReceiver{doneCh, nil}
-	h.newXhrReceiver = func(http.ResponseWriter, uint32) receiver { return rec }
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/session/xhr_streaming", nil)
-	go func() {
-		doneCh <- true
-	}()
 	h.xhrStreaming(rw, req)
-	prelude := strings.Repeat("h", 2048) + "\n"
-	if len(rec.frames) != 1 {
-		t.Fatalf("Expecting 2 frames, 'o' and 2048*'x' prelude, got '%d' frames", len(rec.frames))
+	expected_body := strings.Repeat("h", 2048) + "\no\n"
+	if rw.Body.String() != expected_body {
+		t.Errorf("Unexpected body, got '%s' expected '%s'", rw.Body, expected_body)
 	}
-	if rec.frames[0] != "o" {
-		t.Errorf("Open header not received")
-	}
-	if rw.Header().Get("content-type") != "application/javascript; charset=UTF-8" {
-		t.Errorf("Unexpected content-type, got '%s'", rw.Header().Get("content-type"))
-	}
-	if rw.Body.String() != prelude {
-		t.Errorf("Prelude not received, got '%s'", rw.Body.String())
-	}
+}
 
+func TestHandler_XhrStreamingAnotherReceiver(t *testing.T) {
+	h := newTestHandler()
+	h.options.ResponseLimit = 4096
+
+	rw1 := newClosableRecorder()
+	req, _ := http.NewRequest("POST", "/server/session/xhr_streaming", nil)
+	go func() {
+		rec := httptest.NewRecorder()
+		h.xhrStreaming(rec, req)
+		expected_body := strings.Repeat("h", 2048) + "\n" + "c[2010,\"Another connection still open\"]\n"
+		if rec.Body.String() != expected_body {
+			t.Errorf("Unexpected body got '%s', expected '%s', ", rec.Body, expected_body)
+		}
+		close(rw1.closeNotifCh)
+	}()
+	h.xhrStreaming(rw1, req)
 }
