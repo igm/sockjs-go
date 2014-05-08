@@ -36,11 +36,11 @@ func NewHandler(prefix string, opts Options, handlerFn HandlerFunc) *handler {
 		newMapping("GET", prefix+"/info?$", xhrCors, noCache, opts.info),
 		//
 		// other mappings
-		newMapping("POST", sessionPrefix+"/xhr_send$", xhrCors, noCache, h.xhrSend),
+		newMapping("POST", sessionPrefix+"/xhr_send$", opts.cookie, xhrCors, noCache, h.xhrSend),
 		newMapping("OPTIONS", sessionPrefix+"/xhr_send$", opts.cookie, xhrCors, cacheFor, xhrOptions),
-		newMapping("POST", sessionPrefix+"/xhr$", xhrCors, noCache, h.xhrPoll),
+		newMapping("POST", sessionPrefix+"/xhr$", opts.cookie, xhrCors, noCache, h.xhrPoll),
 		newMapping("OPTIONS", sessionPrefix+"/xhr$", opts.cookie, xhrCors, cacheFor, xhrOptions),
-		newMapping("POST", sessionPrefix+"/xhr_streaming$", xhrCors, noCache, h.xhrStreaming),
+		newMapping("POST", sessionPrefix+"/xhr_streaming$", opts.cookie, xhrCors, noCache, h.xhrStreaming),
 		newMapping("OPTIONS", sessionPrefix+"/xhr_streaming$", opts.cookie, xhrCors, cacheFor, xhrOptions),
 	}
 	return h

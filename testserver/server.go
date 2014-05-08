@@ -25,6 +25,7 @@ func main() {
 	// register various test handlers
 	var handlers = []sockjs.Handler{
 		sockjs.NewHandler("/echo", echoOptions, echoHandler),
+		sockjs.NewHandler("/cookie_needed_echo", cookieNeededOptions, echoHandler),
 		sockjs.NewHandler("/close", sockjs.DefaultOptions, closeHandler),
 		sockjs.NewHandler("/disabled_websocket_echo", disabledWebsocketOptions, nil),
 	}
