@@ -46,14 +46,15 @@ func TestSession_ConcurrentSend(t *testing.T) {
 
 func TestSession_AttachReceiver(t *testing.T) {
 	session := newTestSession()
-	recv := &mockRecv{
-		_sendFrame: func(frame string) {
-			if frame != "o" {
-				t.Errorf("Incorrect open header received")
-			}
-		},
-		_sendBulk: func(...string) {},
-	}
+	recv := &testReceiver{}
+	// recv := &mockRecv{
+	// 	_sendFrame: func(frame string) {
+	// 		if frame != "o" {
+	// 			t.Errorf("Incorrect open header received")
+	// 		}
+	// 	},
+	// 	_sendBulk: func(...string) {},
+	// }
 	if err := session.attachReceiver(recv); err != nil {
 		t.Errorf("Should not return error")
 	}
@@ -61,12 +62,12 @@ func TestSession_AttachReceiver(t *testing.T) {
 		t.Errorf("Session in wrong state after receiver attached %d, should be %d", session.state, sessionActive)
 	}
 	session.detachReceiver()
-	recv = &mockRecv{
-		_sendFrame: func(frame string) {
-			t.Errorf("No frame shold be send, got '%s'", frame)
-		},
-		_sendBulk: func(...string) {},
-	}
+	// recv = &mockRecv{
+	// 	_sendFrame: func(frame string) {
+	// 		t.Errorf("No frame shold be send, got '%s'", frame)
+	// 	},
+	// 	_sendBulk: func(...string) {},
+	// }
 	if err := session.attachReceiver(recv); err != nil {
 		t.Errorf("Should not return error")
 	}
@@ -106,24 +107,16 @@ func TestSession_AttachReceiverAndCheckHeartbeats(t *testing.T) {
 		}
 	}()
 	session := newSession(time.Second, 10*time.Millisecond) // 10ms heartbeats
-	var frames = []string{}
-	var mux sync.Mutex
-	recv := &mockRecv{
-		_sendBulk: func(...string) {},
-		_sendFrame: func(frame string) {
-			mux.Lock()
-			frames = append(frames, frame)
-			mux.Unlock()
-		},
-	}
+	recv := newTestReceiver()
+	defer close(recv.doneCh)
 	session.attachReceiver(recv)
 	time.Sleep(120 * time.Millisecond)
-	mux.Lock()
-	if len(frames) < 10 || len(frames) > 13 { // should get around 10 heartbeats (120ms/10ms)
-		t.Fatalf("Wrong number of frames received, got '%d'", len(frames))
+	recv.Lock()
+	if len(recv.frames) < 10 || len(recv.frames) > 13 { // should get around 10 heartbeats (120ms/10ms)
+		t.Fatalf("Wrong number of frames received, got '%d'", len(recv.frames))
 	}
-	for i := 1; i < 10; i++ {
-		if frames[i] != "h" {
+	for i := 1; i < len(recv.frames); i++ {
+		if recv.frames[i] != "h" {
 			t.Errorf("Heartbeat no received")
 		}
 	}
@@ -131,7 +124,7 @@ func TestSession_AttachReceiverAndCheckHeartbeats(t *testing.T) {
 
 func TestSession_AttachReceiverAndRefuse(t *testing.T) {
 	session := newTestSession()
-	if err := session.attachReceiver(&testRecv{}); err != nil {
+	if err := session.attachReceiver(newTestReceiver()); err != nil {
 		t.Errorf("Should not return error")
 	}
 	var a sync.WaitGroup
@@ -139,7 +132,7 @@ func TestSession_AttachReceiverAndRefuse(t *testing.T) {
 	for i := 0; i < 100; i++ {
 		go func() {
 			defer a.Done()
-			if err := session.attachReceiver(&testRecv{}); err != errSessionReceiverAttached {
+			if err := session.attachReceiver(newTestReceiver()); err != errSessionReceiverAttached {
 				t.Errorf("Should return error as another receiver is already attached")
 			}
 		}()
@@ -151,7 +144,7 @@ func TestSession_DetachRecevier(t *testing.T) {
 	session := newTestSession()
 	session.detachReceiver()
 	session.detachReceiver() // idempotent operation
-	session.attachReceiver(&testRecv{})
+	session.attachReceiver(newTestReceiver())
 	session.detachReceiver()
 
 }
@@ -163,18 +156,20 @@ func TestSession_SendWithRecv(t *testing.T) {
 	if len(session.sendBuffer) != 2 {
 		t.Errorf("There should be 2 messages in buffer, but there are %d", len(session.sendBuffer))
 	}
-	recv := &testRecv{}
+	recv := newTestReceiver()
+	defer close(recv.doneCh)
+
 	session.attachReceiver(recv)
-	if len(recv.messages) != 2 {
-		t.Errorf("Reciver should get 2 messages from session, got %d", len(recv.messages))
+	if len(recv.frames[1:]) != 2 {
+		t.Errorf("Reciver should get 2 message frames from session, got %d", len(recv.frames))
 	}
 	session.sendMessage("message C")
-	if len(recv.messages) != 3 {
-		t.Errorf("Reciver should get 3 messages from session, got %d", len(recv.messages))
+	if len(recv.frames[1:]) != 3 {
+		t.Errorf("Reciver should get 3 message frames from session, got %d", len(recv.frames))
 	}
 	session.sendMessage("message D")
-	if len(recv.messages) != 4 {
-		t.Errorf("Reciver should get 4 messages from session, got %d", len(recv.messages))
+	if len(recv.frames[1:]) != 4 {
+		t.Errorf("Reciver should get 4 frames from session, got %d", len(recv.frames))
 	}
 	if len(session.sendBuffer) != 0 {
 		t.Errorf("Send buffer should be empty now, but there are %d messaged", len(session.sendBuffer))
@@ -214,15 +209,6 @@ func TestSession_Closing(t *testing.T) {
 		t.Errorf("Session should not accept new message after close")
 	}
 }
-
-type testRecv struct {
-	messages       []string
-	openHeaderSent bool
-}
-
-func (t *testRecv) sendBulk(messages ...string) { t.messages = append(t.messages, messages...) }
-func (t *testRecv) sendFrame(frame string)      { t.openHeaderSent = true }
-func (t *testRecv) done() <-chan bool           { return nil }
 
 // Session as Conn Tests
 func TestSession_AsConn(t *testing.T) { var _ Conn = newSession(0, 0) }
@@ -273,26 +259,43 @@ func TestSession_ConnClose(t *testing.T) {
 	if s.state != sessionClosing {
 		t.Errorf("Incorrect session state, expected 'sessionClosing', got '%v'", s.state)
 	}
-	// all the receiver trying to attach shoult get the same close frame
+	// all the consequent receivers trying to attach shoult get the same close frame
 	for i := 0; i < 100; i++ {
-		var frames []string
-		receiver := &mockRecv{
-			_sendBulk:  func(messages ...string) {},
-			_sendFrame: func(frame string) { frames = append(frames, frame) },
+		recv := newTestReceiver()
+		err := s.attachReceiver(recv)
+		if err != nil {
+			time.Sleep(1 * time.Millisecond)
+			continue
 		}
-		s.attachReceiver(receiver)
-		if len(frames) != 1 || frames[0] != "c[1,\"some reason\"]" {
-			t.Errorf("Close frame not received by receiver, frames '%v'", frames)
+		if len(recv.frames) != 1 || recv.frames[0] != "c[1,\"some reason\"]" {
+			t.Errorf("Close frame not received by recv, frames '%v'", recv.frames)
 		}
 	}
 }
 
-type mockRecv struct {
-	_sendBulk  func(...string)
-	_sendFrame func(string)
-	_done      func() chan bool
+func newTestReceiver() *testReceiver {
+	return &testReceiver{
+		doneCh:      make(chan struct{}),
+		interruptCh: make(chan struct{}),
+	}
 }
 
-func (r *mockRecv) sendBulk(messages ...string) { r._sendBulk(messages...) }
-func (r *mockRecv) sendFrame(frame string)      { r._sendFrame(frame) }
-func (r *mockRecv) done() <-chan bool           { return r._done() }
+type testReceiver struct {
+	sync.Mutex
+	doneCh, interruptCh chan struct{}
+	frames              []string
+}
+
+func (t *testReceiver) doneNotify() <-chan struct{}        { return t.doneCh }
+func (t *testReceiver) interruptedNotify() <-chan struct{} { return t.interruptCh }
+func (t *testReceiver) close()                             { close(t.doneCh) }
+func (t *testReceiver) sendBulk(messages ...string) {
+	for _, m := range messages {
+		t.sendFrame(m)
+	}
+}
+func (t *testReceiver) sendFrame(frame string) {
+	t.Lock()
+	defer t.Unlock()
+	t.frames = append(t.frames, frame)
+}

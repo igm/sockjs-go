@@ -8,7 +8,7 @@ import (
 func TestXhrReceiver_Create(t *testing.T) {
 	rec := httptest.NewRecorder()
 	recv := newXhrReceiver(rec, 1024)
-	if recv.doneCh != recv.done() {
+	if recv.doneCh != recv.doneNotify() {
 		t.Errorf("Calling done() must return close channel, but it does not")
 	}
 	if recv.rw != rec {

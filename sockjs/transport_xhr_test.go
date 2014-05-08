@@ -162,7 +162,7 @@ func TestHandler_XhrPollAnotherConnectionExists(t *testing.T) {
 	// turn of timeoutes and heartbeats
 	sess := newSession(time.Hour, time.Hour)
 	h.sessions["session"] = sess
-	sess.attachReceiver(&testReceiver{})
+	sess.attachReceiver(newTestReceiver())
 	req, _ := http.NewRequest("POST", "/server/session/xhr", nil)
 	rw2 := httptest.NewRecorder()
 	h.xhrPoll(rw2, req)
@@ -206,15 +206,6 @@ func newTestHandler() *handler {
 	h.options.DisconnectDelay = time.Hour
 	return h
 }
-
-type testReceiver struct {
-	doneCh chan bool
-	frames []string
-}
-
-func (t *testReceiver) done() <-chan bool           { return t.doneCh }
-func (t *testReceiver) sendBulk(messages ...string) {}
-func (t *testReceiver) sendFrame(frame string)      { t.frames = append(t.frames, frame) }
 
 type ClosableRecorder struct {
 	*httptest.ResponseRecorder

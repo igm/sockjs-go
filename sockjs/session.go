@@ -48,7 +48,7 @@ type session struct {
 	heartbeatInterval      time.Duration
 	timer                  *time.Timer
 	// once the session timeouts this channel also closes
-	closeCh chan bool
+	closeCh chan struct{}
 }
 
 type receiver interface {
@@ -56,8 +56,12 @@ type receiver interface {
 	sendBulk(...string)
 	// sendFrame sends given frame over the wire (with possible chunking depending on receiver)
 	sendFrame(string)
+	// close closes the receiver in a "done" way
+	close()
 	// done notification channel gets closed whenever receiver ends
-	done() <-chan bool
+	doneNotify() <-chan struct{}
+	// interrupted channel gets closed whenever receiver is interrupted (i.e. http connection drops,...)
+	interruptedNotify() <-chan struct{}
 }
 
 // Session is a central component that handles receiving and sending frames. It maintains internal state
@@ -71,7 +75,7 @@ func newSession(sessionTimeoutInterval, heartbeatInterval time.Duration) *sessio
 		msgDecoder:             gob.NewDecoder(r),
 		sessionTimeoutInterval: sessionTimeoutInterval,
 		heartbeatInterval:      heartbeatInterval,
-		closeCh:                make(chan bool)}
+		closeCh:                make(chan struct{})}
 	s.Lock() // "go test -race" complains if ommited, not sure why
 	s.timer = time.AfterFunc(sessionTimeoutInterval, s.close)
 	s.Unlock()
@@ -99,9 +103,19 @@ func (s *session) attachReceiver(recv receiver) error {
 		return errSessionReceiverAttached
 	}
 	s.recv = recv
+	go func(r receiver) {
+		select {
+		case <-r.doneNotify():
+			s.detachReceiver()
+		case <-r.interruptedNotify():
+			s.detachReceiver()
+			s.close()
+		}
+	}(recv)
+
 	if s.state == sessionClosing {
 		s.recv.sendFrame(s.closeFrame)
-		s.recv = nil
+		s.recv.close()
 		return nil
 	}
 	if s.state == sessionOpening {
@@ -115,6 +129,14 @@ func (s *session) attachReceiver(recv receiver) error {
 	return nil
 }
 
+func (s *session) detachReceiver() {
+	s.Lock()
+	defer s.Unlock()
+	s.timer.Stop()
+	s.timer = time.AfterFunc(s.sessionTimeoutInterval, s.close)
+	s.recv = nil
+}
+
 func (s *session) heartbeat() {
 	s.Lock()
 	defer s.Unlock()
@@ -122,15 +144,6 @@ func (s *session) heartbeat() {
 		s.recv.sendFrame("h")
 		s.timer = time.AfterFunc(s.heartbeatInterval, s.heartbeat)
 	}
-}
-
-func (s *session) detachReceiver() {
-	s.Lock()
-	defer s.Unlock()
-	s.timer.Stop()
-	s.timer = time.AfterFunc(s.sessionTimeoutInterval, s.close)
-	s.recv = nil
-
 }
 
 func (s *session) accept(messages ...string) error {
@@ -149,6 +162,10 @@ func (s *session) closing() {
 		s.msgReader.Close()
 		s.msgWriter.Close()
 		s.state = sessionClosing
+		if s.recv != nil {
+			s.recv.sendFrame(s.closeFrame)
+			s.recv.close()
+		}
 	}
 }
 
@@ -162,6 +179,8 @@ func (s *session) close() {
 		close(s.closeCh)
 	}
 }
+
+func (s *session) closedNotify() <-chan struct{} { return s.closeCh }
 
 // Conn interface implementation
 func (s *session) Close(status uint32, reason string) error {

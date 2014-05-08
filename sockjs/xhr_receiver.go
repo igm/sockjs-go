@@ -10,15 +10,27 @@ type xhrReceiver struct {
 	rw                  http.ResponseWriter
 	maxResponseSize     uint32
 	currentResponseSize uint32
-	doneCh              chan bool
+	doneCh              chan struct{}
+	interruptCh         chan struct{}
 }
 
 func newXhrReceiver(rw http.ResponseWriter, maxResponse uint32) *xhrReceiver {
-	return &xhrReceiver{
+	recv := &xhrReceiver{
 		rw:              rw,
 		maxResponseSize: maxResponse,
-		doneCh:          make(chan bool),
+		doneCh:          make(chan struct{}),
+		interruptCh:     make(chan struct{}),
 	}
+	if closeNotifier, ok := rw.(http.CloseNotifier); ok {
+		go func() {
+			select {
+			case <-closeNotifier.CloseNotify():
+				close(recv.interruptCh)
+			case <-recv.doneCh: // ok, no action needed here
+			}
+		}()
+	}
+	return recv
 }
 
 func (recv *xhrReceiver) sendBulk(messages ...string) {
@@ -31,16 +43,26 @@ func (recv *xhrReceiver) sendBulk(messages ...string) {
 }
 
 func (recv *xhrReceiver) sendFrame(value string) {
-	// n, _ := io.WriteString(recv.rw, value+"\n")
+	select {
+	case <-recv.doneCh:
+		return
+	default:
+	}
 	fmt.Fprintf(recv.rw, "%s\n", value)
 	recv.currentResponseSize += uint32(len(value) + 1)
 	if recv.currentResponseSize >= recv.maxResponseSize {
-		close(recv.doneCh)
+		recv.close()
 	} else {
 		recv.rw.(http.Flusher).Flush()
 	}
 }
 
-func (recv *xhrReceiver) done() <-chan bool {
-	return recv.doneCh
+func (recv *xhrReceiver) doneNotify() <-chan struct{}        { return recv.doneCh }
+func (recv *xhrReceiver) interruptedNotify() <-chan struct{} { return recv.interruptCh }
+func (recv *xhrReceiver) close() {
+	select {
+	case <-recv.doneCh:
+	default:
+		close(recv.doneCh)
+	}
 }
