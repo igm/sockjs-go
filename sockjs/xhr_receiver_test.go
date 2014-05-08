@@ -57,14 +57,23 @@ func TestXhrReceiver_MaximumResponseSize(t *testing.T) {
 		t.Errorf("Incorrect response size calcualated, got '%d' expected '%d'", recv.currentResponseSize, 27)
 	}
 	select {
-	case <-recv.doneCh:
+	case <-recv.doneNotify():
 		t.Errorf("Receiver should not be done yet")
 	default: // ok
 	}
 	recv.sendBulk("message 1", "message 2") // produces another 27 bytes of response in 1 frame to go over max resposne size
 	select {
-	case <-recv.doneCh: // ok
+	case <-recv.doneNotify(): // ok
 	default:
 		t.Errorf("Receiver closed channel did not close")
+	}
+}
+
+func TestXhrReceiver_Close(t *testing.T) {
+	rec := httptest.NewRecorder()
+	recv := newXhrReceiver(rec, 1024)
+	recv.close()
+	if recv.state != stateXhrReceiverClosed {
+		t.Errorf("Unexpected state, got '%d', expected '%d'", recv.state, stateXhrReceiverClosed)
 	}
 }

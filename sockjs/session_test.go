@@ -2,6 +2,7 @@ package sockjs
 
 import (
 	"io"
+	"runtime"
 	"sync"
 	"testing"
 	"time"
@@ -249,7 +250,12 @@ func TestSession_ConnSend(t *testing.T) {
 func TestSession_ConnClose(t *testing.T) {
 	s := newTestSession()
 	s.state = sessionActive
+	recv := newTestReceiver()
+	s.attachReceiver(recv)
 	err := s.Close(1, "some reason")
+	if len(recv.frames) != 1 || recv.frames[0] != "c[1,\"some reason\"]" {
+		t.Errorf("Expected close frame, got '%v'", recv.frames)
+	}
 	if err != nil {
 		t.Errorf("Should not get any error, got '%s'", err)
 	}
@@ -260,13 +266,16 @@ func TestSession_ConnClose(t *testing.T) {
 		t.Errorf("Incorrect session state, expected 'sessionClosing', got '%v'", s.state)
 	}
 	// all the consequent receivers trying to attach shoult get the same close frame
-	for i := 0; i < 100; i++ {
+	var i = 100
+	for i > 0 {
 		recv := newTestReceiver()
 		err := s.attachReceiver(recv)
 		if err != nil {
-			time.Sleep(1 * time.Millisecond)
+			// give a chance to a receiver to detach
+			runtime.Gosched()
 			continue
 		}
+		i--
 		if len(recv.frames) != 1 || recv.frames[0] != "c[1,\"some reason\"]" {
 			t.Errorf("Close frame not received by recv, frames '%v'", recv.frames)
 		}
