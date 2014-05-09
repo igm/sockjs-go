@@ -16,7 +16,8 @@ const (
 
 type xhrReceiver struct {
 	sync.Mutex
-	state               xhrReceiverState
+	state xhrReceiverState
+
 	rw                  http.ResponseWriter
 	maxResponseSize     uint32
 	currentResponseSize uint32

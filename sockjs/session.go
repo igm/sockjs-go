@@ -56,7 +56,7 @@ type receiver interface {
 	sendBulk(...string)
 	// sendFrame sends given frame over the wire (with possible chunking depending on receiver)
 	sendFrame(string)
-	// close closes the receiver in a "done" way
+	// close closes the receiver in a "done" way (idempotent)
 	close()
 	// done notification channel gets closed whenever receiver ends
 	doneNotify() <-chan struct{}
@@ -155,6 +155,7 @@ func (s *session) accept(messages ...string) error {
 	return nil
 }
 
+// idempotent operation
 func (s *session) closing() {
 	s.Lock()
 	defer s.Unlock()
@@ -169,6 +170,7 @@ func (s *session) closing() {
 	}
 }
 
+// idempotent operation
 func (s *session) close() {
 	s.closing()
 	s.Lock()
