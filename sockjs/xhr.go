@@ -50,7 +50,7 @@ func (h *handler) xhrPoll(rw http.ResponseWriter, req *http.Request) {
 
 	select {
 	case <-receiver.doneNotify():
-	case <-sess.closedNotify():
+	case <-receiver.interruptedNotify():
 	}
 }
 
@@ -70,7 +70,7 @@ func (h *handler) xhrStreaming(rw http.ResponseWriter, req *http.Request) {
 
 	select {
 	case <-receiver.doneNotify():
-	case <-sess.closedNotify():
+	case <-receiver.interruptedNotify():
 	}
 }
 
