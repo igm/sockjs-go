@@ -39,7 +39,8 @@ func newXhrReceiver(rw http.ResponseWriter, maxResponse uint32) *xhrReceiver {
 			case <-closeNotifier.CloseNotify():
 				close(recv.interruptCh)
 			case <-recv.doneCh:
-				// ok, no action needed here, routine leaking prevention
+				// ok, no action needed here, receiver closed in correct way
+				// just finish the routine
 			}
 		}()
 	}

@@ -78,3 +78,27 @@ func (h *handler) parseSessionID(url *url.URL) (string, error) {
 	}
 	return "", errors.New("unable to parse URL for session")
 }
+
+func (h *handler) sessionByRequest(req *http.Request) (*session, error) {
+	h.sessionsMux.Lock()
+	defer h.sessionsMux.Unlock()
+	sessionID, err := h.parseSessionID(req.URL)
+	if err != nil {
+		return nil, err
+	}
+	sess, exists := h.sessions[sessionID]
+	if !exists {
+		sess = newSession(h.options.DisconnectDelay, h.options.HeartbeatDelay)
+		h.sessions[sessionID] = sess
+		if h.handlerFunc != nil {
+			go h.handlerFunc(sess)
+		}
+		go func() {
+			<-sess.closedNotify()
+			h.sessionsMux.Lock()
+			delete(h.sessions, sessionID)
+			h.sessionsMux.Unlock()
+		}()
+	}
+	return sess, nil
+}
