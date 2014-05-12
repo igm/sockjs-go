@@ -10,6 +10,9 @@ func TestHandler_EventSource(t *testing.T) {
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/session/eventsource", nil)
 	h := newTestHandler()
+	go func() {
+		h.sessions["session"].recv.close()
+	}()
 	h.eventSource(rw, req)
 	contentType := rw.Header().Get("content-type")
 	expected := "text/event-stream; charset=UTF-8"
@@ -20,7 +23,7 @@ func TestHandler_EventSource(t *testing.T) {
 		t.Errorf("Unexpected response code, got '%d', expected '%d'", rw.Code, http.StatusOK)
 	}
 
-	if rw.Body.String() != "\r\n" {
-		t.Errorf("Event stream prelude")
+	if rw.Body.String() != "\r\ndata: o\r\n\r\n" {
+		t.Errorf("Event stream prelude, got '%s'", rw.Body)
 	}
 }
