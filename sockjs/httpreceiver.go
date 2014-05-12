@@ -70,6 +70,7 @@ func (recv *httpReceiver) sendFrame(value string) {
 	defer recv.Unlock()
 
 	if recv.state == stateHttpReceiverActive {
+		// TODO(igm) check err, possibly act as if interrupted
 		n, _ := recv.frameWriter.write(recv.rw, value)
 		recv.currentResponseSize += uint32(n)
 		if recv.currentResponseSize >= recv.maxResponseSize {

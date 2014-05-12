@@ -59,7 +59,7 @@ func (h *handler) jsonp_send(rw http.ResponseWriter, req *http.Request) {
 	if sess, ok := h.sessions[sessionID]; !ok {
 		http.NotFound(rw, req)
 	} else {
-		_ = sess.accept(messages...) // TODO(igm) reponse with SISE in case of err?
+		_ = sess.accept(messages...) // TODO(igm) reponse with http.StatusInternalServerError in case of err?
 		rw.Header().Set("content-type", "text/plain; charset=UTF-8")
 		rw.Write([]byte("ok"))
 	}

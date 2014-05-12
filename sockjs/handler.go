@@ -49,6 +49,9 @@ func NewHandler(prefix string, opts Options, handlerFn HandlerFunc) *handler {
 		newMapping("POST", sessionPrefix+"/jsonp_send$", opts.cookie, xhrCors, noCache, h.jsonp_send),
 		newMapping("GET", prefix+"/iframe[0-9-.a-z_]*.html$", cacheFor, h.iframe),
 	}
+	if opts.Websocket {
+		h.mappings = append(h.mappings, newMapping("GET", sessionPrefix+"/websocket$", h.sockjs_websocket))
+	}
 	return h
 }
 
