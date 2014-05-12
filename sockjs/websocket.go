@@ -28,13 +28,13 @@ func (h *handler) sockjs_websocket(rw http.ResponseWriter, req *http.Request) {
 	receiver := newWsReceiver(conn)
 	sess.attachReceiver(receiver)
 
-	closech := make(chan struct{})
+	readCloseCh := make(chan struct{})
 	go func() {
+		var d []string
 		for {
-			var d []string
 			err := conn.ReadJSON(d)
 			if err != nil {
-				close(closech)
+				close(readCloseCh)
 				return
 			}
 			sess.accept(d...)
@@ -42,7 +42,7 @@ func (h *handler) sockjs_websocket(rw http.ResponseWriter, req *http.Request) {
 	}()
 
 	select {
-	case <-closech:
+	case <-readCloseCh:
 	case <-receiver.doneNotify():
 	}
 	sess.close()
