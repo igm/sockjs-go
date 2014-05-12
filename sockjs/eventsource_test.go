@@ -11,7 +11,13 @@ func TestHandler_EventSource(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/server/session/eventsource", nil)
 	h := newTestHandler()
 	go func() {
-		h.sessions["session"].recv.close()
+		h.sessionsMux.Lock()
+		defer h.sessionsMux.Unlock()
+		sess := h.sessions["session"]
+		sess.Lock()
+		defer sess.Unlock()
+		recv := sess.recv
+		recv.close()
 	}()
 	h.eventSource(rw, req)
 	contentType := rw.Header().Get("content-type")
