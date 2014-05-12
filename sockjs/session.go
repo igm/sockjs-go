@@ -56,7 +56,7 @@ type receiver interface {
 	sendBulk(...string)
 	// sendFrame sends given frame over the wire (with possible chunking depending on receiver)
 	sendFrame(string)
-	// close closes the receiver in a "done" way
+	// close closes the receiver in a "done" way (idempotent)
 	close()
 	// done notification channel gets closed whenever receiver ends
 	doneNotify() <-chan struct{}
@@ -155,6 +155,7 @@ func (s *session) accept(messages ...string) error {
 	return nil
 }
 
+// idempotent operation
 func (s *session) closing() {
 	s.Lock()
 	defer s.Unlock()
@@ -169,6 +170,7 @@ func (s *session) closing() {
 	}
 }
 
+// idempotent operation
 func (s *session) close() {
 	s.closing()
 	s.Lock()
@@ -184,9 +186,15 @@ func (s *session) closedNotify() <-chan struct{} { return s.closeCh }
 
 // Conn interface implementation
 func (s *session) Close(status uint32, reason string) error {
-	s.closeFrame = closeFrame(status, reason)
-	s.closing()
-	return nil
+	s.Lock()
+	if s.state < sessionClosing {
+		s.closeFrame = closeFrame(status, reason)
+		s.Unlock()
+		s.closing()
+		return nil
+	}
+	s.Unlock()
+	return ErrSessionNotOpen
 }
 
 func (s *session) Recv() (string, error) {

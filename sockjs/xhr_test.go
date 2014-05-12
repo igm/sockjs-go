@@ -97,42 +97,6 @@ func TestHandler_XhrSendSessionNotFound(t *testing.T) {
 	}
 }
 
-func TestHandler_SessionByRequest(t *testing.T) {
-	h := newTestHandler()
-	h.options.DisconnectDelay = 10 * time.Millisecond
-	var handlerFuncCalled = make(chan Conn)
-	h.handlerFunc = func(conn Conn) { handlerFuncCalled <- conn }
-	req, _ := http.NewRequest("POST", "/server/sessionid/whatever/follows", nil)
-	sess, err := h.sessionByRequest(req)
-	if sess == nil || err != nil {
-		t.Errorf("Session should be returned")
-		// test handlerFunc was called
-		select {
-		case conn := <-handlerFuncCalled: // ok
-			if conn != sess {
-				t.Errorf("Handler was not passed correct session")
-			}
-		case <-time.After(100 * time.Millisecond):
-			t.Errorf("HandlerFunc was not called")
-		}
-	}
-	// test session is reused for multiple requests with same sessionID
-	req2, _ := http.NewRequest("POST", "/server/sessionid/whatever", nil)
-	if sess2, err := h.sessionByRequest(req2); sess2 != sess || err != nil {
-		t.Errorf("Expected error, got session: '%v'", sess)
-	}
-	// test session expires after timeout
-	time.Sleep(15 * time.Millisecond)
-	if _, exists := h.sessions["sessionid"]; exists {
-		t.Errorf("Session should not exist in handler after timeout")
-	}
-	// test proper behaviour in case URL is not correct
-	req, _ = http.NewRequest("POST", "", nil)
-	if _, err := h.sessionByRequest(req); err == nil {
-		t.Errorf("Expected parser sessionID from URL error, got 'nil'")
-	}
-}
-
 func TestHandler_XhrPoll(t *testing.T) {
 	h := newTestHandler()
 	rw := httptest.NewRecorder()
@@ -152,6 +116,7 @@ func TestHandler_XhrPollConnectionInterrupted(t *testing.T) {
 	rw := newClosableRecorder()
 	close(rw.closeNotifCh)
 	h.xhrPoll(rw, req)
+	sess.Lock()
 	if sess.state != sessionClosed {
 		t.Errorf("Session should be closed")
 	}

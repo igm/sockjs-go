@@ -7,26 +7,18 @@ import (
 	"sync"
 )
 
-type xhrReceiverState int
-
-const (
-	stateXhrReceiverActive xhrReceiverState = iota
-	stateXhrReceiverClosed
-)
-
-type xhrReceiver struct {
+type eventSourceReceiver struct {
 	sync.Mutex
-	state xhrReceiverState
-
+	state               xhrReceiverState
 	rw                  http.ResponseWriter
-	maxResponseSize     uint32
 	currentResponseSize uint32
+	maxResponseSize     uint32
 	doneCh              chan struct{}
 	interruptCh         chan struct{}
 }
 
-func newXhrReceiver(rw http.ResponseWriter, maxResponse uint32) *xhrReceiver {
-	recv := &xhrReceiver{
+func newEventSourceReceiver(rw http.ResponseWriter, maxResponse uint32) *eventSourceReceiver {
+	recv := &eventSourceReceiver{
 		rw:              rw,
 		maxResponseSize: maxResponse,
 		doneCh:          make(chan struct{}),
@@ -47,7 +39,7 @@ func newXhrReceiver(rw http.ResponseWriter, maxResponse uint32) *xhrReceiver {
 	return recv
 }
 
-func (recv *xhrReceiver) sendBulk(messages ...string) {
+func (recv *eventSourceReceiver) sendBulk(messages ...string) {
 	if len(messages) > 0 {
 		recv.sendFrame(fmt.Sprintf("a[%s]",
 			strings.Join(
@@ -58,12 +50,12 @@ func (recv *xhrReceiver) sendBulk(messages ...string) {
 	}
 }
 
-func (recv *xhrReceiver) sendFrame(value string) {
+func (recv *eventSourceReceiver) sendFrame(value string) {
 	recv.Lock()
 	defer recv.Unlock()
 
 	if recv.state == stateXhrReceiverActive {
-		n, _ := fmt.Fprintf(recv.rw, "%s\n", value)
+		n, _ := fmt.Fprintf(recv.rw, "data: %s\r\n\r\n", value)
 		recv.currentResponseSize += uint32(n)
 		if recv.currentResponseSize >= recv.maxResponseSize {
 			recv.state = stateXhrReceiverClosed
@@ -74,9 +66,9 @@ func (recv *xhrReceiver) sendFrame(value string) {
 	}
 }
 
-func (recv *xhrReceiver) doneNotify() <-chan struct{}        { return recv.doneCh }
-func (recv *xhrReceiver) interruptedNotify() <-chan struct{} { return recv.interruptCh }
-func (recv *xhrReceiver) close() {
+func (recv *eventSourceReceiver) doneNotify() <-chan struct{}        { return recv.doneCh }
+func (recv *eventSourceReceiver) interruptedNotify() <-chan struct{} { return recv.interruptCh }
+func (recv *eventSourceReceiver) close() {
 	recv.Lock()
 	defer recv.Unlock()
 	if recv.state < stateXhrReceiverClosed {

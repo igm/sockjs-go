@@ -5,6 +5,7 @@ import (
 	"net/http/httptest"
 	"net/url"
 	"testing"
+	"time"
 )
 
 func TestHandler_Create(t *testing.T) {
@@ -37,5 +38,41 @@ func TestHandler_ParseSessionId(t *testing.T) {
 	url, _ = url.Parse("http://server:port/asdasd/server/session/whatever")
 	if _, err := h.parseSessionID(url); err == nil {
 		t.Errorf("Should return error")
+	}
+}
+
+func TestHandler_SessionByRequest(t *testing.T) {
+	h := NewHandler("", DefaultOptions, nil)
+	h.options.DisconnectDelay = 10 * time.Millisecond
+	var handlerFuncCalled = make(chan Conn)
+	h.handlerFunc = func(conn Conn) { handlerFuncCalled <- conn }
+	req, _ := http.NewRequest("POST", "/server/sessionid/whatever/follows", nil)
+	sess, err := h.sessionByRequest(req)
+	if sess == nil || err != nil {
+		t.Errorf("Session should be returned")
+		// test handlerFunc was called
+		select {
+		case conn := <-handlerFuncCalled: // ok
+			if conn != sess {
+				t.Errorf("Handler was not passed correct session")
+			}
+		case <-time.After(100 * time.Millisecond):
+			t.Errorf("HandlerFunc was not called")
+		}
+	}
+	// test session is reused for multiple requests with same sessionID
+	req2, _ := http.NewRequest("POST", "/server/sessionid/whatever", nil)
+	if sess2, err := h.sessionByRequest(req2); sess2 != sess || err != nil {
+		t.Errorf("Expected error, got session: '%v'", sess)
+	}
+	// test session expires after timeout
+	time.Sleep(15 * time.Millisecond)
+	if _, exists := h.sessions["sessionid"]; exists {
+		t.Errorf("Session should not exist in handler after timeout")
+	}
+	// test proper behaviour in case URL is not correct
+	req, _ = http.NewRequest("POST", "", nil)
+	if _, err := h.sessionByRequest(req); err == nil {
+		t.Errorf("Expected parser sessionID from URL error, got 'nil'")
 	}
 }

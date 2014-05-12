@@ -280,6 +280,9 @@ func TestSession_ConnClose(t *testing.T) {
 			t.Errorf("Close frame not received by recv, frames '%v'", recv.frames)
 		}
 	}
+	if err := s.Close(1, "some other reson"); err != ErrSessionNotOpen {
+		t.Errorf("Expected error, got '%v'", err)
+	}
 }
 
 func newTestReceiver() *testReceiver {

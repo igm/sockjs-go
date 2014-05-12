@@ -42,6 +42,8 @@ func NewHandler(prefix string, opts Options, handlerFn HandlerFunc) *handler {
 		newMapping("OPTIONS", sessionPrefix+"/xhr$", opts.cookie, xhrCors, cacheFor, xhrOptions),
 		newMapping("POST", sessionPrefix+"/xhr_streaming$", opts.cookie, xhrCors, noCache, h.xhrStreaming),
 		newMapping("OPTIONS", sessionPrefix+"/xhr_streaming$", opts.cookie, xhrCors, cacheFor, xhrOptions),
+		newMapping("GET", sessionPrefix+"/eventsource$", opts.cookie, xhrCors, noCache, h.eventSource),
+		newMapping("OPTIONS", sessionPrefix+"/eventsource$", opts.cookie, xhrCors, cacheFor, xhrOptions),
 	}
 	return h
 }
@@ -77,4 +79,28 @@ func (h *handler) parseSessionID(url *url.URL) (string, error) {
 		return matches[2], nil
 	}
 	return "", errors.New("unable to parse URL for session")
+}
+
+func (h *handler) sessionByRequest(req *http.Request) (*session, error) {
+	h.sessionsMux.Lock()
+	defer h.sessionsMux.Unlock()
+	sessionID, err := h.parseSessionID(req.URL)
+	if err != nil {
+		return nil, err
+	}
+	sess, exists := h.sessions[sessionID]
+	if !exists {
+		sess = newSession(h.options.DisconnectDelay, h.options.HeartbeatDelay)
+		h.sessions[sessionID] = sess
+		if h.handlerFunc != nil {
+			go h.handlerFunc(sess)
+		}
+		go func() {
+			<-sess.closedNotify()
+			h.sessionsMux.Lock()
+			delete(h.sessions, sessionID)
+			h.sessionsMux.Unlock()
+		}()
+	}
+	return sess, nil
 }
