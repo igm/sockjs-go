@@ -2,22 +2,28 @@ package sockjs
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"sync"
 )
 
-type xhrReceiverState int
+type frameWriter interface {
+	write(writer io.Writer, frame string) (int, error)
+}
+
+type httpReceiverState int
 
 const (
-	stateXhrReceiverActive xhrReceiverState = iota
-	stateXhrReceiverClosed
+	stateHttpReceiverActive httpReceiverState = iota
+	stateHttpReceiverClosed
 )
 
-type xhrReceiver struct {
+type httpReceiver struct {
 	sync.Mutex
-	state xhrReceiverState
+	state httpReceiverState
 
+	frameWriter         frameWriter
 	rw                  http.ResponseWriter
 	maxResponseSize     uint32
 	currentResponseSize uint32
@@ -25,9 +31,10 @@ type xhrReceiver struct {
 	interruptCh         chan struct{}
 }
 
-func newXhrReceiver(rw http.ResponseWriter, maxResponse uint32) *xhrReceiver {
-	recv := &xhrReceiver{
+func newHttpReceiver(rw http.ResponseWriter, maxResponse uint32, frameWriter frameWriter) *httpReceiver {
+	recv := &httpReceiver{
 		rw:              rw,
+		frameWriter:     frameWriter,
 		maxResponseSize: maxResponse,
 		doneCh:          make(chan struct{}),
 		interruptCh:     make(chan struct{}),
@@ -47,7 +54,7 @@ func newXhrReceiver(rw http.ResponseWriter, maxResponse uint32) *xhrReceiver {
 	return recv
 }
 
-func (recv *xhrReceiver) sendBulk(messages ...string) {
+func (recv *httpReceiver) sendBulk(messages ...string) {
 	if len(messages) > 0 {
 		recv.sendFrame(fmt.Sprintf("a[%s]",
 			strings.Join(
@@ -58,15 +65,15 @@ func (recv *xhrReceiver) sendBulk(messages ...string) {
 	}
 }
 
-func (recv *xhrReceiver) sendFrame(value string) {
+func (recv *httpReceiver) sendFrame(value string) {
 	recv.Lock()
 	defer recv.Unlock()
 
-	if recv.state == stateXhrReceiverActive {
-		n, _ := fmt.Fprintf(recv.rw, "%s\n", value)
+	if recv.state == stateHttpReceiverActive {
+		n, _ := recv.frameWriter.write(recv.rw, value)
 		recv.currentResponseSize += uint32(n)
 		if recv.currentResponseSize >= recv.maxResponseSize {
-			recv.state = stateXhrReceiverClosed
+			recv.state = stateHttpReceiverClosed
 			close(recv.doneCh)
 		} else {
 			recv.rw.(http.Flusher).Flush()
@@ -74,13 +81,13 @@ func (recv *xhrReceiver) sendFrame(value string) {
 	}
 }
 
-func (recv *xhrReceiver) doneNotify() <-chan struct{}        { return recv.doneCh }
-func (recv *xhrReceiver) interruptedNotify() <-chan struct{} { return recv.interruptCh }
-func (recv *xhrReceiver) close() {
+func (recv *httpReceiver) doneNotify() <-chan struct{}        { return recv.doneCh }
+func (recv *httpReceiver) interruptedNotify() <-chan struct{} { return recv.interruptCh }
+func (recv *httpReceiver) close() {
 	recv.Lock()
 	defer recv.Unlock()
-	if recv.state < stateXhrReceiverClosed {
-		recv.state = stateXhrReceiverClosed
+	if recv.state < stateHttpReceiverClosed {
+		recv.state = stateHttpReceiverClosed
 		close(recv.doneCh)
 	}
 }
