@@ -1,0 +1,25 @@
+language: go
+notifications:
+  email:
+  - igor.mihalik@gmail.com
+
+before_install:
+- go get code.google.com/p/go.tools/cmd/cover
+- go get -u gopkg.in/igm/sockjs-go.v0/sockjs
+
+# after_success:
+# - 'echo "mode: set" > all.coverprofile'
+# - 'find . -name "*.coverprofile" -exec grep -v mode: {} >> all.coverprofile \;'
+# - PATH=$HOME/gopath/bin:$PATH goveralls -coverprofile=all.coverprofile -repotoken=$COVERALLS_TOKEN
+
+install:
+- go get -d -v -t ./...
+
+script: PATH=$HOME/gopath/bin:$PATH go test ./sockjs -v -race -coverprofile=profile.out sockjs
+
+go:
+- 1.2.1
+
+env:
+  global:
+    secure: B8pgLMTc+VaGra0bpSOvNLkbxADjrsIylF6wCNQNnLRzUeqtfnJy+M1nz8y4MEalc6hxj5iuwfn67K5AQo8vTkAzE/n+jxxL2pKa0VZS0yLiYxMoWdcOhu7yWNRY6u9t2P0bpJ9zrLN2AjKo+V2FtadNMK0O3yFhEmFzNDEBQ1g=
