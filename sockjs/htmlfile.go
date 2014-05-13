@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-var iframe_template string = `<!doctype html>
+var iframeTemplate string = `<!doctype html>
 <html><head>
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
@@ -23,8 +23,8 @@ var iframe_template string = `<!doctype html>
 `
 
 func init() {
-	iframe_template += strings.Repeat(" ", 1024-len(iframe_template)+14)
-	iframe_template += "\r\n\r\n"
+	iframeTemplate += strings.Repeat(" ", 1024-len(iframeTemplate)+14)
+	iframeTemplate += "\r\n\r\n"
 }
 
 func (h *handler) htmlFile(rw http.ResponseWriter, req *http.Request) {
@@ -38,7 +38,7 @@ func (h *handler) htmlFile(rw http.ResponseWriter, req *http.Request) {
 	}
 	rw.WriteHeader(http.StatusOK)
 	rw.(http.Flusher).Flush()
-	fmt.Fprintf(rw, iframe_template, callback)
+	fmt.Fprintf(rw, iframeTemplate, callback)
 	rw.(http.Flusher).Flush()
 
 	sess, _ := h.sessionByRequest(req)

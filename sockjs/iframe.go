@@ -7,14 +7,14 @@ import (
 	"text/template"
 )
 
-var tmpl = template.Must(template.New("iframe").Parse(iframe_body))
+var tmpl = template.Must(template.New("iframe").Parse(iframeBody))
 
 func (h *handler) iframe(rw http.ResponseWriter, req *http.Request) {
-	etag_req := req.Header.Get("If-None-Match")
+	etagReq := req.Header.Get("If-None-Match")
 	hash := md5.New()
-	hash.Write([]byte(iframe_body))
+	hash.Write([]byte(iframeBody))
 	etag := fmt.Sprintf("%x", hash.Sum(nil))
-	if etag == etag_req {
+	if etag == etagReq {
 		rw.WriteHeader(http.StatusNotModified)
 		return
 	}
@@ -24,7 +24,7 @@ func (h *handler) iframe(rw http.ResponseWriter, req *http.Request) {
 	tmpl.Execute(rw, h.options.SockJSURL)
 }
 
-var iframe_body = `<!DOCTYPE html>
+var iframeBody = `<!DOCTYPE html>
 <html>
 <head>
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />

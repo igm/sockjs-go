@@ -32,7 +32,7 @@ func (h *handler) jsonp(rw http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (h *handler) jsonp_send(rw http.ResponseWriter, req *http.Request) {
+func (h *handler) jsonpSend(rw http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
 	var data io.Reader = req.Body
 

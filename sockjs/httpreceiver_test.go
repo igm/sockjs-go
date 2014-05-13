@@ -85,7 +85,7 @@ func TestXhrReceiver_Close(t *testing.T) {
 	rec := httptest.NewRecorder()
 	recv := newHttpReceiver(rec, 1024, nil)
 	recv.close()
-	if recv.state != stateHttpReceiverClosed {
-		t.Errorf("Unexpected state, got '%d', expected '%d'", recv.state, stateHttpReceiverClosed)
+	if recv.state != stateHTTPReceiverClosed {
+		t.Errorf("Unexpected state, got '%d', expected '%d'", recv.state, stateHTTPReceiverClosed)
 	}
 }

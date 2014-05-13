@@ -141,9 +141,9 @@ func TestHandler_XhrStreaming(t *testing.T) {
 	rw := newClosableRecorder()
 	req, _ := http.NewRequest("POST", "/server/session/xhr_streaming", nil)
 	h.xhrStreaming(rw, req)
-	expected_body := strings.Repeat("h", 2048) + "\no\n"
-	if rw.Body.String() != expected_body {
-		t.Errorf("Unexpected body, got '%s' expected '%s'", rw.Body, expected_body)
+	expectedBody := strings.Repeat("h", 2048) + "\no\n"
+	if rw.Body.String() != expectedBody {
+		t.Errorf("Unexpected body, got '%s' expected '%s'", rw.Body, expectedBody)
 	}
 }
 
@@ -155,9 +155,9 @@ func TestHandler_XhrStreamingAnotherReceiver(t *testing.T) {
 	go func() {
 		rec := httptest.NewRecorder()
 		h.xhrStreaming(rec, req)
-		expected_body := strings.Repeat("h", 2048) + "\n" + "c[2010,\"Another connection still open\"]\n"
-		if rec.Body.String() != expected_body {
-			t.Errorf("Unexpected body got '%s', expected '%s', ", rec.Body, expected_body)
+		expectedBody := strings.Repeat("h", 2048) + "\n" + "c[2010,\"Another connection still open\"]\n"
+		if rec.Body.String() != expectedBody {
+			t.Errorf("Unexpected body got '%s', expected '%s', ", rec.Body, expectedBody)
 		}
 		close(rw1.closeNotifCh)
 	}()

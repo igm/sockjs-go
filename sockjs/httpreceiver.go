@@ -15,8 +15,8 @@ type frameWriter interface {
 type httpReceiverState int
 
 const (
-	stateHttpReceiverActive httpReceiverState = iota
-	stateHttpReceiverClosed
+	stateHTTPReceiverActive httpReceiverState = iota
+	stateHTTPReceiverClosed
 )
 
 type httpReceiver struct {
@@ -69,12 +69,12 @@ func (recv *httpReceiver) sendFrame(value string) {
 	recv.Lock()
 	defer recv.Unlock()
 
-	if recv.state == stateHttpReceiverActive {
+	if recv.state == stateHTTPReceiverActive {
 		// TODO(igm) check err, possibly act as if interrupted
 		n, _ := recv.frameWriter.write(recv.rw, value)
 		recv.currentResponseSize += uint32(n)
 		if recv.currentResponseSize >= recv.maxResponseSize {
-			recv.state = stateHttpReceiverClosed
+			recv.state = stateHTTPReceiverClosed
 			close(recv.doneCh)
 		} else {
 			recv.rw.(http.Flusher).Flush()
@@ -87,8 +87,8 @@ func (recv *httpReceiver) interruptedNotify() <-chan struct{} { return recv.inte
 func (recv *httpReceiver) close() {
 	recv.Lock()
 	defer recv.Unlock()
-	if recv.state < stateHttpReceiverClosed {
-		recv.state = stateHttpReceiverClosed
+	if recv.state < stateHTTPReceiverClosed {
+		recv.state = stateHTTPReceiverClosed
 		close(recv.doneCh)
 	}
 }
