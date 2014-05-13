@@ -12,6 +12,5 @@ type Handler interface {
 type Conn interface {
 	Recv() (string, error)
 	Send(string) error
-	// SessionId() string
 	Close(status uint32, reason string) error
 }
