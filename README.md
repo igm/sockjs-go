@@ -1,3 +1,5 @@
+[![Build Status](https://api.travis-ci.org/igm/sockjs-go.svg?branch=master)](https://travis-ci.org/igm/sockjs-go) [![GoDoc](http://godoc.org/github.com/igm/sockjs-go/sockjs?status.png)](http://godoc.org/github.com/igm/sockjs-go/sockjs) [![Coverage Status](https://coveralls.io/repos/igm/sockjs-go/badge.png?branch=master)](https://coveralls.io/r/igm/sockjs-go?branch=master)
+
 What is SockJS?
 =
 
