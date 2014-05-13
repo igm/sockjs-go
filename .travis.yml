@@ -8,10 +8,10 @@ before_install:
 - go get github.com/gorilla/websocket
 - go get github.com/mattn/goveralls
 
-# after_success:
+after_success:
 # - 'echo "mode: set" > all.coverprofile'
 # - 'find . -name "*.coverprofile" -exec grep -v mode: {} >> all.coverprofile \;'
-# - PATH=$HOME/gopath/bin:$PATH goveralls -coverprofile=all.coverprofile -repotoken=$COVERALLS_TOKEN
+- PATH=$HOME/gopath/bin:$PATH goveralls -coverprofile=profile.out -service=travis-ci
 
 install:
 - go get -d -v -t ./...
