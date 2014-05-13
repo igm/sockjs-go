@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-var iframeTemplate string = `<!doctype html>
+var iframeTemplate = `<!doctype html>
 <html><head>
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
@@ -42,7 +42,7 @@ func (h *handler) htmlFile(rw http.ResponseWriter, req *http.Request) {
 	rw.(http.Flusher).Flush()
 
 	sess, _ := h.sessionByRequest(req)
-	recv := newHttpReceiver(rw, h.options.ResponseLimit, new(htmlfileFrameWriter))
+	recv := newHTTPReceiver(rw, h.options.ResponseLimit, new(htmlfileFrameWriter))
 	if err := sess.attachReceiver(recv); err != nil {
 		recv.sendFrame(cFrame)
 		return

@@ -11,7 +11,7 @@ func (h *handler) eventSource(rw http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(rw, "\r\n")
 	rw.(http.Flusher).Flush()
 
-	recv := newHttpReceiver(rw, h.options.ResponseLimit, new(eventSourceFrameWriter))
+	recv := newHTTPReceiver(rw, h.options.ResponseLimit, new(eventSourceFrameWriter))
 	sess, _ := h.sessionByRequest(req)
 	if err := sess.attachReceiver(recv); err != nil {
 		recv.sendFrame(cFrame)

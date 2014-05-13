@@ -21,7 +21,7 @@ func (h *handler) jsonp(rw http.ResponseWriter, req *http.Request) {
 	rw.(http.Flusher).Flush()
 
 	sess, _ := h.sessionByRequest(req)
-	recv := newHttpReceiver(rw, 1, &jsonpFrameWriter{callback})
+	recv := newHTTPReceiver(rw, 1, &jsonpFrameWriter{callback})
 	if err := sess.attachReceiver(recv); err != nil {
 		recv.sendFrame(cFrame)
 		return
@@ -34,7 +34,8 @@ func (h *handler) jsonp(rw http.ResponseWriter, req *http.Request) {
 
 func (h *handler) jsonpSend(rw http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
-	var data io.Reader = req.Body
+	var data io.Reader
+	data = req.Body
 
 	formReader := strings.NewReader(req.PostFormValue("d"))
 	if formReader.Len() != 0 {

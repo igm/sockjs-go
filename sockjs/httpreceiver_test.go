@@ -17,7 +17,7 @@ func (t *testFrameWriter) write(w io.Writer, frame string) (int, error) {
 
 func TestXhrReceiver_Create(t *testing.T) {
 	rec := httptest.NewRecorder()
-	recv := newHttpReceiver(rec, 1024, new(testFrameWriter))
+	recv := newHTTPReceiver(rec, 1024, new(testFrameWriter))
 	if recv.doneCh != recv.doneNotify() {
 		t.Errorf("Calling done() must return close channel, but it does not")
 	}
@@ -31,7 +31,7 @@ func TestXhrReceiver_Create(t *testing.T) {
 
 func TestXhrReceiver_SendEmptyFrames(t *testing.T) {
 	rec := httptest.NewRecorder()
-	recv := newHttpReceiver(rec, 1024, new(testFrameWriter))
+	recv := newHTTPReceiver(rec, 1024, new(testFrameWriter))
 	recv.sendBulk()
 	if rec.Body.String() != "" {
 		t.Errorf("Incorrect body content received from receiver '%s'", rec.Body.String())
@@ -41,7 +41,7 @@ func TestXhrReceiver_SendEmptyFrames(t *testing.T) {
 func TestXhrReceiver_SendFrame(t *testing.T) {
 	rec := httptest.NewRecorder()
 	fw := new(testFrameWriter)
-	recv := newHttpReceiver(rec, 1024, fw)
+	recv := newHTTPReceiver(rec, 1024, fw)
 	var frame = "some frame content"
 	recv.sendFrame(frame)
 	if len(fw.frames) != 1 || fw.frames[0] != frame {
@@ -53,7 +53,7 @@ func TestXhrReceiver_SendFrame(t *testing.T) {
 func TestXhrReceiver_SendBulk(t *testing.T) {
 	rec := httptest.NewRecorder()
 	fw := new(testFrameWriter)
-	recv := newHttpReceiver(rec, 1024, fw)
+	recv := newHTTPReceiver(rec, 1024, fw)
 	recv.sendBulk("message 1", "message 2", "message 3")
 	expected := "a[\"message 1\",\"message 2\",\"message 3\"]"
 	if len(fw.frames) != 1 || fw.frames[0] != expected {
@@ -63,7 +63,7 @@ func TestXhrReceiver_SendBulk(t *testing.T) {
 
 func TestXhrReceiver_MaximumResponseSize(t *testing.T) {
 	rec := httptest.NewRecorder()
-	recv := newHttpReceiver(rec, 52, new(testFrameWriter))
+	recv := newHTTPReceiver(rec, 52, new(testFrameWriter))
 	recv.sendBulk("message 1", "message 2") // produces 26 bytes of response in 1 frame
 	if recv.currentResponseSize != 26 {
 		t.Errorf("Incorrect response size calcualated, got '%d' expected '%d'", recv.currentResponseSize, 26)
@@ -83,7 +83,7 @@ func TestXhrReceiver_MaximumResponseSize(t *testing.T) {
 
 func TestXhrReceiver_Close(t *testing.T) {
 	rec := httptest.NewRecorder()
-	recv := newHttpReceiver(rec, 1024, nil)
+	recv := newHTTPReceiver(rec, 1024, nil)
 	recv.close()
 	if recv.state != stateHTTPReceiverClosed {
 		t.Errorf("Unexpected state, got '%d', expected '%d'", recv.state, stateHTTPReceiverClosed)

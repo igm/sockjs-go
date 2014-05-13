@@ -51,7 +51,7 @@ func (*xhrFrameWriter) write(w io.Writer, frame string) (int, error) {
 func (h *handler) xhrPoll(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Set("content-type", "application/javascript; charset=UTF-8")
 	sess, _ := h.sessionByRequest(req) // TODO(igm) add err handling, although err should not happen as handler should not pass req in that case
-	receiver := newHttpReceiver(rw, 1, new(xhrFrameWriter))
+	receiver := newHTTPReceiver(rw, 1, new(xhrFrameWriter))
 	if err := sess.attachReceiver(receiver); err != nil {
 		receiver.sendFrame(cFrame)
 		return
@@ -69,7 +69,7 @@ func (h *handler) xhrStreaming(rw http.ResponseWriter, req *http.Request) {
 	rw.(http.Flusher).Flush()
 
 	sess, _ := h.sessionByRequest(req)
-	receiver := newHttpReceiver(rw, h.options.ResponseLimit, new(xhrFrameWriter))
+	receiver := newHTTPReceiver(rw, h.options.ResponseLimit, new(xhrFrameWriter))
 
 	if err := sess.attachReceiver(receiver); err != nil {
 		receiver.sendFrame(cFrame)

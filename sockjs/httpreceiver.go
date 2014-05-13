@@ -31,7 +31,7 @@ type httpReceiver struct {
 	interruptCh         chan struct{}
 }
 
-func newHttpReceiver(rw http.ResponseWriter, maxResponse uint32, frameWriter frameWriter) *httpReceiver {
+func newHTTPReceiver(rw http.ResponseWriter, maxResponse uint32, frameWriter frameWriter) *httpReceiver {
 	recv := &httpReceiver{
 		rw:              rw,
 		frameWriter:     frameWriter,
