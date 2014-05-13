@@ -5,7 +5,7 @@ notifications:
 
 before_install:
 - go get code.google.com/p/go.tools/cmd/cover
-- go get -u gopkg.in/igm/sockjs-go.v0/sockjs
+- go get github.com/gorilla/websocket
 
 # after_success:
 # - 'echo "mode: set" > all.coverprofile'
