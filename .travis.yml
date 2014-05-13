@@ -9,9 +9,10 @@ before_install:
 - go get github.com/mattn/goveralls
 
 after_success:
+- go test ./sockjs -coverprofile=profile.out
 # - 'echo "mode: set" > all.coverprofile'
 # - 'find . -name "*.coverprofile" -exec grep -v mode: {} >> all.coverprofile \;'
-# - PATH=$HOME/gopath/bin:$PATH goveralls -coverprofile=profile.out -service=travis-ci
+- PATH=$HOME/gopath/bin:$PATH goveralls -coverprofile=profile.out -service=travis-ci
 
 install:
 - go get -d -v -t ./...
