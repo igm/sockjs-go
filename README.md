@@ -75,4 +75,9 @@ SockJS defines a set of [protocol tests](https://github.com/sockjs/sockjs-protoc
 | Failing Test | Explanation |
 | -------------| ------------|
 | **XhrPolling.test_transport** | does not pass due to a feature in net/http that does not send content-type header in case of StatusNoContent response code (even if explicitly set in the code), [details](https://code.google.com/p/go/source/detail?r=902dc062bff8) |
-| **WebSocket.\*** |  Sockjs GO version supports RFC 6455, draft protocols hixie-76, hybi-10 are not supported |
+| **WebSocket.** |  Sockjs Go version supports RFC 6455, draft protocols hixie-76, hybi-10 are not supported |
+| **JSONEncoding** | As menioned in [browser quirks](https://github.com/sockjs/sockjs-client#browser-quirks) section: "it's advisable to use only valid characters. Using invalid characters is a bit slower, and may not work with SockJS servers that have a proper Unicode support." Go lang has a proper Unicode support |
+
+
+
+
