@@ -28,7 +28,7 @@ func main() {
 		sockjs.NewHandler("/echo", echoOptions, echoHandler),
 		sockjs.NewHandler("/cookie_needed_echo", cookieNeededOptions, echoHandler),
 		sockjs.NewHandler("/close", sockjs.DefaultOptions, closeHandler),
-		sockjs.NewHandler("/disabled_websocket_echo", disabledWebsocketOptions, nil),
+		sockjs.NewHandler("/disabled_websocket_echo", disabledWebsocketOptions, echoHandler),
 	}
 	http.Handle("/", testHandler(handlers))
 	http.Handle("/echo/websocket", websocket.Handler(echoServer))
