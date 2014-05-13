@@ -14,7 +14,6 @@ after_success:
 install:
 - go get -d -v -t ./...
 
-#script: go test ./sockjs -v -race -coverprofile=profile.out
 script: go test ./sockjs -v -race
 
 go:
