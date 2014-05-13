@@ -11,12 +11,13 @@ before_install:
 after_success:
 # - 'echo "mode: set" > all.coverprofile'
 # - 'find . -name "*.coverprofile" -exec grep -v mode: {} >> all.coverprofile \;'
-- PATH=$HOME/gopath/bin:$PATH goveralls -coverprofile=profile.out -service=travis-ci
+# - PATH=$HOME/gopath/bin:$PATH goveralls -coverprofile=profile.out -service=travis-ci
 
 install:
 - go get -d -v -t ./...
 
-script: go test ./sockjs -v -race -coverprofile=profile.out
+#script: go test ./sockjs -v -race -coverprofile=profile.out
+script: go test ./sockjs -v -race 
 
 go:
 - 1.2.2
