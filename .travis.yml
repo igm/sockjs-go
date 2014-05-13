@@ -1,11 +1,12 @@
 language: go
 notifications:
   email:
-  - igor.mihalik@gmail.com
+  - igor.mihalik+travis@gmail.com
 
 before_install:
 - go get code.google.com/p/go.tools/cmd/cover
 - go get github.com/gorilla/websocket
+- go get github.com/mattn/goveralls
 
 # after_success:
 # - 'echo "mode: set" > all.coverprofile'
@@ -15,8 +16,8 @@ before_install:
 install:
 - go get -d -v -t ./...
 
-script: PATH=$HOME/gopath/bin:$PATH go test ./sockjs -v -race -coverprofile=profile.out
+script: go test ./sockjs -v -race -coverprofile=profile.out -covermode=count
 
 go:
-- 1.2.1
+- 1.2.2
 
