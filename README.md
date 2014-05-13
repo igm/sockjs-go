@@ -23,7 +23,7 @@ To install **v2** of `sockjs-go` run (available soon)
 
 To install **development** version of `sockjs-go` run:
 
-    go get -u gopkg.in/igm/sockjs-go.v0/sockjs
+    go get github.com/igm/sockjs-go/sockjs
 
 
 Versioning
@@ -31,7 +31,7 @@ Versioning
 
 SockJS-Go project adopted [gopkg.in](http://gopkg.in) approach for versioning. Current development version is v0 which "is equivalent to labeling the package as alpha or beta quality, and as such the use of these packages as dependencies of stable packages and applications is discouraged". This means that version 0 denotes "master" and various API changes might and will be introduced here. 
 
-For **stable** version use v2, which will not break API:
+For **stable** version use v2, which will not break API (soon to be released):
 
     go get gopkg.in/igm/sockjs-go.v2/sockjs
 
@@ -49,7 +49,7 @@ import (
 	"log"
 	"net/http"
 
-	"gopkg.in/igm/sockjs-go.v0/sockjs"
+	"github.com/igm/sockjs-go/sockjs"
 )
 
 func main() {
