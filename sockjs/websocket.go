@@ -8,15 +8,16 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func (h *handler) sockjs_websocket(rw http.ResponseWriter, req *http.Request) {
+func (h *handler) sockjsWebsocket(rw http.ResponseWriter, req *http.Request) {
 	if req.Header.Get("Origin") != "http://"+req.Host {
 		http.Error(rw, "Origin not allowed", 403)
 		return
 	}
 	conn, err := websocket.Upgrade(rw, req, nil, 1024, 1024)
 	if hse, ok := err.(websocket.HandshakeError); ok {
-		rw.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintf(rw, hse.Error())
+		http.Error(rw, hse.Error(), http.StatusBadRequest)
+		// rw.WriteHeader(http.StatusBadRequest)
+		// fmt.Fprintf(rw, hse.Error())
 		return
 	} else if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
@@ -24,15 +25,17 @@ func (h *handler) sockjs_websocket(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	sess := newSession(h.options.DisconnectDelay, h.options.HeartbeatDelay)
+	if h.handlerFunc != nil {
+		go h.handlerFunc(sess)
+	}
 
 	receiver := newWsReceiver(conn)
 	sess.attachReceiver(receiver)
-
 	readCloseCh := make(chan struct{})
 	go func() {
 		var d []string
 		for {
-			err := conn.ReadJSON(d)
+			err := conn.ReadJSON(&d)
 			if err != nil {
 				close(readCloseCh)
 				return
@@ -46,6 +49,7 @@ func (h *handler) sockjs_websocket(rw http.ResponseWriter, req *http.Request) {
 	case <-receiver.doneNotify():
 	}
 	sess.close()
+	conn.Close()
 }
 
 type wsReceiver struct {
@@ -72,6 +76,12 @@ func (w *wsReceiver) sendFrame(frame string) {
 	}
 }
 
-func (w *wsReceiver) close()                             { close(w.closeCh) }
+func (w *wsReceiver) close() {
+	select {
+	case <-w.closeCh: // already closed
+	default:
+		close(w.closeCh)
+	}
+}
 func (w *wsReceiver) doneNotify() <-chan struct{}        { return w.closeCh }
 func (w *wsReceiver) interruptedNotify() <-chan struct{} { return nil }
