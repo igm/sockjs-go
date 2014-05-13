@@ -15,7 +15,7 @@ before_install:
 install:
 - go get -d -v -t ./...
 
-script: PATH=$HOME/gopath/bin:$PATH go test ./sockjs -v -race -coverprofile=profile.out sockjs
+script: PATH=$HOME/gopath/bin:$PATH go test ./sockjs -v -race -coverprofile=profile.out
 
 go:
 - 1.2.1
