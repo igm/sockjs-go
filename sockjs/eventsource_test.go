@@ -33,3 +33,36 @@ func TestHandler_EventSource(t *testing.T) {
 		t.Errorf("Event stream prelude, got '%s'", rw.Body)
 	}
 }
+
+func TestHandler_EventSourceMultipleConnections(t *testing.T) {
+	h := newTestHandler()
+	rw := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/server/sess/eventsource", nil)
+	var doneCh = make(chan struct{})
+	go func() {
+		rw := httptest.NewRecorder()
+		h.eventSource(rw, req)
+		if rw.Body.String() != "\r\ndata: c[2010,\"Another connection still open\"]\r\n\r\n" {
+			t.Errorf("wrong, got '%v'", rw.Body)
+		}
+		close(doneCh)
+
+	}()
+	h.eventSource(rw, req)
+	<-doneCh
+}
+
+func TestHandler_EventSourceConnectionInterrupted(t *testing.T) {
+	h := newTestHandler()
+	sess := newTestSession()
+	sess.state = sessionActive
+	h.sessions["session"] = sess
+	req, _ := http.NewRequest("POST", "/server/session/eventsource", nil)
+	rw := newClosableRecorder()
+	close(rw.closeNotifCh)
+	h.eventSource(rw, req)
+	sess.Lock()
+	if sess.state != sessionClosed {
+		t.Errorf("Session should be closed")
+	}
+}
