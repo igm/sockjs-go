@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -48,7 +49,7 @@ func TestHandler_WebSocket(t *testing.T) {
 	}
 	select {
 	case <-connCh: //ok
-	default:
+	case <-time.After(10 * time.Millisecond):
 		t.Errorf("Sockjs Handler not invoked")
 	}
 }
