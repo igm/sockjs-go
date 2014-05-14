@@ -15,7 +15,7 @@ func TestHandler_WebSocketHandshakeError(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(h.sockjsWebsocket))
 	defer server.Close()
 	req, _ := http.NewRequest("GET", server.URL, nil)
-	req.Header.Set("origin", server.URL)
+	req.Header.Set("origin", "https"+server.URL[4:])
 	resp, _ := http.DefaultClient.Do(req)
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Errorf("Unexpected response code, got '%d', expected '%d'", resp.StatusCode, http.StatusBadRequest)

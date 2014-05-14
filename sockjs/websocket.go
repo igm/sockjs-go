@@ -9,7 +9,8 @@ import (
 )
 
 func (h *handler) sockjsWebsocket(rw http.ResponseWriter, req *http.Request) {
-	if req.Header.Get("Origin") != "http://"+req.Host {
+	origin := req.Header.Get("Origin")
+	if origin != "http://"+req.Host && origin != "https://"+req.Host {
 		http.Error(rw, "Origin not allowed", 403)
 		return
 	}
