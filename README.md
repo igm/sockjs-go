@@ -34,6 +34,15 @@ Versioning
 SockJS-Go project adopted [gopkg.in](http://gopkg.in) approach for versioning.
 
 
+Live Demo
+-
+
+There's a live demo running at [Pivotal Web Services](http://run.pivotal.io). Depending on the URL and port various load ballancers process the request wich results in sockjs choosing different connection method:
+* WebSockets: https://sockjs-chat.cfapps.io:4443
+* Xhr streaming: https://sockjs-chat.cfapps.io
+* Xhr polling: http://sockjs-chat.cfapps.io
+
+
 Example
 -
 
@@ -80,7 +89,7 @@ SockJS defines a set of [protocol tests](https://github.com/sockjs/sockjs-protoc
 | **RawWebsocket.** | The sockjs protocol tests use old WebSocket client library (hybi-10) that does not support RFC 6455 properly |
 
 WebSocket
-==
+-
 As mentioned above sockjs-go library is compatible with RFC 6455. That means the browsers not supprting RFC 6455 are not supported properly. There are no plans to support draft versions of WebSocket protocol. The WebSocket support is based on [Gorilla web toolkit](http://www.gorillatoolkit.org/pkg/websocket) implementation of WebSocket.
 
 For detailed information about browser versions supporting RFC 6455 see this [wiki page](http://en.wikipedia.org/wiki/WebSocket#Browser_support).
