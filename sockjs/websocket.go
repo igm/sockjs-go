@@ -15,16 +15,13 @@ func (h *handler) sockjsWebsocket(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	conn, err := websocket.Upgrade(rw, req, nil, 1024, 1024)
-	if hse, ok := err.(websocket.HandshakeError); ok {
-		http.Error(rw, hse.Error(), http.StatusBadRequest)
-		// rw.WriteHeader(http.StatusBadRequest)
-		// fmt.Fprintf(rw, hse.Error())
+	if _, ok := err.(websocket.HandshakeError); ok {
+		http.Error(rw, `Can "Upgrade" only to "WebSocket".`, http.StatusBadRequest)
 		return
 	} else if err != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
 	sess := newSession(h.options.DisconnectDelay, h.options.HeartbeatDelay)
 	if h.handlerFunc != nil {
 		go h.handlerFunc(sess)

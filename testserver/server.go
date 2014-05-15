@@ -30,17 +30,21 @@ func main() {
 		sockjs.NewHandler("/close", sockjs.DefaultOptions, closeHandler),
 		sockjs.NewHandler("/disabled_websocket_echo", disabledWebsocketOptions, echoHandler),
 	}
-	http.Handle("/", testHandler(handlers))
-	http.Handle("/echo/websocket", websocket.Handler(echoServer))
-	http.Handle("/close/websocket", websocket.Handler(closeServer))
-	// start test handler
-	log.Fatal(http.ListenAndServe(":8081", nil))
+	log.Fatal(http.ListenAndServe(":8081", testHandler(handlers)))
 }
 
 func echoServer(ws *websocket.Conn)  { io.Copy(ws, ws) }
 func closeServer(ws *websocket.Conn) { ws.Close() }
 
 func (t testHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	if strings.HasPrefix(req.URL.Path, "/echo/websocket") {
+		websocket.Handler(echoServer).ServeHTTP(rw, req)
+		return
+	}
+	if strings.HasPrefix(req.URL.Path, "/close/websocket") {
+		websocket.Handler(closeServer).ServeHTTP(rw, req)
+		return
+	}
 	for _, handler := range t {
 		if strings.HasPrefix(req.URL.Path, handler.Prefix()) {
 			handler.ServeHTTP(rw, req)
