@@ -41,22 +41,21 @@ func (h *handler) jsonpSend(rw http.ResponseWriter, req *http.Request) {
 	if formReader.Len() != 0 {
 		data = formReader
 	}
-
+	if data == nil {
+		http.Error(rw, "Payload expected.", http.StatusInternalServerError)
+		return
+	}
 	var messages []string
 	err := json.NewDecoder(data).Decode(&messages)
 	if err == io.EOF {
-		httpError(rw, "Payload expected.", http.StatusInternalServerError)
+		http.Error(rw, "Payload expected.", http.StatusInternalServerError)
 		return
 	}
-	if _, ok := err.(*json.SyntaxError); ok || err == io.ErrUnexpectedEOF {
-		httpError(rw, "Broken JSON encoding.", http.StatusInternalServerError)
-		return
-	}
-	sessionID, err := h.parseSessionID(req.URL)
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		http.Error(rw, "Broken JSON encoding.", http.StatusInternalServerError)
 		return
 	}
+	sessionID, _ := h.parseSessionID(req.URL)
 	if sess, ok := h.sessions[sessionID]; !ok {
 		http.NotFound(rw, req)
 	} else {

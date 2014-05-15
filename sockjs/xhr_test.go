@@ -34,7 +34,7 @@ func TestHandler_XhrSendEmptyBody(t *testing.T) {
 	}
 }
 
-func TestHandler_XHrSendWrongUrlPath(t *testing.T) {
+func TestHandler_XhrSendWrongUrlPath(t *testing.T) {
 	h := newTestHandler()
 	rec := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "incorrect", strings.NewReader("[\"a\"]"))
