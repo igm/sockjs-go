@@ -70,6 +70,5 @@ type jsonpFrameWriter struct {
 }
 
 func (j *jsonpFrameWriter) write(w io.Writer, frame string) (int, error) {
-	payload, _ := json.Marshal(frame)
-	return fmt.Fprintf(w, "%s(%s);\r\n", j.callback, string(payload))
+	return fmt.Fprintf(w, "%s(%s);\r\n", j.callback, quote(frame))
 }
