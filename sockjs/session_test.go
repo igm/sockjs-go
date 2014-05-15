@@ -76,17 +76,16 @@ func TestSession_AttachReceiver(t *testing.T) {
 
 func TestSession_Timeout(t *testing.T) {
 	sess := newSession(10*time.Millisecond, 10*time.Second)
-	time.Sleep(11 * time.Millisecond)
+	select {
+	case <-sess.closeCh:
+	case <-time.After(20 * time.Millisecond):
+		t.Errorf("sess close notification channel should close")
+	}
 	sess.Lock()
 	if sess.state != sessionClosed {
 		t.Errorf("Session did not timeout")
 	}
 	sess.Unlock()
-	select {
-	case <-sess.closeCh:
-	default:
-		t.Errorf("sess close notification channel should close")
-	}
 }
 
 func TestSession_TimeoutOfClosedSession(t *testing.T) {
