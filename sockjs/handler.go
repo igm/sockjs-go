@@ -34,19 +34,23 @@ func NewHandler(prefix string, opts Options, handlerFn HandlerFunc) *handler {
 		newMapping("GET", prefix+"[/]?$", welcomeHandler),
 		newMapping("OPTIONS", prefix+"/info?$", opts.cookie, xhrCors, cacheFor, opts.info),
 		newMapping("GET", prefix+"/info?$", xhrCors, noCache, opts.info),
-		//
-		// other mappings
+		// XHR
 		newMapping("POST", sessionPrefix+"/xhr_send$", opts.cookie, xhrCors, noCache, h.xhrSend),
 		newMapping("OPTIONS", sessionPrefix+"/xhr_send$", opts.cookie, xhrCors, cacheFor, xhrOptions),
 		newMapping("POST", sessionPrefix+"/xhr$", opts.cookie, xhrCors, noCache, h.xhrPoll),
 		newMapping("OPTIONS", sessionPrefix+"/xhr$", opts.cookie, xhrCors, cacheFor, xhrOptions),
 		newMapping("POST", sessionPrefix+"/xhr_streaming$", opts.cookie, xhrCors, noCache, h.xhrStreaming),
 		newMapping("OPTIONS", sessionPrefix+"/xhr_streaming$", opts.cookie, xhrCors, cacheFor, xhrOptions),
+
+		// EventStream
 		newMapping("GET", sessionPrefix+"/eventsource$", opts.cookie, xhrCors, noCache, h.eventSource),
+		// Htmlfile
 		newMapping("GET", sessionPrefix+"/htmlfile", opts.cookie, xhrCors, noCache, h.htmlFile),
-		newMapping("GET", sessionPrefix+"/jsonp$", opts.cookie, xhrCors, noCache, h.jsonp),
+		// JsonP
+		newMapping("GET", sessionPrefix+"/jsonp", opts.cookie, xhrCors, noCache, h.jsonp),
 		newMapping("OPTIONS", sessionPrefix+"/jsonp$", opts.cookie, xhrCors, cacheFor, xhrOptions),
 		newMapping("POST", sessionPrefix+"/jsonp_send$", opts.cookie, xhrCors, noCache, h.jsonpSend),
+		// IFrame
 		newMapping("GET", prefix+"/iframe[0-9-.a-z_]*.html$", cacheFor, h.iframe),
 	}
 	if opts.Websocket {

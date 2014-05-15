@@ -33,14 +33,12 @@ func (h *handler) htmlFile(rw http.ResponseWriter, req *http.Request) {
 	req.ParseForm()
 	callback := req.Form.Get("c")
 	if callback == "" {
-		rw.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintln(rw, `"callback" parameter required`)
+		http.Error(rw, `"callback" parameter required`, http.StatusInternalServerError)
 		return
 	}
 	rw.WriteHeader(http.StatusOK)
 	fmt.Fprintf(rw, iframeTemplate, callback)
 	rw.(http.Flusher).Flush()
-	fmt.Println("handler", len(iframeTemplate))
 	sess, _ := h.sessionByRequest(req)
 	recv := newHTTPReceiver(rw, h.options.ResponseLimit, new(htmlfileFrameWriter))
 	if err := sess.attachReceiver(recv); err != nil {

@@ -15,9 +15,9 @@ func TestHandler_htmlFileNoCallback(t *testing.T) {
 	if rw.Code != http.StatusInternalServerError {
 		t.Errorf("Unexpected response code, got '%d', expected '%d'", rw.Code, http.StatusInternalServerError)
 	}
-	expectedContentType := "text/html; charset=UTF-8"
+	expectedContentType := "text/plain; charset=utf-8"
 	if rw.Header().Get("content-type") != expectedContentType {
-		t.Errorf("Unexpected content-type, got '%s', expected '%s'", rw.Header().Get("content-type"), expectedContentType)
+		t.Errorf("Unexpected content type, got '%s', expected '%s'", rw.Header().Get("content-type"), expectedContentType)
 	}
 }
 
@@ -28,6 +28,10 @@ func TestHandler_htmlFile(t *testing.T) {
 	h.htmlFile(rw, req)
 	if rw.Code != http.StatusOK {
 		t.Errorf("Unexpected response code, got '%d', expected '%d'", rw.Code, http.StatusOK)
+	}
+	expectedContentType := "text/html; charset=UTF-8"
+	if rw.Header().Get("content-type") != expectedContentType {
+		t.Errorf("Unexpected content-type, got '%s', expected '%s'", rw.Header().Get("content-type"), expectedContentType)
 	}
 	if rw.Body.String() != expectedIFrame {
 		t.Errorf("Unexpected response body, got '%s', expected '%s'", rw.Body, expectedIFrame)
