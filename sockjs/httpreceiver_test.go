@@ -94,6 +94,7 @@ func TestHttpReceiver_ConnectionInterrupt(t *testing.T) {
 	rw := newClosableRecorder()
 	recv := newHTTPReceiver(rw, 1024, nil)
 	rw.closeNotifCh <- true
+	recv.Lock()
 	if recv.state != stateHTTPReceiverClosed {
 		t.Errorf("Unexpected state, got '%d', expected '%d'", recv.state, stateHTTPReceiverClosed)
 	}
