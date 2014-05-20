@@ -17,8 +17,8 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func echoHandler(conn sockjs.Session) {
-	log.Println("new sockjs connection established")
+func echoHandler(session sockjs.Session) {
+	log.Println("new sockjs session established")
 	var closedSession = make(chan struct{})
 	chat.Publish("[info] new participant joined chat")
 	defer chat.Publish("[info] participant left chat")
@@ -29,7 +29,7 @@ func echoHandler(conn sockjs.Session) {
 			case <-closedSession:
 				return
 			case msg := <-reader:
-				if err := conn.Send(msg.(string)); err != nil {
+				if err := session.Send(msg.(string)); err != nil {
 					return
 				}
 			}
@@ -37,12 +37,12 @@ func echoHandler(conn sockjs.Session) {
 		}
 	}()
 	for {
-		if msg, err := conn.Recv(); err == nil {
+		if msg, err := session.Recv(); err == nil {
 			chat.Publish(msg)
 			continue
 		}
 		break
 	}
 	close(closedSession)
-	log.Println("sockjs connection closed")
+	log.Println("sockjs session closed")
 }

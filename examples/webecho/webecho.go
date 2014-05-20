@@ -26,14 +26,14 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func echoHandler(conn sockjs.Session) {
-	log.Println("new sockjs connection established")
+func echoHandler(session sockjs.Session) {
+	log.Println("new sockjs session established")
 	for {
-		if msg, err := conn.Recv(); err == nil {
-			conn.Send(msg)
+		if msg, err := session.Recv(); err == nil {
+			session.Send(msg)
 			continue
 		}
 		break
 	}
-	log.Println("sockjs connection closed")
+	log.Println("sockjs session closed")
 }

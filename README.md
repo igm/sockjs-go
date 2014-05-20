@@ -63,10 +63,10 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8081", handler))
 }
 
-func echoHandler(conn sockjs.Session) {
+func echoHandler(session sockjs.Session) {
 	for {
-		if msg, err := conn.Recv(); err == nil {
-			conn.Send(msg)
+		if msg, err := session.Recv(); err == nil {
+			session.Send(msg)
 			continue
 		}
 		break
