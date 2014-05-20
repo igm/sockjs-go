@@ -12,7 +12,7 @@ import (
 type handler struct {
 	prefix      string
 	options     Options
-	handlerFunc HandlerFunc
+	handlerFunc func(Conn)
 	mappings    []*mapping
 
 	sessionsMux sync.Mutex
@@ -21,11 +21,11 @@ type handler struct {
 
 // NewHandler creates new HTTP handler that conforms to the basic net/http.Handler interface.
 // It takes path prefix, options and sockjs handler function as parameters
-func NewHandler(prefix string, opts Options, handlerFn HandlerFunc) *handler {
+func NewHandler(prefix string, opts Options, handlerFunc func(Conn)) *handler {
 	h := &handler{
 		prefix:      prefix,
 		options:     opts,
-		handlerFunc: handlerFn,
+		handlerFunc: handlerFunc,
 		sessions:    make(map[string]*session),
 	}
 
@@ -100,7 +100,7 @@ func (h *handler) sessionByRequest(req *http.Request) (*session, error) {
 	}
 	sess, exists := h.sessions[sessionID]
 	if !exists {
-		sess = newSession(h.options.DisconnectDelay, h.options.HeartbeatDelay)
+		sess = newSession(sessionID, h.options.DisconnectDelay, h.options.HeartbeatDelay)
 		h.sessions[sessionID] = sess
 		if h.handlerFunc != nil {
 			go h.handlerFunc(sess)

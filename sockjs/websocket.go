@@ -22,7 +22,8 @@ func (h *handler) sockjsWebsocket(rw http.ResponseWriter, req *http.Request) {
 		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	sess := newSession(h.options.DisconnectDelay, h.options.HeartbeatDelay)
+	sessID, _ := h.parseSessionID(req.URL)
+	sess := newSession(sessID, h.options.DisconnectDelay, h.options.HeartbeatDelay)
 	if h.handlerFunc != nil {
 		go h.handlerFunc(sess)
 	}

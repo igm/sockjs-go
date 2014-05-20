@@ -9,8 +9,8 @@ import (
 )
 
 func newTestSession() *session {
-	// session with long expiration and heartbeats
-	return newSession(1000*time.Second, 1000*time.Second)
+	// session with long expiration and heartbeats with ID
+	return newSession("sessionId", 1000*time.Second, 1000*time.Second)
 }
 
 func TestSession_Create(t *testing.T) {
@@ -75,7 +75,7 @@ func TestSession_AttachReceiver(t *testing.T) {
 }
 
 func TestSession_Timeout(t *testing.T) {
-	sess := newSession(10*time.Millisecond, 10*time.Second)
+	sess := newSession("id", 10*time.Millisecond, 10*time.Second)
 	select {
 	case <-sess.closeCh:
 	case <-time.After(20 * time.Millisecond):
@@ -94,7 +94,7 @@ func TestSession_TimeoutOfClosedSession(t *testing.T) {
 			t.Errorf("Unexcpected error '%v'", r)
 		}
 	}()
-	sess := newSession(1*time.Millisecond, time.Second)
+	sess := newSession("id", 1*time.Millisecond, time.Second)
 	sess.closing()
 	time.Sleep(1 * time.Millisecond)
 	sess.closing()
@@ -106,7 +106,7 @@ func TestSession_AttachReceiverAndCheckHeartbeats(t *testing.T) {
 			t.Errorf("Unexcpected error '%v'", r)
 		}
 	}()
-	session := newSession(time.Second, 10*time.Millisecond) // 10ms heartbeats
+	session := newSession("id", time.Second, 10*time.Millisecond) // 10ms heartbeats
 	recv := newTestReceiver()
 	defer close(recv.doneCh)
 	session.attachReceiver(recv)
@@ -211,7 +211,7 @@ func TestSession_Closing(t *testing.T) {
 }
 
 // Session as Conn Tests
-func TestSession_AsConn(t *testing.T) { var _ Conn = newSession(0, 0) }
+func TestSession_AsConn(t *testing.T) { var _ Conn = newSession("id", 0, 0) }
 
 func TestSession_ConnRecv(t *testing.T) {
 	s := newTestSession()
@@ -281,6 +281,13 @@ func TestSession_ConnClose(t *testing.T) {
 	}
 	if err := s.Close(1, "some other reson"); err != ErrSessionNotOpen {
 		t.Errorf("Expected error, got '%v'", err)
+	}
+}
+
+func TestSession_ConnSessionId(t *testing.T) {
+	s := newTestSession()
+	if s.SessionId() != "sessionId" {
+		t.Errorf("Unexpected session Id, got '%s', expected '%s'", s.SessionId(), "sessionId")
 	}
 }
 

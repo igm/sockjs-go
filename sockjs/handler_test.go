@@ -16,7 +16,6 @@ func TestHandler_Create(t *testing.T) {
 	if handler.sessions == nil {
 		t.Errorf("Handler session map not made")
 	}
-	// TODO(igm) add more handler *unit* tests
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
