@@ -44,7 +44,12 @@ func newHTTPReceiver(rw http.ResponseWriter, maxResponse uint32, frameWriter fra
 		go func() {
 			select {
 			case <-closeNotifier.CloseNotify():
-				close(recv.interruptCh)
+				recv.Lock()
+				defer recv.Unlock()
+				if recv.state < stateHTTPReceiverClosed {
+					recv.state = stateHTTPReceiverClosed
+					close(recv.interruptCh)
+				}
 			case <-recv.doneCh:
 				// ok, no action needed here, receiver closed in correct way
 				// just finish the routine

@@ -15,7 +15,7 @@ func (t *testFrameWriter) write(w io.Writer, frame string) (int, error) {
 	return len(frame), nil
 }
 
-func TestXhrReceiver_Create(t *testing.T) {
+func TestHttpReceiver_Create(t *testing.T) {
 	rec := httptest.NewRecorder()
 	recv := newHTTPReceiver(rec, 1024, new(testFrameWriter))
 	if recv.doneCh != recv.doneNotify() {
@@ -29,7 +29,7 @@ func TestXhrReceiver_Create(t *testing.T) {
 	}
 }
 
-func TestXhrReceiver_SendEmptyFrames(t *testing.T) {
+func TestHttpReceiver_SendEmptyFrames(t *testing.T) {
 	rec := httptest.NewRecorder()
 	recv := newHTTPReceiver(rec, 1024, new(testFrameWriter))
 	recv.sendBulk()
@@ -38,7 +38,7 @@ func TestXhrReceiver_SendEmptyFrames(t *testing.T) {
 	}
 }
 
-func TestXhrReceiver_SendFrame(t *testing.T) {
+func TestHttpReceiver_SendFrame(t *testing.T) {
 	rec := httptest.NewRecorder()
 	fw := new(testFrameWriter)
 	recv := newHTTPReceiver(rec, 1024, fw)
@@ -50,7 +50,7 @@ func TestXhrReceiver_SendFrame(t *testing.T) {
 
 }
 
-func TestXhrReceiver_SendBulk(t *testing.T) {
+func TestHttpReceiver_SendBulk(t *testing.T) {
 	rec := httptest.NewRecorder()
 	fw := new(testFrameWriter)
 	recv := newHTTPReceiver(rec, 1024, fw)
@@ -61,7 +61,7 @@ func TestXhrReceiver_SendBulk(t *testing.T) {
 	}
 }
 
-func TestXhrReceiver_MaximumResponseSize(t *testing.T) {
+func TestHttpReceiver_MaximumResponseSize(t *testing.T) {
 	rec := httptest.NewRecorder()
 	recv := newHTTPReceiver(rec, 52, new(testFrameWriter))
 	recv.sendBulk("message 1", "message 2") // produces 26 bytes of response in 1 frame
@@ -81,10 +81,20 @@ func TestXhrReceiver_MaximumResponseSize(t *testing.T) {
 	}
 }
 
-func TestXhrReceiver_Close(t *testing.T) {
+func TestHttpReceiver_Close(t *testing.T) {
 	rec := httptest.NewRecorder()
 	recv := newHTTPReceiver(rec, 1024, nil)
 	recv.close()
+	if recv.state != stateHTTPReceiverClosed {
+		t.Errorf("Unexpected state, got '%d', expected '%d'", recv.state, stateHTTPReceiverClosed)
+	}
+}
+
+func TestHttpReceiver_ConnectionInterrupt(t *testing.T) {
+	rw := newClosableRecorder()
+	recv := newHTTPReceiver(rw, 1024, nil)
+	rw.closeNotifCh <- true
+	recv.Lock()
 	if recv.state != stateHTTPReceiverClosed {
 		t.Errorf("Unexpected state, got '%d', expected '%d'", recv.state, stateHTTPReceiverClosed)
 	}

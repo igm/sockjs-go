@@ -39,8 +39,7 @@ Live Demo
 
 There's a live demo running at [Pivotal Web Services](http://run.pivotal.io). Depending on the URL and port various load ballancers process the request wich results in sockjs choosing different connection method:
 * WebSockets: https://sockjs-chat.cfapps.io:4443
-* Xhr streaming: https://sockjs-chat.cfapps.io
-* Xhr polling: http://sockjs-chat.cfapps.io
+* Non WebSockets: https://sockjs-chat.cfapps.io or http://sockjs-chat.cfapps.io
 
 
 Example
