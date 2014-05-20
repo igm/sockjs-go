@@ -63,7 +63,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8081", handler))
 }
 
-func echoHandler(conn sockjs.Conn) {
+func echoHandler(conn sockjs.Session) {
 	for {
 		if msg, err := conn.Recv(); err == nil {
 			conn.Send(msg)
