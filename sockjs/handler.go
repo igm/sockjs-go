@@ -21,7 +21,11 @@ type handler struct {
 
 // NewHandler creates new HTTP handler that conforms to the basic net/http.Handler interface.
 // It takes path prefix, options and sockjs handler function as parameters
-func NewHandler(prefix string, opts Options, handlerFunc func(Session)) *handler {
+func NewHandler(prefix string, opts Options, handleFunc func(Session)) http.Handler {
+	return newHandler(prefix, opts, handleFunc)
+}
+
+func newHandler(prefix string, opts Options, handlerFunc func(Session)) *handler {
 	h := &handler{
 		prefix:      prefix,
 		options:     opts,

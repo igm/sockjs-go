@@ -11,7 +11,16 @@ import (
 	"github.com/igm/sockjs-go/sockjs"
 )
 
-type testHandler []sockjs.Handler
+type testHandler struct {
+	prefix  string
+	handler http.Handler
+}
+
+func newTestHandler(prefix string, options sockjs.Options, fn func(sockjs.Session)) *testHandler {
+	return &testHandler{prefix, sockjs.NewHandler(prefix, options, fn)}
+}
+
+type testHandlers []*testHandler
 
 func main() {
 	// prepare various options for tests
@@ -24,19 +33,20 @@ func main() {
 	cookieNeededOptions := sockjs.DefaultOptions
 	cookieNeededOptions.CookieNeeded = true
 	// register various test handlers
-	var handlers = []sockjs.Handler{
-		sockjs.NewHandler("/echo", echoOptions, echoHandler),
-		sockjs.NewHandler("/cookie_needed_echo", cookieNeededOptions, echoHandler),
-		sockjs.NewHandler("/close", sockjs.DefaultOptions, closeHandler),
-		sockjs.NewHandler("/disabled_websocket_echo", disabledWebsocketOptions, echoHandler),
+	var handlers = []*testHandler{
+		newTestHandler("/echo", echoOptions, echoHandler),
+		newTestHandler("/echo", echoOptions, echoHandler),
+		newTestHandler("/cookie_needed_echo", cookieNeededOptions, echoHandler),
+		newTestHandler("/close", sockjs.DefaultOptions, closeHandler),
+		newTestHandler("/disabled_websocket_echo", disabledWebsocketOptions, echoHandler),
 	}
-	log.Fatal(http.ListenAndServe(":8081", testHandler(handlers)))
+	log.Fatal(http.ListenAndServe(":8081", testHandlers(handlers)))
 }
 
 func echoServer(ws *websocket.Conn)  { io.Copy(ws, ws) }
 func closeServer(ws *websocket.Conn) { ws.Close() }
 
-func (t testHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+func (t testHandlers) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	if strings.HasPrefix(req.URL.Path, "/echo/websocket") {
 		websocket.Handler(echoServer).ServeHTTP(rw, req)
 		return
@@ -46,8 +56,8 @@ func (t testHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	for _, handler := range t {
-		if strings.HasPrefix(req.URL.Path, handler.Prefix()) {
-			handler.ServeHTTP(rw, req)
+		if strings.HasPrefix(req.URL.Path, handler.prefix) {
+			handler.handler.ServeHTTP(rw, req)
 			return
 		}
 	}

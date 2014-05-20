@@ -1,14 +1,6 @@
 package sockjs
 
-import "net/http"
-
-// Handler is a interface that is returned by NewHandler() method that.
-type Handler interface {
-	http.Handler
-	Prefix() string
-}
-
-// Session represents a connection between server and client. This is 1 to 1 relation.
+// Session represents a connection between server and client.
 type Session interface {
 	// Id returns a session id
 	ID() string
