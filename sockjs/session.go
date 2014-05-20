@@ -22,6 +22,7 @@ const (
 )
 
 var (
+	// ErrSessionNotOpen error is returned in case of Session not open
 	ErrSessionNotOpen          = errors.New("sockjs: session not in open state")
 	errSessionReceiverAttached = errors.New("sockjs: another receiver already attached")
 )
@@ -66,10 +67,10 @@ type receiver interface {
 }
 
 // Session is a central component that handles receiving and sending frames. It maintains internal state
-func newSession(sessionId string, sessionTimeoutInterval, heartbeatInterval time.Duration) *session {
+func newSession(sessionID string, sessionTimeoutInterval, heartbeatInterval time.Duration) *session {
 	r, w := io.Pipe()
 	s := &session{
-		id:                     sessionId,
+		id:                     sessionID,
 		msgReader:              r,
 		msgWriter:              w,
 		msgEncoder:             gob.NewEncoder(w),
@@ -211,4 +212,4 @@ func (s *session) Send(msg string) error {
 	return s.sendMessage(msg)
 }
 
-func (s *session) SessionId() string { return s.id }
+func (s *session) ID() string { return s.id }

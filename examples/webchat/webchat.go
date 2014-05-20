@@ -17,16 +17,16 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func echoHandler(conn sockjs.Conn) {
+func echoHandler(conn sockjs.Session) {
 	log.Println("new sockjs connection established")
-	var closedConn = make(chan struct{})
+	var closedSession = make(chan struct{})
 	chat.Publish("[info] new participant joined chat")
 	defer chat.Publish("[info] participant left chat")
 	go func() {
 		reader, _ := chat.SubChannel(nil)
 		for {
 			select {
-			case <-closedConn:
+			case <-closedSession:
 				return
 			case msg := <-reader:
 				if err := conn.Send(msg.(string)); err != nil {
@@ -43,6 +43,6 @@ func echoHandler(conn sockjs.Conn) {
 		}
 		break
 	}
-	close(closedConn)
+	close(closedSession)
 	log.Println("sockjs connection closed")
 }

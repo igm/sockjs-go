@@ -43,8 +43,8 @@ func TestHandler_ParseSessionId(t *testing.T) {
 func TestHandler_SessionByRequest(t *testing.T) {
 	h := NewHandler("", DefaultOptions, nil)
 	h.options.DisconnectDelay = 10 * time.Millisecond
-	var handlerFuncCalled = make(chan Conn)
-	h.handlerFunc = func(conn Conn) { handlerFuncCalled <- conn }
+	var handlerFuncCalled = make(chan Session)
+	h.handlerFunc = func(conn Session) { handlerFuncCalled <- conn }
 	req, _ := http.NewRequest("POST", "/server/sessionid/whatever/follows", nil)
 	sess, err := h.sessionByRequest(req)
 	if sess == nil || err != nil {

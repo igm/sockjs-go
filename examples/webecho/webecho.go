@@ -26,7 +26,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func echoHandler(conn sockjs.Conn) {
+func echoHandler(conn sockjs.Session) {
 	log.Println("new sockjs connection established")
 	for {
 		if msg, err := conn.Recv(); err == nil {

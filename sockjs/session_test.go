@@ -210,10 +210,10 @@ func TestSession_Closing(t *testing.T) {
 	}
 }
 
-// Session as Conn Tests
-func TestSession_AsConn(t *testing.T) { var _ Conn = newSession("id", 0, 0) }
+// Session as Session Tests
+func TestSession_AsSession(t *testing.T) { var _ Session = newSession("id", 0, 0) }
 
-func TestSession_ConnRecv(t *testing.T) {
+func TestSession_SessionRecv(t *testing.T) {
 	s := newTestSession()
 	go func() {
 		s.accept("message 1")
@@ -235,7 +235,7 @@ func TestSession_ConnRecv(t *testing.T) {
 	}
 }
 
-func TestSession_ConnSend(t *testing.T) {
+func TestSession_SessionSend(t *testing.T) {
 	s := newTestSession()
 	err := s.Send("message A")
 	if err != nil {
@@ -246,7 +246,7 @@ func TestSession_ConnSend(t *testing.T) {
 	}
 }
 
-func TestSession_ConnClose(t *testing.T) {
+func TestSession_SessionClose(t *testing.T) {
 	s := newTestSession()
 	s.state = sessionActive
 	recv := newTestReceiver()
@@ -284,10 +284,10 @@ func TestSession_ConnClose(t *testing.T) {
 	}
 }
 
-func TestSession_ConnSessionId(t *testing.T) {
+func TestSession_SessionSessionId(t *testing.T) {
 	s := newTestSession()
-	if s.SessionId() != "sessionId" {
-		t.Errorf("Unexpected session Id, got '%s', expected '%s'", s.SessionId(), "sessionId")
+	if s.ID() != "sessionId" {
+		t.Errorf("Unexpected session ID, got '%s', expected '%s'", s.ID(), "sessionId")
 	}
 }
 

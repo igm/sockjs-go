@@ -54,7 +54,7 @@ func (t testHandler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	http.NotFound(rw, req)
 }
 
-func echoHandler(conn sockjs.Conn) {
+func echoHandler(conn sockjs.Session) {
 	log.Println("New connection created")
 	for {
 		if msg, err := conn.Recv(); err != nil {
@@ -65,9 +65,9 @@ func echoHandler(conn sockjs.Conn) {
 			}
 		}
 	}
-	log.Println("Connection closed")
+	log.Println("Sessionection closed")
 }
 
-func closeHandler(conn sockjs.Conn) {
+func closeHandler(conn sockjs.Session) {
 	conn.Close(3000, "Go away!")
 }

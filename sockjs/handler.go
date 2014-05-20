@@ -12,7 +12,7 @@ import (
 type handler struct {
 	prefix      string
 	options     Options
-	handlerFunc func(Conn)
+	handlerFunc func(Session)
 	mappings    []*mapping
 
 	sessionsMux sync.Mutex
@@ -21,7 +21,7 @@ type handler struct {
 
 // NewHandler creates new HTTP handler that conforms to the basic net/http.Handler interface.
 // It takes path prefix, options and sockjs handler function as parameters
-func NewHandler(prefix string, opts Options, handlerFunc func(Conn)) *handler {
+func NewHandler(prefix string, opts Options, handlerFunc func(Session)) *handler {
 	h := &handler{
 		prefix:      prefix,
 		options:     opts,
