@@ -16,7 +16,7 @@ type testHandler struct {
 	handler http.Handler
 }
 
-func newTestHandler(prefix string, options sockjs.Options, fn func(sockjs.Session)) *testHandler {
+func newSockjsHandler(prefix string, options sockjs.Options, fn func(sockjs.Session)) *testHandler {
 	return &testHandler{prefix, sockjs.NewHandler(prefix, options, fn)}
 }
 
@@ -34,27 +34,18 @@ func main() {
 	cookieNeededOptions.CookieNeeded = true
 	// register various test handlers
 	var handlers = []*testHandler{
-		newTestHandler("/echo", echoOptions, echoHandler),
-		newTestHandler("/echo", echoOptions, echoHandler),
-		newTestHandler("/cookie_needed_echo", cookieNeededOptions, echoHandler),
-		newTestHandler("/close", sockjs.DefaultOptions, closeHandler),
-		newTestHandler("/disabled_websocket_echo", disabledWebsocketOptions, echoHandler),
+		&testHandler{"/echo/websocket", websocket.Handler(echoWsHandler)},
+		&testHandler{"/close/websocket", websocket.Handler(closeWsHandler)},
+		newSockjsHandler("/echo", echoOptions, echoHandler),
+		newSockjsHandler("/echo", echoOptions, echoHandler),
+		newSockjsHandler("/cookie_needed_echo", cookieNeededOptions, echoHandler),
+		newSockjsHandler("/close", sockjs.DefaultOptions, closeHandler),
+		newSockjsHandler("/disabled_websocket_echo", disabledWebsocketOptions, echoHandler),
 	}
 	log.Fatal(http.ListenAndServe(":8081", testHandlers(handlers)))
 }
 
-func echoServer(ws *websocket.Conn)  { io.Copy(ws, ws) }
-func closeServer(ws *websocket.Conn) { ws.Close() }
-
 func (t testHandlers) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	if strings.HasPrefix(req.URL.Path, "/echo/websocket") {
-		websocket.Handler(echoServer).ServeHTTP(rw, req)
-		return
-	}
-	if strings.HasPrefix(req.URL.Path, "/close/websocket") {
-		websocket.Handler(closeServer).ServeHTTP(rw, req)
-		return
-	}
 	for _, handler := range t {
 		if strings.HasPrefix(req.URL.Path, handler.prefix) {
 			handler.handler.ServeHTTP(rw, req)
@@ -64,6 +55,10 @@ func (t testHandlers) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	http.NotFound(rw, req)
 }
 
+func closeWsHandler(ws *websocket.Conn) { ws.Close() }
+func echoWsHandler(ws *websocket.Conn)  { io.Copy(ws, ws) }
+
+func closeHandler(conn sockjs.Session) { conn.Close(3000, "Go away!") }
 func echoHandler(conn sockjs.Session) {
 	log.Println("New connection created")
 	for {
@@ -76,8 +71,4 @@ func echoHandler(conn sockjs.Session) {
 		}
 	}
 	log.Println("Sessionection closed")
-}
-
-func closeHandler(conn sockjs.Session) {
-	conn.Close(3000, "Go away!")
 }

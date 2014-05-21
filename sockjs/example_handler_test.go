@@ -8,13 +8,12 @@ import (
 
 func ExampleNewHandler_simple() {
 	handler := sockjs.NewHandler("/echo", sockjs.DefaultOptions, func(session sockjs.Session) {
-		var msg string
-		var err error
 		for {
-			if msg, err = session.Recv(); err != nil {
-				break
-			}
-			if err = session.Send(msg); err != nil {
+			if msg, err := session.Recv(); err == nil {
+				if session.Send(msg) != nil {
+					break
+				}
+			} else {
 				break
 			}
 		}
@@ -24,13 +23,12 @@ func ExampleNewHandler_simple() {
 
 func ExampleNewHandler_defaultMux() {
 	handler := sockjs.NewHandler("/echo", sockjs.DefaultOptions, func(session sockjs.Session) {
-		var msg string
-		var err error
 		for {
-			if msg, err = session.Recv(); err != nil {
-				break
-			}
-			if err = session.Send(msg); err != nil {
+			if msg, err := session.Recv(); err == nil {
+				if session.Send(msg) != nil {
+					break
+				}
+			} else {
 				break
 			}
 		}
