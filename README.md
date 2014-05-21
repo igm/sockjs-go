@@ -15,11 +15,11 @@ SockJS-Go server
 
 SockJS-Go is a [SockJS](https://github.com/sockjs/sockjs-client) server written in Go.
 
-To install **latest stable**(to be deprecated soon) version of `sockjs-go` run:
+To install **latest stable** (stable in terms of API, not ready for production and to be deprecated soon) version of `sockjs-go` run:
 
     go get gopkg.in/igm/sockjs-go.v1/sockjs
 
-To install **v2** of `sockjs-go` run (available soon)
+To install **v2** of `sockjs-go` run (available soon, with stable API and production ready)
 
     go get gopkg.in/igm/sockjs-go.v2/sockjs
 
@@ -89,6 +89,6 @@ SockJS defines a set of [protocol tests](https://github.com/sockjs/sockjs-protoc
 
 WebSocket
 -
-As mentioned above sockjs-go library is compatible with RFC 6455. That means the browsers not supprting RFC 6455 are not supported properly. There are no plans to support draft versions of WebSocket protocol. The WebSocket support is based on [Gorilla web toolkit](http://www.gorillatoolkit.org/pkg/websocket) implementation of WebSocket.
+As mentioned above sockjs-go library is compatible with RFC 6455. That means the browsers not supporting RFC 6455 are not supported properly. There are no plans to support draft versions of WebSocket protocol. The WebSocket support is based on [Gorilla web toolkit](http://www.gorillatoolkit.org/pkg/websocket) implementation of WebSocket.
 
 For detailed information about browser versions supporting RFC 6455 see this [wiki page](http://en.wikipedia.org/wiki/WebSocket#Browser_support).
