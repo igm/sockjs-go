@@ -15,6 +15,7 @@ func (h *handler) eventSource(rw http.ResponseWriter, req *http.Request) {
 	sess, _ := h.sessionByRequest(req)
 	if err := sess.attachReceiver(recv); err != nil {
 		recv.sendFrame(cFrame)
+		recv.close()
 		return
 	}
 

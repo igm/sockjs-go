@@ -42,6 +42,7 @@ func (h *handler) htmlFile(rw http.ResponseWriter, req *http.Request) {
 	recv := newHTTPReceiver(rw, h.options.ResponseLimit, new(htmlfileFrameWriter))
 	if err := sess.attachReceiver(recv); err != nil {
 		recv.sendFrame(cFrame)
+		recv.close()
 		return
 	}
 	select {
