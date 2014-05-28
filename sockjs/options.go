@@ -25,7 +25,7 @@ type Options struct {
 
 	// ReadBufferSize and WriteBufferSize specify I/O buffer sizes for the
 	// underlying Websocket connection. If a buffer size is zero, then a
-	// default value of 4096 is used. The I/O buffer sizes do not limit the
+	// default value of 1024 is used. The I/O buffer sizes do not limit the
 	// size of the messages that can be sent or received.
 	ReadBufferSize, WriteBufferSize int
 }
