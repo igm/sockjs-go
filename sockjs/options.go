@@ -22,6 +22,12 @@ type Options struct {
 	Websocket       bool
 	CookieNeeded    bool
 	ResponseLimit   uint32
+
+	// ReadBufferSize and WriteBufferSize specify I/O buffer sizes for the
+	// underlying Websocket connection. If a buffer size is zero, then a
+	// default value of 1024 is used. The I/O buffer sizes do not limit the
+	// size of the messages that can be sent or received.
+	ReadBufferSize, WriteBufferSize int
 }
 
 // DefaultOptions is a convenient set of options to be used for sockjs
@@ -32,6 +38,8 @@ var DefaultOptions = Options{
 	HeartbeatDelay:  2 * time.Second,
 	DisconnectDelay: 5 * time.Second,
 	ResponseLimit:   128 * 1024,
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
 }
 
 type info struct {

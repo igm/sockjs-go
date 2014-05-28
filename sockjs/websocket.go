@@ -14,7 +14,7 @@ func (h *handler) sockjsWebsocket(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, "Origin not allowed", 403)
 		return
 	}
-	conn, err := websocket.Upgrade(rw, req, nil, 1024, 1024)
+	conn, err := websocket.Upgrade(rw, req, nil, h.options.ReadBufferSize, h.options.WriteBufferSize)
 	if _, ok := err.(websocket.HandshakeError); ok {
 		http.Error(rw, `Can "Upgrade" only to "WebSocket".`, http.StatusBadRequest)
 		return
