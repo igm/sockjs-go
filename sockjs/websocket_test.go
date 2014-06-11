@@ -61,7 +61,7 @@ func TestHandler_WebSocketTerminationByServer(t *testing.T) {
 	url := "ws" + server.URL[4:]
 	h.handlerFunc = func(conn Session) {
 		conn.Close(1024, "some close message")
-		conn.Close(0, "this should be ognored")
+		conn.Close(0, "this should be ignored")
 	}
 	conn, _, err := websocket.DefaultDialer.Dial(url, map[string][]string{"Origin": []string{server.URL}})
 	_, msg, err := conn.ReadMessage()
@@ -73,8 +73,8 @@ func TestHandler_WebSocketTerminationByServer(t *testing.T) {
 		t.Errorf("Open frame expected, got '%s' and error '%v', expected '%s' without error", msg, err, `c[1024,"some close message"]`)
 	}
 	_, msg, err = conn.ReadMessage()
-	if err != io.ErrUnexpectedEOF {
-		t.Errorf("Expected '%v', got '%v'", io.ErrUnexpectedEOF, err)
+	if err != io.EOF {
+		t.Errorf("Expected '%v', got '%v'", io.EOF, err)
 	}
 }
 
