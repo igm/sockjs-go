@@ -31,7 +31,7 @@ func main() {
 	disabledWebsocketOptions.Websocket = false
 
 	cookieNeededOptions := sockjs.DefaultOptions
-	cookieNeededOptions.CookieNeeded = true
+	cookieNeededOptions.JSessionID = sockjs.DefaultJSessionID
 	// register various test handlers
 	var handlers = []*testHandler{
 		&testHandler{"/echo/websocket", websocket.Handler(echoWsHandler)},
