@@ -54,6 +54,7 @@ func (h *handler) xhrPoll(rw http.ResponseWriter, req *http.Request) {
 	receiver := newHTTPReceiver(rw, 1, new(xhrFrameWriter))
 	if err := sess.attachReceiver(receiver); err != nil {
 		receiver.sendFrame(cFrame)
+		receiver.close()
 		return
 	}
 
@@ -73,6 +74,7 @@ func (h *handler) xhrStreaming(rw http.ResponseWriter, req *http.Request) {
 
 	if err := sess.attachReceiver(receiver); err != nil {
 		receiver.sendFrame(cFrame)
+		receiver.close()
 		return
 	}
 

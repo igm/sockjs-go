@@ -8,13 +8,16 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+var WebSocketReadBufSize = 4096
+var WebSocketWriteBufSize = 4096
+
 func (h *handler) sockjsWebsocket(rw http.ResponseWriter, req *http.Request) {
 	origin := req.Header.Get("Origin")
 	if origin != "http://"+req.Host && origin != "https://"+req.Host {
 		http.Error(rw, "Origin not allowed", 403)
 		return
 	}
-	conn, err := websocket.Upgrade(rw, req, nil, 1024, 1024)
+	conn, err := websocket.Upgrade(rw, req, nil, WebSocketReadBufSize, WebSocketWriteBufSize)
 	if _, ok := err.(websocket.HandshakeError); ok {
 		http.Error(rw, `Can "Upgrade" only to "WebSocket".`, http.StatusBadRequest)
 		return

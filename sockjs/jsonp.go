@@ -24,6 +24,7 @@ func (h *handler) jsonp(rw http.ResponseWriter, req *http.Request) {
 	recv := newHTTPReceiver(rw, 1, &jsonpFrameWriter{callback})
 	if err := sess.attachReceiver(recv); err != nil {
 		recv.sendFrame(cFrame)
+		recv.close()
 		return
 	}
 	select {

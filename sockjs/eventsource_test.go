@@ -10,6 +10,7 @@ func TestHandler_EventSource(t *testing.T) {
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/session/eventsource", nil)
 	h := newTestHandler()
+	h.options.ResponseLimit = 1024
 	go func() {
 		h.sessionsMux.Lock()
 		defer h.sessionsMux.Unlock()
@@ -36,20 +37,21 @@ func TestHandler_EventSource(t *testing.T) {
 
 func TestHandler_EventSourceMultipleConnections(t *testing.T) {
 	h := newTestHandler()
+	h.options.ResponseLimit = 1024
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/sess/eventsource", nil)
-	var doneCh = make(chan struct{})
 	go func() {
-		rw := httptest.NewRecorder()
+		rw := &ClosableRecorder{httptest.NewRecorder(), nil}
 		h.eventSource(rw, req)
 		if rw.Body.String() != "\r\ndata: c[2010,\"Another connection still open\"]\r\n\r\n" {
 			t.Errorf("wrong, got '%v'", rw.Body)
 		}
-		close(doneCh)
-
+		h.sessionsMux.Lock()
+		sess := h.sessions["sess"]
+		sess.close()
+		h.sessionsMux.Unlock()
 	}()
 	h.eventSource(rw, req)
-	<-doneCh
 }
 
 func TestHandler_EventSourceConnectionInterrupted(t *testing.T) {
