@@ -74,7 +74,7 @@ func TestHandler_WebSocketTerminationByServer(t *testing.T) {
 	}
 	_, msg, err = conn.ReadMessage()
 	if err != io.ErrUnexpectedEOF {
-		t.Errorf("Expected EOF, got '%v'", err)
+		t.Errorf("Expected '%v', got '%v'", io.ErrUnexpectedEOF, err)
 	}
 }
 
