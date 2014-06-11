@@ -29,8 +29,12 @@ type Options struct {
 	// The default value is 128K.
 	ResponseLimit uint32
 	// Some load balancers don't support websockets. This option can be used to disable websockets support by the server. By default websockets are enabled.
-	Websocket       bool
-	HeartbeatDelay  time.Duration
+	Websocket bool
+	// In order to keep proxies and load balancers from closing long running http requests we need to pretend that the connection is active and send a heartbeat packet once in a while.
+	// This setting controls how often this is done. By default a heartbeat packet is sent every 25 seconds.
+	HeartbeatDelay time.Duration
+	// The server sends a `close` event when a client receiving connection have not been seen for a while.
+	// This delay is configured by this setting. By default the `close` event will be emitted when a receiving connection wasn't seen for 5 seconds.
 	DisconnectDelay time.Duration
 	// Some hosting providers enable sticky sessions only to requests that have JSessionID cookie set.
 	// This setting controls if the server should set this cookie to a dummy value.
@@ -43,7 +47,7 @@ var DefaultOptions = Options{
 	Websocket:       true,
 	JSessionID:      nil,
 	SockJSURL:       "http://cdn.sockjs.org/sockjs-0.3.min.js",
-	HeartbeatDelay:  2 * time.Second,
+	HeartbeatDelay:  25 * time.Second,
 	DisconnectDelay: 5 * time.Second,
 	ResponseLimit:   128 * 1024,
 }
