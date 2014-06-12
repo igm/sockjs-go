@@ -6,9 +6,8 @@ import (
 	"net/http"
 	"strings"
 
-	// TODO(igm) change to gopkg.in v2
 	"code.google.com/p/go.net/websocket"
-	"github.com/igm/sockjs-go/sockjs"
+	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
 
 type testHandler struct {
