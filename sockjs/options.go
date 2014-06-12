@@ -36,8 +36,9 @@ type Options struct {
 	// and send a heartbeat packet once in a while. This setting controls how often this is done.
 	// By default a heartbeat packet is sent every 25 seconds.
 	HeartbeatDelay time.Duration
-	// The server sends a `close` event when a client receiving connection have not been seen for a while.
-	// This delay is configured by this setting. By default the `close` event will be emitted when a receiving connection wasn't seen for 5 seconds.
+	// The server closes a session when a client receiving connection have not been seen for a while.
+	// This delay is configured by this setting.
+	// By default the session is closed when a receiving connection wasn't seen for 5 seconds.
 	DisconnectDelay time.Duration
 	// Some hosting providers enable sticky sessions only to requests that have JSessionID cookie set.
 	// This setting controls if the server should set this cookie to a dummy value.
