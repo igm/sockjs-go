@@ -31,7 +31,7 @@ To install **development** version of `sockjs-go` run:
 Versioning
 -
 
-SockJS-Go project adopted [gopkg.in](http://gopkg.in) approach for versioning.
+SockJS-Go project adopted [gopkg.in](http://gopkg.in) approach for versioning. SockJS-Go library details can be found [here](https://gopkg.in/igm/sockjs-go.v2/sockjs)
 
 
 Live Demo
