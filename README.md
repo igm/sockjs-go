@@ -1,4 +1,4 @@
-[![Build Status](https://api.travis-ci.org/igm/sockjs-go.svg?branch=v2)](https://travis-ci.org/igm/sockjs-go) [![GoDoc](http://godoc.org/gopkg.in/igm/sockjs-go.v2/sockjs?status.png)](http://godoc.org/github.com/igm/sockjs-go/sockjs) [![Coverage Status](https://coveralls.io/repos/igm/sockjs-go/badge.png?branch=v2)](https://coveralls.io/r/igm/sockjs-go?branch=v2)
+[![Build Status](https://api.travis-ci.org/igm/sockjs-go.svg?branch=v2)](https://travis-ci.org/igm/sockjs-go) [![GoDoc](http://godoc.org/gopkg.in/igm/sockjs-go.v2/sockjs?status.png)](http://godoc.org/gopkg.in/igm/sockjs-go.v2/sockjs) [![Coverage Status](https://coveralls.io/repos/igm/sockjs-go/badge.png?branch=v2)](https://coveralls.io/r/igm/sockjs-go?branch=v2)
 
 What is SockJS?
 =
