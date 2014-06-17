@@ -27,20 +27,12 @@ func TestHandler_WebSocket(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(h.sockjsWebsocket))
 	defer server.CloseClientConnections()
 	url := "ws" + server.URL[4:]
-	conn, resp, err := websocket.DefaultDialer.Dial(url, nil)
-	if err != websocket.ErrBadHandshake {
-		t.Errorf("Expected error '%v', got '%v'", websocket.ErrBadHandshake, err)
-	}
-	if resp.StatusCode != http.StatusForbidden {
-		t.Errorf("Unexpected response code, got '%d', expected '%d'", resp.StatusCode, http.StatusForbidden)
-	}
-	if conn != nil {
-		t.Errorf("Connection should be nil, got '%v'", conn)
-	}
-	// another request with "origin" set properly
 	var connCh = make(chan Session)
 	h.handlerFunc = func(conn Session) { connCh <- conn }
-	conn, resp, err = websocket.DefaultDialer.Dial(url, map[string][]string{"Origin": []string{server.URL}})
+	conn, resp, err := websocket.DefaultDialer.Dial(url, nil)
+	if conn == nil {
+		t.Errorf("Connection should not be nil")
+	}
 	if err != nil {
 		t.Errorf("Unexpected error '%v'", err)
 	}
