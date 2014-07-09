@@ -23,7 +23,7 @@ func main() {
 	http.Handle("/echo/", handler)
 	http.Handle("/", http.FileServer(http.Dir("web/")))
 	log.Println("Server started")
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	log.Fatal(http.ListenAndServe(":3000", nil))
 }
 
 func echoHandler(session sockjs.Session) {
