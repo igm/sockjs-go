@@ -22,8 +22,8 @@ func main() {
 	handler := sockjs.NewHandler("/echo", opts, echoHandler)
 	http.Handle("/echo/", handler)
 	http.Handle("/", http.FileServer(http.Dir("web/")))
-	log.Println("Server started")
-	log.Fatal(http.ListenAndServe(":3000", nil))
+	log.Println("Server started on port: 8080")
+	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
 func echoHandler(session sockjs.Session) {

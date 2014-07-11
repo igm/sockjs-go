@@ -13,7 +13,6 @@ var options = {
 
 var sock = new SockJS(origin+'/echo', undefined, options);
 
-
 sock.onopen = function() {
 	//console.log('connection open');
 	document.getElementById("status").innerHTML = "connected";
