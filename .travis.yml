@@ -17,4 +17,4 @@ install:
 script: go test ./sockjs -v -race
 
 go:
-- 1.2.2
+- 1.3.1
