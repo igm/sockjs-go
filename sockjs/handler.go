@@ -27,7 +27,11 @@ func NewHandler(prefix string, opts Options, handleFunc func(Session)) http.Hand
 }
 
 func newHandler(prefix string, opts Options, handlerFunc func(Session)) *handler {
-	prefix = "^" + regexp.QuoteMeta(path.Clean("/"+prefix))
+	prefix = path.Clean("/" + prefix)
+	if prefix == "/" {
+		prefix = ""
+	}
+	prefix = "^" + regexp.QuoteMeta(cleanPrefix)
 
 	h := &handler{
 		prefix:      prefix,
