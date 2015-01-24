@@ -97,3 +97,6 @@ func (recv *httpReceiver) close() {
 		close(recv.doneCh)
 	}
 }
+func (recv *httpReceiver) canSend() bool {
+	return recv.state != stateHTTPReceiverClosed
+}
