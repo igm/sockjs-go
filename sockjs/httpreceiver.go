@@ -98,5 +98,7 @@ func (recv *httpReceiver) close() {
 	}
 }
 func (recv *httpReceiver) canSend() bool {
+	recv.Lock()
+	defer recv.Unlock()
 	return recv.state != stateHTTPReceiverClosed
 }
