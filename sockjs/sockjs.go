@@ -8,6 +8,8 @@ type Session interface {
 	ID() string
 	// Request returns the first http request
 	Request() *http.Request
+	// SetHeartbeatHandler is called after a heartbeat is sent.
+	SetHeartbeatHandler(handler func())
 	// Recv reads one text frame from session
 	Recv() (string, error)
 	// Send sends one text frame to session
