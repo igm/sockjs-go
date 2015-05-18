@@ -69,13 +69,11 @@ func TestHandler_jsonpSendNoSession(t *testing.T) {
 
 func TestHandler_jsonpSend(t *testing.T) {
 	h := newTestHandler()
+	sess := newSession("session", time.Second, time.Second)
+	h.sessions["session"] = sess
 
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/session/jsonp_send", strings.NewReader("[\"message\"]"))
-
-	sess := newSession(req, "session", time.Second, time.Second)
-	h.sessions["session"] = sess
-
 	var done = make(chan struct{})
 	go func() {
 		h.jsonpSend(rw, req)
