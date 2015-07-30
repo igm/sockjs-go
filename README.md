@@ -34,14 +34,6 @@ Versioning
 SockJS-Go project adopted [gopkg.in](http://gopkg.in) approach for versioning. SockJS-Go library details can be found [here](https://gopkg.in/igm/sockjs-go.v2/sockjs)
 
 
-Live Demo
--
-
-There's a live demo running at [Pivotal Web Services](http://run.pivotal.io). Depending on the URL and port various load ballancers process the request wich results in sockjs choosing different connection method:
-* WebSockets: https://sockjs-chat.cfapps.io:4443
-* Non WebSockets: https://sockjs-chat.cfapps.io or http://sockjs-chat.cfapps.io
-
-
 Example
 -
 
