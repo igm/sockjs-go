@@ -41,7 +41,7 @@ There's a live demo running at [Pivotal Web Services](http://run.pivotal.io). De
 * WebSockets: https://sockjs-chat.cfapps.io:4443
 * Non WebSockets: https://sockjs-chat.cfapps.io or http://sockjs-chat.cfapps.io
 
-
+
 Example
 -
 
