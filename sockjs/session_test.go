@@ -2,12 +2,12 @@ package sockjs
 
 import (
 	"io"
+	"net/http"
 	"runtime"
+	"strings"
 	"sync"
 	"testing"
 	"time"
-	"net/http"
-	"strings"
 )
 
 func newTestSession() *session {
@@ -25,8 +25,8 @@ func TestSession_Create(t *testing.T) {
 	if len(session.sendBuffer) != 2 {
 		t.Errorf("Session send buffer should contain 2 messages")
 	}
-	if session.state != sessionOpening {
-		t.Errorf("Session in wrong state %v, should be %v", session.state, sessionOpening)
+	if session.GetSessionState() != sessionOpening {
+		t.Errorf("Session in wrong state %v, should be %v", session.GetSessionState(), sessionOpening)
 	}
 }
 
@@ -73,8 +73,8 @@ func TestSession_AttachReceiver(t *testing.T) {
 	if err := session.attachReceiver(recv); err != nil {
 		t.Errorf("Should not return error")
 	}
-	if session.state != sessionActive {
-		t.Errorf("Session in wrong state after receiver attached %d, should be %d", session.state, sessionActive)
+	if session.GetSessionState() != sessionActive {
+		t.Errorf("Session in wrong state after receiver attached %d, should be %d", session.GetSessionState(), sessionActive)
 	}
 	session.detachReceiver()
 	// recv = &mockRecv{
@@ -96,7 +96,7 @@ func TestSession_Timeout(t *testing.T) {
 		t.Errorf("sess close notification channel should close")
 	}
 	sess.Lock()
-	if sess.state != sessionClosed {
+	if sess.GetSessionState() != sessionClosed {
 		t.Errorf("Session did not timeout")
 	}
 	sess.Unlock()
@@ -275,8 +275,8 @@ func TestSession_SessionClose(t *testing.T) {
 	if s.closeFrame != "c[1,\"some reason\"]" {
 		t.Errorf("Incorrect closeFrame, got '%s'", s.closeFrame)
 	}
-	if s.state != sessionClosing {
-		t.Errorf("Incorrect session state, expected 'sessionClosing', got '%v'", s.state)
+	if s.GetSessionState() != sessionClosing {
+		t.Errorf("Incorrect session state, expected 'sessionClosing', got '%v'", s.GetSessionState())
 	}
 	// all the consequent receivers trying to attach shoult get the same close frame
 	var i = 100

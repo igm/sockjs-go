@@ -14,4 +14,6 @@ type Session interface {
 	Send(string) error
 	// Close closes the session with provided code and reason.
 	Close(status uint32, reason string) error
+	//Gets the state of the session. 0 = opening; 1 = active; 2 = closing; 3 = closed;
+	GetSessionState() sessionState
 }

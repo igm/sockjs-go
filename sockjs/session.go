@@ -219,6 +219,8 @@ func (s *session) Send(msg string) error {
 
 func (s *session) ID() string { return s.id }
 
+func (s *session) GetSessionState() sessionState { return s.state }
+
 func (s *session) Request() *http.Request {
 	return s.req
 }
