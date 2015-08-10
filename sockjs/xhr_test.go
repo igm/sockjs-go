@@ -111,7 +111,7 @@ func TestHandler_XhrPoll(t *testing.T) {
 func TestHandler_XhrPollConnectionInterrupted(t *testing.T) {
 	h := newTestHandler()
 	sess := newTestSession()
-	sess.state = sessionActive
+	sess.state = SessionActive
 	h.sessions["session"] = sess
 	req, _ := http.NewRequest("POST", "/server/session/xhr", nil)
 	rw := newClosableRecorder()
@@ -119,7 +119,7 @@ func TestHandler_XhrPollConnectionInterrupted(t *testing.T) {
 	h.xhrPoll(rw, req)
 	time.Sleep(1 * time.Millisecond)
 	sess.Lock()
-	if sess.state != sessionClosed {
+	if sess.state != SessionClosed {
 		t.Errorf("Session should be closed")
 	}
 }
