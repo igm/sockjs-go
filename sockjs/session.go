@@ -9,11 +9,12 @@ import (
 	"time"
 )
 
-type sessionState uint32
+// SessionState defines the current state of the session
+type SessionState uint32
 
 const (
 	// brand new session, need to send "h" to receiver
-	SessionOpening sessionState = iota
+	SessionOpening SessionState = iota
 	// active session
 	SessionActive
 	// session being closed, sending "closeFrame" to receivers
@@ -33,7 +34,7 @@ type session struct {
 	sync.Mutex
 	id    string
 	req   *http.Request
-	state sessionState
+	state SessionState
 	// protocol dependent receiver (xhr, eventsource, ...)
 	recv receiver
 	// messages to be sent to client
@@ -219,7 +220,7 @@ func (s *session) Send(msg string) error {
 
 func (s *session) ID() string { return s.id }
 
-func (s *session) GetSessionState() sessionState { return s.state }
+func (s *session) GetSessionState() SessionState { return s.state }
 
 func (s *session) Request() *http.Request {
 	return s.req
