@@ -4,6 +4,7 @@ import (
 	"encoding/gob"
 	"errors"
 	"io"
+	"net/http"
 	"sync"
 	"time"
 )
@@ -12,13 +13,13 @@ type sessionState uint32
 
 const (
 	// brand new session, need to send "h" to receiver
-	sessionOpening sessionState = iota
+	SessionOpening sessionState = iota
 	// active session
-	sessionActive
+	SessionActive
 	// session being closed, sending "closeFrame" to receivers
-	sessionClosing
+	SessionClosing
 	// closed session, no activity at all, should be removed from handler completely and not reused
-	sessionClosed
+	SessionClosed
 )
 
 var (
@@ -31,6 +32,7 @@ var (
 type session struct {
 	sync.Mutex
 	id    string
+	req   *http.Request
 	state sessionState
 	// protocol dependent receiver (xhr, eventsource, ...)
 	recv receiver
@@ -69,10 +71,11 @@ type receiver interface {
 }
 
 // Session is a central component that handles receiving and sending frames. It maintains internal state
-func newSession(sessionID string, sessionTimeoutInterval, heartbeatInterval time.Duration) *session {
+func newSession(req *http.Request, sessionID string, sessionTimeoutInterval, heartbeatInterval time.Duration) *session {
 	r, w := io.Pipe()
 	s := &session{
 		id:                     sessionID,
+		req:                    req,
 		msgReader:              r,
 		msgWriter:              w,
 		msgEncoder:             gob.NewEncoder(w),
@@ -89,7 +92,7 @@ func newSession(sessionID string, sessionTimeoutInterval, heartbeatInterval time
 func (s *session) sendMessage(msg string) error {
 	s.Lock()
 	defer s.Unlock()
-	if s.state > sessionActive {
+	if s.state > SessionActive {
 		return ErrSessionNotOpen
 	}
 	s.sendBuffer = append(s.sendBuffer, msg)
@@ -117,14 +120,14 @@ func (s *session) attachReceiver(recv receiver) error {
 		}
 	}(recv)
 
-	if s.state == sessionClosing {
+	if s.state == SessionClosing {
 		s.recv.sendFrame(s.closeFrame)
 		s.recv.close()
 		return nil
 	}
-	if s.state == sessionOpening {
+	if s.state == SessionOpening {
 		s.recv.sendFrame("o")
-		s.state = sessionActive
+		s.state = SessionActive
 	}
 	s.recv.sendBulk(s.sendBuffer...)
 	s.sendBuffer = nil
@@ -163,10 +166,10 @@ func (s *session) accept(messages ...string) error {
 func (s *session) closing() {
 	s.Lock()
 	defer s.Unlock()
-	if s.state < sessionClosing {
+	if s.state < SessionClosing {
 		s.msgReader.Close()
 		s.msgWriter.Close()
-		s.state = sessionClosing
+		s.state = SessionClosing
 		if s.recv != nil {
 			s.recv.sendFrame(s.closeFrame)
 			s.recv.close()
@@ -179,8 +182,8 @@ func (s *session) close() {
 	s.closing()
 	s.Lock()
 	defer s.Unlock()
-	if s.state < sessionClosed {
-		s.state = sessionClosed
+	if s.state < SessionClosed {
+		s.state = SessionClosed
 		s.timer.Stop()
 		close(s.closeCh)
 	}
@@ -191,7 +194,7 @@ func (s *session) closedNotify() <-chan struct{} { return s.closeCh }
 // Conn interface implementation
 func (s *session) Close(status uint32, reason string) error {
 	s.Lock()
-	if s.state < sessionClosing {
+	if s.state < SessionClosing {
 		s.closeFrame = closeFrame(status, reason)
 		s.Unlock()
 		s.closing()
@@ -215,3 +218,9 @@ func (s *session) Send(msg string) error {
 }
 
 func (s *session) ID() string { return s.id }
+
+func (s *session) GetSessionState() sessionState { return s.state }
+
+func (s *session) Request() *http.Request {
+	return s.req
+}
