@@ -59,7 +59,7 @@ func TestHandler_EventSourceMultipleConnections(t *testing.T) {
 func TestHandler_EventSourceConnectionInterrupted(t *testing.T) {
 	h := newTestHandler()
 	sess := newTestSession()
-	sess.state = SessionActive
+	sess.state = sessionActive
 	h.sessions["session"] = sess
 	req, _ := http.NewRequest("POST", "/server/session/eventsource", nil)
 	rw := newClosableRecorder()
@@ -67,7 +67,7 @@ func TestHandler_EventSourceConnectionInterrupted(t *testing.T) {
 	h.eventSource(rw, req)
 	time.Sleep(1 * time.Millisecond)
 	sess.Lock()
-	if sess.state != SessionClosed {
+	if sess.state != sessionClosed {
 		t.Errorf("Session should be closed")
 	}
 }

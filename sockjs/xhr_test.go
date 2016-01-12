@@ -46,12 +46,11 @@ func TestHandler_XhrSendWrongUrlPath(t *testing.T) {
 
 func TestHandler_XhrSendToExistingSession(t *testing.T) {
 	h := newTestHandler()
-	rec := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/server/session/xhr_send", strings.NewReader("[\"some message\"]"))
-	sess := newSession(req, "session", time.Second, time.Second)
+	sess := newSession("session", time.Second, time.Second)
 	h.sessions["session"] = sess
 
-	req, _ = http.NewRequest("POST", "/server/session/xhr_send", strings.NewReader("[\"some message\"]"))
+	rec := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/server/session/xhr_send", strings.NewReader("[\"some message\"]"))
 	var done = make(chan bool)
 	go func() {
 		h.xhrSend(rec, req)
@@ -111,7 +110,7 @@ func TestHandler_XhrPoll(t *testing.T) {
 func TestHandler_XhrPollConnectionInterrupted(t *testing.T) {
 	h := newTestHandler()
 	sess := newTestSession()
-	sess.state = SessionActive
+	sess.state = sessionActive
 	h.sessions["session"] = sess
 	req, _ := http.NewRequest("POST", "/server/session/xhr", nil)
 	rw := newClosableRecorder()
@@ -119,19 +118,18 @@ func TestHandler_XhrPollConnectionInterrupted(t *testing.T) {
 	h.xhrPoll(rw, req)
 	time.Sleep(1 * time.Millisecond)
 	sess.Lock()
-	if sess.state != SessionClosed {
+	if sess.state != sessionClosed {
 		t.Errorf("Session should be closed")
 	}
 }
 
 func TestHandler_XhrPollAnotherConnectionExists(t *testing.T) {
 	h := newTestHandler()
-	req, _ := http.NewRequest("POST", "/server/session/xhr", nil)
 	// turn of timeoutes and heartbeats
-	sess := newSession(req, "session", time.Hour, time.Hour)
+	sess := newSession("session", time.Hour, time.Hour)
 	h.sessions["session"] = sess
 	sess.attachReceiver(newTestReceiver())
-	req, _ = http.NewRequest("POST", "/server/session/xhr", nil)
+	req, _ := http.NewRequest("POST", "/server/session/xhr", nil)
 	rw2 := httptest.NewRecorder()
 	h.xhrPoll(rw2, req)
 	if rw2.Body.String() != "c[2010,\"Another connection still open\"]\n" {

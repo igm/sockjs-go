@@ -9,7 +9,7 @@ import (
 func xhrCors(rw http.ResponseWriter, req *http.Request) {
 	header := rw.Header()
 	origin := req.Header.Get("origin")
-	if origin == "" {
+	if origin == "" || origin == "null" {
 		origin = "*"
 	}
 	header.Set("Access-Control-Allow-Origin", origin)
