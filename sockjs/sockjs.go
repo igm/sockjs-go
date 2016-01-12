@@ -15,5 +15,5 @@ type Session interface {
 	// Close closes the session with provided code and reason.
 	Close(status uint32, reason string) error
 	//Gets the state of the session. SessionOpening/SessionActive/SessionClosing/SessionClosed;
-	GetSessionState() SessionState
+	GetSessionState() sessionState
 }
