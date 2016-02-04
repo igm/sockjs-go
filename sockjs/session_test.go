@@ -10,7 +10,7 @@ import (
 
 func newTestSession() *session {
 	// session with long expiration and heartbeats with ID
-	return newSession("sessionId", 1000*time.Second, 1000*time.Second)
+	return newSession("sessionId", 1000*time.Second, 1000*time.Second, "::1")
 }
 
 func TestSession_Create(t *testing.T) {
@@ -75,7 +75,7 @@ func TestSession_AttachReceiver(t *testing.T) {
 }
 
 func TestSession_Timeout(t *testing.T) {
-	sess := newSession("id", 10*time.Millisecond, 10*time.Second)
+	sess := newSession("id", 10*time.Millisecond, 10*time.Second, "::1")
 	select {
 	case <-sess.closeCh:
 	case <-time.After(20 * time.Millisecond):
@@ -94,7 +94,7 @@ func TestSession_TimeoutOfClosedSession(t *testing.T) {
 			t.Errorf("Unexcpected error '%v'", r)
 		}
 	}()
-	sess := newSession("id", 1*time.Millisecond, time.Second)
+	sess := newSession("id", 1*time.Millisecond, time.Second, "::1")
 	sess.closing()
 	time.Sleep(1 * time.Millisecond)
 	sess.closing()
@@ -106,7 +106,7 @@ func TestSession_AttachReceiverAndCheckHeartbeats(t *testing.T) {
 			t.Errorf("Unexcpected error '%v'", r)
 		}
 	}()
-	session := newSession("id", time.Second, 10*time.Millisecond) // 10ms heartbeats
+	session := newSession("id", time.Second, 10*time.Millisecond, "::1") // 10ms heartbeats
 	recv := newTestReceiver()
 	defer close(recv.doneCh)
 	session.attachReceiver(recv)
@@ -211,7 +211,7 @@ func TestSession_Closing(t *testing.T) {
 }
 
 // Session as Session Tests
-func TestSession_AsSession(t *testing.T) { var _ Session = newSession("id", 0, 0) }
+func TestSession_AsSession(t *testing.T) { var _ Session = newSession("id", 0, 0, "::1") }
 
 func TestSession_SessionRecv(t *testing.T) {
 	s := newTestSession()
@@ -324,4 +324,12 @@ func (t *testReceiver) sendFrame(frame string) {
 	t.Lock()
 	defer t.Unlock()
 	t.frames = append(t.frames, frame)
+}
+
+func TestSessionIP(t *testing.T) {
+	const ip = "43.100.21.217"
+	s := newSession("id", 1000*time.Second, 1000*time.Second, ip)
+	if got := s.IP(); got != ip {
+		t.Errorf("Unexpected session IP, got %s, expected %s", got, ip)
+	}
 }
