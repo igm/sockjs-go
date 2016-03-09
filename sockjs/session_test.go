@@ -55,7 +55,7 @@ func TestSession_ConcurrentSend(t *testing.T) {
 		<-done
 	}
 	if len(session.sendBuffer) != 100 {
-		t.Errorf("Session send buffer should contain 102 messages")
+		t.Errorf("Session send buffer should contain 100 messages")
 	}
 }
 
@@ -95,11 +95,9 @@ func TestSession_Timeout(t *testing.T) {
 	case <-time.After(20 * time.Millisecond):
 		t.Errorf("sess close notification channel should close")
 	}
-	sess.Lock()
 	if sess.GetSessionState() != SessionClosed {
 		t.Errorf("Session did not timeout")
 	}
-	sess.Unlock()
 }
 
 func TestSession_TimeoutOfClosedSession(t *testing.T) {

@@ -31,7 +31,7 @@ var (
 )
 
 type session struct {
-	sync.Mutex
+	sync.RWMutex
 	id    string
 	req   *http.Request
 	state SessionState
@@ -220,7 +220,11 @@ func (s *session) Send(msg string) error {
 
 func (s *session) ID() string { return s.id }
 
-func (s *session) GetSessionState() SessionState { return s.state }
+func (s *session) GetSessionState() SessionState {
+	s.RLock()
+	defer s.RUnlock()
+	return s.state
+}
 
 func (s *session) Request() *http.Request {
 	return s.req
