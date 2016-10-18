@@ -131,3 +131,14 @@ func (h *handler) sessionByRequest(req *http.Request) (*session, error) {
 	}
 	return sess, nil
 }
+
+func (h *handler) sessionById(sessionID string) (*session, error)  {
+	h.sessionsMux.Lock()
+	defer h.sessionsMux.Unlock()
+	sess, exists := h.sessions[sessionID];
+	if !exists {
+		return nil, errors.New("session not exists")
+	}
+
+	return sess, nil
+}
