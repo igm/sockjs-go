@@ -57,7 +57,7 @@ func (h *handler) jsonpSend(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	sessionID, _ := h.parseSessionID(req.URL)
-	if sess, ok := h.sessions[sessionID]; !ok {
+	if sess, err := h.sessionById(sessionID); err != nil {
 		http.NotFound(rw, req)
 	} else {
 		_ = sess.accept(messages...) // TODO(igm) reponse with http.StatusInternalServerError in case of err?
