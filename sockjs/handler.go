@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
+	"path"
 	"regexp"
 	"strings"
 	"sync"
@@ -31,6 +32,12 @@ func NewHandler(prefix string, opts Options, handleFunc func(Session)) http.Hand
 }
 
 func newHandler(prefix string, opts Options, handlerFunc func(Session)) *handler {
+	prefix = path.Clean("/" + prefix)
+	if prefix == "/" {
+		prefix = ""
+	}
+	prefix = "^" + regexp.QuoteMeta(cleanPrefix)
+
 	h := &handler{
 		prefix:      prefix,
 		options:     opts,
