@@ -31,6 +31,7 @@ var (
 type session struct {
 	sync.Mutex
 	id    string
+	ip    string
 	state sessionState
 	// protocol dependent receiver (xhr, eventsource, ...)
 	recv receiver
@@ -69,10 +70,11 @@ type receiver interface {
 }
 
 // Session is a central component that handles receiving and sending frames. It maintains internal state
-func newSession(sessionID string, sessionTimeoutInterval, heartbeatInterval time.Duration) *session {
+func newSession(sessionID string, sessionTimeoutInterval, heartbeatInterval time.Duration, ip string) *session {
 	r, w := io.Pipe()
 	s := &session{
 		id:                     sessionID,
+		ip:                     ip,
 		msgReader:              r,
 		msgWriter:              w,
 		msgEncoder:             gob.NewEncoder(w),
@@ -217,3 +219,5 @@ func (s *session) Send(msg string) error {
 }
 
 func (s *session) ID() string { return s.id }
+
+func (s *session) IP() string { return s.ip }

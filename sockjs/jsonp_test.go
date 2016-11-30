@@ -69,7 +69,7 @@ func TestHandler_jsonpSendNoSession(t *testing.T) {
 
 func TestHandler_jsonpSend(t *testing.T) {
 	h := newTestHandler()
-	sess := newSession("session", time.Second, time.Second)
+	sess := newSession("session", time.Second, time.Second, "::1")
 	h.sessions["session"] = sess
 
 	rw := httptest.NewRecorder()
