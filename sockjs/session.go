@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"net/http"
+	"path"
 	"sync"
 	"time"
 )
@@ -221,6 +222,11 @@ func (s *session) Send(msg string) error {
 }
 
 func (s *session) ID() string { return s.id }
+
+func (s *session) Protocol() string {
+	protocol := path.Base(s.req.URL.Path)
+	return protocol
+}
 
 func (s *session) GetSessionState() SessionState {
 	s.RLock()

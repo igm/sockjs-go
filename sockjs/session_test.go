@@ -3,6 +3,7 @@ package sockjs
 import (
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"runtime"
 	"strings"
 	"sync"
@@ -300,6 +301,18 @@ func TestSession_SessionSessionId(t *testing.T) {
 	s := newTestSession()
 	if s.ID() != "sessionId" {
 		t.Errorf("Unexpected session ID, got '%s', expected '%s'", s.ID(), "sessionId")
+	}
+}
+
+func TestSession_SessionProtocol(t *testing.T) {
+	h := newTestHandler()
+	server := httptest.NewServer(http.HandlerFunc(h.sockjsWebsocket))
+	defer server.Close()
+	req, _ := http.NewRequest("GET", server.URL, nil)
+	req.URL.Path += "websocket"
+	s := newSession(req, "sessionID", 1000*time.Second, 1000*time.Second)
+	if s.Protocol() != "websocket" {
+		t.Errorf("Unexpected transport protocol, got '%s', expected '%s'", s.Protocol(), "websocket")
 	}
 }
 

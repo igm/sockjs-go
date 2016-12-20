@@ -6,6 +6,8 @@ import "net/http"
 type Session interface {
 	// Id returns a session id
 	ID() string
+	// Protocol used for the transport
+	Protocol() string
 	// Request returns the first http request
 	Request() *http.Request
 	// Recv reads one text frame from session
