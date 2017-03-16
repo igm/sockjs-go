@@ -1,9 +1,7 @@
 package sockjs
 
 import (
-	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/gorilla/websocket"
 )
@@ -67,8 +65,8 @@ func newWsReceiver(conn *websocket.Conn) *wsReceiver {
 }
 
 func (w *wsReceiver) sendBulk(messages ...string) {
-	if len(messages) > 0 {
-		w.sendFrame(fmt.Sprintf("a[%s]", strings.Join(transform(messages, quote), ",")))
+	if f := frame(messages); f != "" {
+		w.sendFrame(f)
 	}
 }
 
