@@ -54,5 +54,5 @@ func (h *handler) htmlFile(rw http.ResponseWriter, req *http.Request) {
 type htmlfileFrameWriter struct{}
 
 func (*htmlfileFrameWriter) write(w io.Writer, frame string) (int, error) {
-	return fmt.Fprintf(w, "<script>\np(%s);\n</script>\r\n", quote(frame))
+	return fmt.Fprintf(w, "<script>\np(%q);\n</script>\r\n", frame)
 }
