@@ -67,15 +67,13 @@ type receiver interface {
 // Session is a central component that handles receiving and sending frames. It maintains internal state
 func newSession(req *http.Request, sessionID string, sessionTimeoutInterval, heartbeatInterval time.Duration) *session {
 
-	closeCh := make(chan struct{})
-
 	s := &session{
 		id:  sessionID,
 		req: req,
 		sessionTimeoutInterval: sessionTimeoutInterval,
 		heartbeatInterval:      heartbeatInterval,
-		recvBuffer:             newMessageBuffer(closeCh),
-		closeCh:                closeCh,
+		recvBuffer:             newMessageBuffer(),
+		closeCh:                make(chan struct{}),
 	}
 
 	s.Lock() // "go test -race" complains if ommited, not sure why as no race can happen here
@@ -164,6 +162,7 @@ func (s *session) closing() {
 	defer s.Unlock()
 	if s.state < SessionClosing {
 		s.state = SessionClosing
+		s.recvBuffer.close()
 		if s.recv != nil {
 			s.recv.sendFrame(s.closeFrame)
 			s.recv.close()

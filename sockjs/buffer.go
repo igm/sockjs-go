@@ -1,16 +1,19 @@
 package sockjs
 
+import "sync"
+
 // messageBuffer is an unbounded buffer that blocks on
 // pop if it's empty until the new element is enqueued.
 type messageBuffer struct {
 	popCh   chan string
-	closeCh <-chan struct{}
+	closeCh chan struct{}
+	once    sync.Once // for b.close()
 }
 
-func newMessageBuffer(closeCh <-chan struct{}) *messageBuffer {
+func newMessageBuffer() *messageBuffer {
 	return &messageBuffer{
 		popCh:   make(chan string),
-		closeCh: closeCh,
+		closeCh: make(chan struct{}),
 	}
 }
 
@@ -34,3 +37,6 @@ func (b *messageBuffer) pop() (string, error) {
 		return "", ErrSessionNotOpen
 	}
 }
+
+func (b *messageBuffer) close() { b.once.Do(b.stop) }
+func (b *messageBuffer) stop()  { close(b.closeCh) }
