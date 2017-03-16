@@ -1,7 +1,6 @@
 package sockjs
 
 import (
-	"io"
 	"net/http"
 	"runtime"
 	"strings"
@@ -194,12 +193,17 @@ func TestSession_Recv(t *testing.T) {
 			t.Errorf("Panic should not happen")
 		}
 	}()
+	var wg sync.WaitGroup
+	wg.Add(1)
+
 	session := newTestSession()
 	go func() {
+		defer wg.Done()
+
 		session.accept("message A")
 		session.accept("message B")
-		if err := session.accept("message C"); err != io.ErrClosedPipe {
-			t.Errorf("Session should not accept new messages if closed, got '%v' expected '%v'", err, io.ErrClosedPipe)
+		if err := session.accept("message C"); err != ErrSessionNotOpen {
+			t.Errorf("Session should not accept new messages if closed, got '%v' expected '%v'", err, ErrSessionNotOpen)
 		}
 	}()
 	if msg, _ := session.Recv(); msg != "message A" {
@@ -209,6 +213,8 @@ func TestSession_Recv(t *testing.T) {
 		t.Errorf("Got %s, should be %s", msg, "message B")
 	}
 	session.close()
+
+	wg.Wait()
 }
 
 func TestSession_Closing(t *testing.T) {
