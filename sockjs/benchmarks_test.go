@@ -90,24 +90,21 @@ func BenchmarkMessages(b *testing.B) {
 var (
 	clients = flag.Int("clients", 25, "Number of concurrent clients.")
 	size    = flag.Int("size", 4*1024, "Size of one message.")
-
-	opts = Options{
-		Websocket:       true,
-		SockJSURL:       "//cdnjs.cloudflare.com/ajax/libs/sockjs-client/0.3.4/sockjs.min.js",
-		HeartbeatDelay:  time.Hour,
-		DisconnectDelay: time.Hour,
-		ResponseLimit:   128 * 1024,
-	}
 )
 
 func BenchmarkMessageWebsocket(b *testing.B) {
 	flag.Parse()
 
 	msg := strings.Repeat("x", *size)
-	sjsFrame := []byte(fmt.Sprintf("m%q", msg))
 	wsFrame := []byte(fmt.Sprintf("[%q]", msg))
 
-	_ = sjsFrame
+	opts := Options{
+		Websocket:       true,
+		SockJSURL:       "//cdnjs.cloudflare.com/ajax/libs/sockjs-client/0.3.4/sockjs.min.js",
+		HeartbeatDelay:  time.Hour,
+		DisconnectDelay: time.Hour,
+		ResponseLimit:   uint32(*size),
+	}
 
 	h := NewHandler("/echo", opts, func(session Session) {
 		for i := 0; i < b.N; i++ {
