@@ -8,14 +8,25 @@ import (
 
 // WebSocketReadBufSize is a parameter that is used for WebSocket Upgrader.
 // https://github.com/gorilla/websocket/blob/master/server.go#L230
+//
+// Deprecated: Set WebSocketUpgrader.ReadBufferSize instead.
 var WebSocketReadBufSize = 4096
 
 // WebSocketWriteBufSize is a parameter that is used for WebSocket Upgrader
 // https://github.com/gorilla/websocket/blob/master/server.go#L230
+//
+// Deprecated: Set WebSocketUpgrader.WriteBufferSize instead.
 var WebSocketWriteBufSize = 4096
 
+// WebSocketUpgrader is used to configure websocket handshakes and websocket
+// connection details.
+var WebSocketUpgrader = &websocket.Upgrader{
+	ReadBufferSize:  WebSocketReadBufSize,
+	WriteBufferSize: WebSocketWriteBufSize,
+}
+
 func (h *handler) sockjsWebsocket(rw http.ResponseWriter, req *http.Request) {
-	conn, err := websocket.Upgrade(rw, req, nil, WebSocketReadBufSize, WebSocketWriteBufSize)
+	conn, err := WebSocketUpgrader.Upgrade(rw, req, nil)
 	if _, ok := err.(websocket.HandshakeError); ok {
 		http.Error(rw, `Can "Upgrade" only to "WebSocket".`, http.StatusBadRequest)
 		return
