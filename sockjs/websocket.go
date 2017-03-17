@@ -21,8 +21,10 @@ var WebSocketWriteBufSize = 4096
 // WebSocketUpgrader is used to configure websocket handshakes and websocket
 // connection details.
 var WebSocketUpgrader = &websocket.Upgrader{
-	ReadBufferSize:  WebSocketReadBufSize,
-	WriteBufferSize: WebSocketWriteBufSize,
+	ReadBufferSize:  0,                                                       // reuses HTTP server's buffers
+	WriteBufferSize: 0,                                                       // reuses HTTP server's buffers
+	Error:           func(http.ResponseWriter, *http.Request, int, error) {}, // don't return errors to maintain backwards compatibility
+	CheckOrigin:     func(*http.Request) bool { return true },                // allow all connections by default
 }
 
 func (h *handler) sockjsWebsocket(rw http.ResponseWriter, req *http.Request) {
