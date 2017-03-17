@@ -6,7 +6,7 @@ import (
 )
 
 func closeFrame(status uint32, reason string) string {
-	return "c[" + strconv.FormatUint(uint64(status), 10) + "," + strconv.Quote(reason) + "]"
+	return "c[" + strconv.FormatUint(uint64(status), 10) + "," + quote(reason) + "]"
 }
 
 func frame(messages []string) string {
@@ -21,18 +21,18 @@ func frame(messages []string) string {
 }
 
 func messageFrame(message string) string {
-	return "m" + strconv.Quote(message)
+	return "m" + quote(message)
 }
 
 func arrayFrame(messages []string) string {
 	var buf bytes.Buffer
 
 	buf.WriteString("a[")
-	buf.WriteString(strconv.Quote(messages[0]))
+	buf.WriteString(quote(messages[0]))
 
 	for _, message := range messages[1:] {
 		buf.WriteByte(',')
-		buf.WriteString(strconv.Quote(message))
+		buf.WriteString(quote(message))
 	}
 
 	buf.WriteByte(']')
