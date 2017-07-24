@@ -62,7 +62,10 @@ func newHandler(prefix string, opts Options, handlerFunc func(Session)) *handler
 		newMapping("GET", prefix+"/iframe[0-9-.a-z_]*.html$", cacheFor, h.iframe),
 	}
 	if opts.Websocket {
+		// SockJS WebSocket
 		h.mappings = append(h.mappings, newMapping("GET", sessionPrefix+"/websocket$", h.sockjsWebsocket))
+		// Raw WebSocket
+		h.mappings = append(h.mappings, newMapping("GET", prefix+"/websocket$", h.rawWebsocket))
 	}
 	return h
 }

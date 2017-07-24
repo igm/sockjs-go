@@ -1,13 +1,11 @@
 package main
 
 import (
-	"io"
 	"log"
 	"net/http"
 	"strings"
 
-	"golang.org/x/net/websocket"
-	"gopkg.in/igm/sockjs-go.v2/sockjs"
+	"github.com/igm/sockjs-go/sockjs"
 )
 
 type testHandler struct {
@@ -33,9 +31,6 @@ func main() {
 	cookieNeededOptions.JSessionID = sockjs.DefaultJSessionID
 	// register various test handlers
 	var handlers = []*testHandler{
-		&testHandler{"/echo/websocket", websocket.Handler(echoWsHandler)},
-		&testHandler{"/close/websocket", websocket.Handler(closeWsHandler)},
-		newSockjsHandler("/echo", echoOptions, echoHandler),
 		newSockjsHandler("/echo", echoOptions, echoHandler),
 		newSockjsHandler("/cookie_needed_echo", cookieNeededOptions, echoHandler),
 		newSockjsHandler("/close", sockjs.DefaultOptions, closeHandler),
@@ -53,9 +48,6 @@ func (t testHandlers) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	}
 	http.NotFound(rw, req)
 }
-
-func closeWsHandler(ws *websocket.Conn) { ws.Close() }
-func echoWsHandler(ws *websocket.Conn)  { io.Copy(ws, ws) }
 
 func closeHandler(conn sockjs.Session) { conn.Close(3000, "Go away!") }
 func echoHandler(conn sockjs.Session) {
