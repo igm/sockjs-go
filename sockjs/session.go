@@ -158,9 +158,7 @@ func (s *session) heartbeat() {
 	s.Lock()
 	defer s.Unlock()
 	if s.recv != nil { // timer could have fired between Lock and timer.Stop in detachReceiver
-		if !s.raw {
-			s.recv.sendFrame("h")
-		}
+		s.recv.sendFrame("h")
 		s.timer = time.AfterFunc(s.heartbeatInterval, s.heartbeat)
 	}
 }

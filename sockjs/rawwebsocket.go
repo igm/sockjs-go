@@ -73,7 +73,13 @@ func (w *rawWsReceiver) sendBulk(messages ...string) {
 }
 
 func (w *rawWsReceiver) sendFrame(frame string) {
-	if err := w.conn.WriteMessage(websocket.TextMessage, []byte(frame)); err != nil {
+	var err error
+	if frame == "h" {
+		err = w.conn.WriteMessage(websocket.PingMessage, []byte{})
+	} else {
+		err = w.conn.WriteMessage(websocket.TextMessage, []byte(frame))
+	}
+	if err != nil {
 		w.close()
 	}
 }
