@@ -55,7 +55,7 @@ type Options struct {
 // DefaultOptions is a convenient set of options to be used for sockjs
 var DefaultOptions = Options{
 	Websocket:       true,
-	RawWebsocket:    true,
+	RawWebsocket:    false,
 	JSessionID:      nil,
 	SockJSURL:       "//cdnjs.cloudflare.com/ajax/libs/sockjs-client/0.3.4/sockjs.min.js",
 	HeartbeatDelay:  25 * time.Second,
