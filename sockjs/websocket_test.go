@@ -101,7 +101,7 @@ func TestHandler_WebSocketCommunication(t *testing.T) {
 		conn.Send("message 2")
 		msg, err := conn.Recv()
 		if msg != "message 3" || err != nil {
-			t.Errorf("Got '%s', expecte '%s'", msg, "message 3")
+			t.Errorf("Got '%s', expected '%s'", msg, "message 3")
 		}
 		conn.Close(123, "close")
 		close(done)
