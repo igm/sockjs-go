@@ -8,8 +8,14 @@ import (
 	"time"
 )
 
+var testOptions = DefaultOptions
+
+func init() {
+	testOptions.RawWebsocket = true
+}
+
 func TestHandler_Create(t *testing.T) {
-	handler := newHandler("/echo", DefaultOptions, nil)
+	handler := newHandler("/echo", testOptions, nil)
 	if handler.Prefix() != "/echo" {
 		t.Errorf("Prefix not properly set, got '%s' expected '%s'", handler.Prefix(), "/echo")
 	}
@@ -41,7 +47,7 @@ func TestHandler_ParseSessionId(t *testing.T) {
 }
 
 func TestHandler_SessionByRequest(t *testing.T) {
-	h := newHandler("", DefaultOptions, nil)
+	h := newHandler("", testOptions, nil)
 	h.options.DisconnectDelay = 10 * time.Millisecond
 	var handlerFuncCalled = make(chan Session)
 	h.handlerFunc = func(conn Session) { handlerFuncCalled <- conn }
