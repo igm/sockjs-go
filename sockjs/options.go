@@ -36,7 +36,7 @@ type Options struct {
 	ResponseLimit uint32
 	// Some load balancers don't support websockets. This option can be used to disable websockets support by the server. By default websockets are enabled.
 	Websocket bool
-	// This option can be used to disable raw websockets support by the server. By default raw websockets are enabled.
+	// This option can be used to enable raw websockets support by the server. By default raw websockets are disabled.
 	RawWebsocket bool
 	// In order to keep proxies and load balancers from closing long running http requests we need to pretend that the connection is active
 	// and send a heartbeat packet once in a while. This setting controls how often this is done.
