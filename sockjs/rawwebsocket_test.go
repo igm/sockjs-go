@@ -10,9 +10,9 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-func TestHandler_WebSocketHandshakeError(t *testing.T) {
+func TestHandler_RawWebSocketHandshakeError(t *testing.T) {
 	h := newTestHandler()
-	server := httptest.NewServer(http.HandlerFunc(h.sockjsWebsocket))
+	server := httptest.NewServer(http.HandlerFunc(h.rawWebsocket))
 	defer server.Close()
 	req, _ := http.NewRequest("GET", server.URL, nil)
 	req.Header.Set("origin", "https"+server.URL[4:])
@@ -22,9 +22,9 @@ func TestHandler_WebSocketHandshakeError(t *testing.T) {
 	}
 }
 
-func TestHandler_WebSocket(t *testing.T) {
+func TestHandler_RawWebSocket(t *testing.T) {
 	h := newTestHandler()
-	server := httptest.NewServer(http.HandlerFunc(h.sockjsWebsocket))
+	server := httptest.NewServer(http.HandlerFunc(h.rawWebsocket))
 	defer server.CloseClientConnections()
 	url := "ws" + server.URL[4:]
 	var connCh = make(chan Session)
@@ -46,25 +46,17 @@ func TestHandler_WebSocket(t *testing.T) {
 	}
 }
 
-func TestHandler_WebSocketTerminationByServer(t *testing.T) {
+func TestHandler_RawWebSocketTerminationByServer(t *testing.T) {
 	h := newTestHandler()
-	server := httptest.NewServer(http.HandlerFunc(h.sockjsWebsocket))
+	server := httptest.NewServer(http.HandlerFunc(h.rawWebsocket))
 	defer server.Close()
 	url := "ws" + server.URL[4:]
 	h.handlerFunc = func(conn Session) {
+		// close the session without sending any message
 		conn.Close(1024, "some close message")
-		conn.Close(0, "this should be ignored")
 	}
 	conn, _, err := websocket.DefaultDialer.Dial(url, map[string][]string{"Origin": []string{server.URL}})
-	_, msg, err := conn.ReadMessage()
-	if string(msg) != "o" || err != nil {
-		t.Errorf("Open frame expected, got '%s' and error '%v', expected '%s' without error", msg, err, "o")
-	}
-	_, msg, err = conn.ReadMessage()
-	if string(msg) != `c[1024,"some close message"]` || err != nil {
-		t.Errorf("Open frame expected, got '%s' and error '%v', expected '%s' without error", msg, err, `c[1024,"some close message"]`)
-	}
-	_, msg, err = conn.ReadMessage()
+	_, _, err = conn.ReadMessage()
 	// gorilla websocket keeps `errUnexpectedEOF` private so we need to introspect the error message
 	if err != nil {
 		if !strings.Contains(err.Error(), "unexpected EOF") {
@@ -73,9 +65,9 @@ func TestHandler_WebSocketTerminationByServer(t *testing.T) {
 	}
 }
 
-func TestHandler_WebSocketTerminationByClient(t *testing.T) {
+func TestHandler_RawWebSocketTerminationByClient(t *testing.T) {
 	h := newTestHandler()
-	server := httptest.NewServer(http.HandlerFunc(h.sockjsWebsocket))
+	server := httptest.NewServer(http.HandlerFunc(h.rawWebsocket))
 	defer server.Close()
 	url := "ws" + server.URL[4:]
 	var done = make(chan struct{})
@@ -90,25 +82,26 @@ func TestHandler_WebSocketTerminationByClient(t *testing.T) {
 	<-done
 }
 
-func TestHandler_WebSocketCommunication(t *testing.T) {
+func TestHandler_RawWebSocketCommunication(t *testing.T) {
 	h := newTestHandler()
-	server := httptest.NewServer(http.HandlerFunc(h.sockjsWebsocket))
+	server := httptest.NewServer(http.HandlerFunc(h.rawWebsocket))
 	// defer server.CloseClientConnections()
 	url := "ws" + server.URL[4:]
 	var done = make(chan struct{})
 	h.handlerFunc = func(conn Session) {
 		conn.Send("message 1")
 		conn.Send("message 2")
+		expected := "[\"message 3\"]\n"
 		msg, err := conn.Recv()
-		if msg != "message 3" || err != nil {
-			t.Errorf("Got '%s', expected '%s'", msg, "message 3")
+		if msg != expected || err != nil {
+			t.Errorf("Got '%s', expected '%s'", msg, expected)
 		}
 		conn.Close(123, "close")
 		close(done)
 	}
 	conn, _, _ := websocket.DefaultDialer.Dial(url, map[string][]string{"Origin": []string{server.URL}})
 	conn.WriteJSON([]string{"message 3"})
-	var expected = []string{"o", `a["message 1"]`, `a["message 2"]`, `c[123,"close"]`}
+	var expected = []string{"message 1", "message 2"}
 	for _, exp := range expected {
 		_, msg, err := conn.ReadMessage()
 		if string(msg) != exp || err != nil {
