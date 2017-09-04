@@ -56,13 +56,16 @@ func TestHandler_WebSocketTerminationByServer(t *testing.T) {
 		conn.Close(0, "this should be ignored")
 	}
 	conn, _, err := websocket.DefaultDialer.Dial(url, map[string][]string{"Origin": []string{server.URL}})
+	if err != nil {
+		t.Fatalf("websocket dial failed: %v", err)
+	}
 	_, msg, err := conn.ReadMessage()
 	if string(msg) != "o" || err != nil {
 		t.Errorf("Open frame expected, got '%s' and error '%v', expected '%s' without error", msg, err, "o")
 	}
 	_, msg, err = conn.ReadMessage()
 	if string(msg) != `c[1024,"some close message"]` || err != nil {
-		t.Errorf("Open frame expected, got '%s' and error '%v', expected '%s' without error", msg, err, `c[1024,"some close message"]`)
+		t.Errorf("Close frame expected, got '%s' and error '%v', expected '%s' without error", msg, err, `c[1024,"some close message"]`)
 	}
 	_, msg, err = conn.ReadMessage()
 	// gorilla websocket keeps `errUnexpectedEOF` private so we need to introspect the error message

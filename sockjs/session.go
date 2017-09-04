@@ -181,9 +181,7 @@ func (s *session) closing() {
 		s.msgWriter.Close()
 		s.state = SessionClosing
 		if s.recv != nil {
-			if !s.raw {
-				s.recv.sendFrame(s.closeFrame)
-			}
+			s.recv.sendFrame(s.closeFrame)
 			s.recv.close()
 		}
 	}

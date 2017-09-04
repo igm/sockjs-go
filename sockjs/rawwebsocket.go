@@ -1,6 +1,7 @@
 package sockjs
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/gorilla/websocket"
@@ -76,12 +77,25 @@ func (w *rawWsReceiver) sendFrame(frame string) {
 	var err error
 	if frame == "h" {
 		err = w.conn.WriteMessage(websocket.PingMessage, []byte{})
+	} else if len(frame) > 0 && frame[0] == 'c' {
+		status, reason := parseCloseFrame(frame)
+		msg := websocket.FormatCloseMessage(int(status), reason)
+		err = w.conn.WriteMessage(websocket.CloseMessage, msg)
 	} else {
 		err = w.conn.WriteMessage(websocket.TextMessage, []byte(frame))
 	}
 	if err != nil {
 		w.close()
 	}
+}
+
+func parseCloseFrame(frame string) (status uint32, reason string) {
+	var items [2]interface{}
+	json.Unmarshal([]byte(frame)[1:], &items)
+	statusF := items[0].(float64)
+	status = uint32(statusF)
+	reason = items[1].(string)
+	return
 }
 
 func (w *rawWsReceiver) close() {
