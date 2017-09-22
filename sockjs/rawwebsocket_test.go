@@ -3,7 +3,6 @@ package sockjs
 import (
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"testing"
 	"time"
 
@@ -53,14 +52,24 @@ func TestHandler_RawWebSocketTerminationByServer(t *testing.T) {
 	url := "ws" + server.URL[4:]
 	h.handlerFunc = func(conn Session) {
 		// close the session without sending any message
-		conn.Close(1024, "some close message")
+		conn.Close(3000, "some close message")
+		conn.Close(0, "this should be ignored")
 	}
 	conn, _, err := websocket.DefaultDialer.Dial(url, map[string][]string{"Origin": []string{server.URL}})
-	_, _, err = conn.ReadMessage()
-	// gorilla websocket keeps `errUnexpectedEOF` private so we need to introspect the error message
 	if err != nil {
-		if !strings.Contains(err.Error(), "unexpected EOF") {
-			t.Errorf("Expected 'unexpected EOF' error or similar, got '%v'", err)
+		t.Fatalf("websocket dial failed: %v", err)
+	}
+	for i := 0; i < 2; i++ {
+		_, _, err := conn.ReadMessage()
+		closeError, ok := err.(*websocket.CloseError)
+		if !ok {
+			t.Fatalf("expected close error but got: %v", err)
+		}
+		if closeError.Code != 3000 {
+			t.Errorf("unexpected close status: %v", closeError.Code)
+		}
+		if closeError.Text != "some close message" {
+			t.Errorf("unexpected close reason: '%v'", closeError.Text)
 		}
 	}
 }
