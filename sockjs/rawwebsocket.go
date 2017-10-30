@@ -92,9 +92,9 @@ func (w *rawWsReceiver) sendFrame(frame string) {
 func parseCloseFrame(frame string) (status uint32, reason string) {
 	var items [2]interface{}
 	json.Unmarshal([]byte(frame)[1:], &items)
-	statusF := items[0].(float64)
+	statusF, _ := items[0].(float64)
 	status = uint32(statusF)
-	reason = items[1].(string)
+	reason, _ = items[1].(string)
 	return
 }
 
