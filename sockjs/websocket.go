@@ -17,7 +17,19 @@ var WebSocketReadBufSize = 4096
 var WebSocketWriteBufSize = 4096
 
 func (h *handler) sockjsWebsocket(rw http.ResponseWriter, req *http.Request) {
-	conn, err := websocket.Upgrade(rw, req, nil, WebSocketReadBufSize, WebSocketWriteBufSize)
+	
+	upgrader := websocket.Upgrader{
+		ReadBufferSize:    WebSocketReadBufSize,
+		WriteBufferSize:   WebSocketWriteBufSize,
+		EnableCompression: true,
+		CheckOrigin: func(req *http.Request) bool {
+			// Allow all connections.
+			return true
+		},
+	}
+	
+	
+	conn, err := upgrader.Upgrade(rw, req, nil)
 	if _, ok := err.(websocket.HandshakeError); ok {
 		http.Error(rw, `Can "Upgrade" only to "WebSocket".`, http.StatusBadRequest)
 		return
