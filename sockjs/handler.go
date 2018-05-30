@@ -21,7 +21,7 @@ type handler struct {
 	options     Options
 	handlerFunc func(Session)
 	mappings    []*mapping
-	upgrader    *websocket.Upgrader
+	upgrader    websocket.Upgrader
 
 	sessionsMux sync.Mutex
 	sessions    map[string]*session
@@ -40,7 +40,7 @@ func newHandler(prefix string, opts Options, handlerFunc func(Session)) *handler
 		handlerFunc: handlerFunc,
 		sessions:    make(map[string]*session),
 
-		upgrader: &websocket.Upgrader{
+		upgrader: websocket.Upgrader{
 			ReadBufferSize:  WebSocketReadBufSize,
 			WriteBufferSize: WebSocketWriteBufSize,
 			CheckOrigin: func(_ *http.Request) bool {
