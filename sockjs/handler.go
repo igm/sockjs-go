@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strings"
 	"sync"
+
+	"github.com/gorilla/websocket"
 )
 
 var (
@@ -19,6 +21,7 @@ type handler struct {
 	options     Options
 	handlerFunc func(Session)
 	mappings    []*mapping
+	upgrader    *websocket.Upgrader
 
 	sessionsMux sync.Mutex
 	sessions    map[string]*session
@@ -36,6 +39,19 @@ func newHandler(prefix string, opts Options, handlerFunc func(Session)) *handler
 		options:     opts,
 		handlerFunc: handlerFunc,
 		sessions:    make(map[string]*session),
+
+		upgrader: &websocket.Upgrader{
+			ReadBufferSize:  WebSocketReadBufSize,
+			WriteBufferSize: WebSocketWriteBufSize,
+			CheckOrigin: func(_ *http.Request) bool {
+				// Allow all connections by default.
+				return true
+			},
+			Error: func(w http.ResponseWriter, r *http.Request, status int, reason error) {
+				// Don't return errors to maintain backwards compatibility.
+			},
+			EnableCompression: opts.WebsocketCompression,
+		},
 	}
 
 	sessionPrefix := prefix + "/[^/.]+/[^/.]+"

@@ -8,7 +8,7 @@ import (
 )
 
 func (h *handler) rawWebsocket(rw http.ResponseWriter, req *http.Request) {
-	conn, err := websocket.Upgrade(rw, req, nil, WebSocketReadBufSize, WebSocketWriteBufSize)
+	conn, err := websocket.Upgrade(rw, req, nil)
 	if _, ok := err.(websocket.HandshakeError); ok {
 		http.Error(rw, `Can "Upgrade" only to "WebSocket".`, http.StatusBadRequest)
 		return
