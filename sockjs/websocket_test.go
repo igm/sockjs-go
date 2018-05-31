@@ -120,3 +120,36 @@ func TestHandler_WebSocketCommunication(t *testing.T) {
 	}
 	<-done
 }
+
+func TestHandler_CustomWebSocketCommunication(t *testing.T) {
+	h := newTestHandler()
+	h.options.WebsocketUpgrader = &websocket.Upgrader{
+		ReadBufferSize:  0,
+		WriteBufferSize: 0,
+		CheckOrigin:     func(_ *http.Request) bool { return true },
+		Error:           func(w http.ResponseWriter, r *http.Request, status int, reason error) {},
+	}
+	server := httptest.NewServer(http.HandlerFunc(h.sockjsWebsocket))
+	url := "ws" + server.URL[4:]
+	var done = make(chan struct{})
+	h.handlerFunc = func(conn Session) {
+		conn.Send("message 1")
+		conn.Send("message 2")
+		msg, err := conn.Recv()
+		if msg != "message 3" || err != nil {
+			t.Errorf("Got '%s', expected '%s'", msg, "message 3")
+		}
+		conn.Close(123, "close")
+		close(done)
+	}
+	conn, _, _ := websocket.DefaultDialer.Dial(url, map[string][]string{"Origin": []string{server.URL}})
+	conn.WriteJSON([]string{"message 3"})
+	var expected = []string{"o", `a["message 1"]`, `a["message 2"]`, `c[123,"close"]`}
+	for _, exp := range expected {
+		_, msg, err := conn.ReadMessage()
+		if string(msg) != exp || err != nil {
+			t.Errorf("Wrong frame, got '%s' and error '%v', expected '%s' without error", msg, err, exp)
+		}
+	}
+	<-done
+}
