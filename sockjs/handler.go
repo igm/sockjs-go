@@ -7,8 +7,6 @@ import (
 	"regexp"
 	"strings"
 	"sync"
-
-	"github.com/gorilla/websocket"
 )
 
 var (
@@ -21,7 +19,6 @@ type handler struct {
 	options     Options
 	handlerFunc func(Session)
 	mappings    []*mapping
-	upgrader    websocket.Upgrader
 
 	sessionsMux sync.Mutex
 	sessions    map[string]*session
@@ -39,7 +36,6 @@ func newHandler(prefix string, opts Options, handlerFunc func(Session)) *handler
 		options:     opts,
 		handlerFunc: handlerFunc,
 		sessions:    make(map[string]*session),
-		upgrader:    opts.WebsocketUpgrader,
 	}
 
 	sessionPrefix := prefix + "/[^/.]+/[^/.]+"

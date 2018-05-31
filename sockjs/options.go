@@ -42,7 +42,7 @@ type Options struct {
 	RawWebsocket bool
 	// Provide a custom Upgrader for Websocket connections to enable features like compression.
 	// See https://godoc.org/github.com/gorilla/websocket#Upgrader for more details.
-	WebsocketUpgrader websocket.Upgrader
+	WebsocketUpgrader *websocket.Upgrader
 	// In order to keep proxies and load balancers from closing long running http requests we need to pretend that the connection is active
 	// and send a heartbeat packet once in a while. This setting controls how often this is done.
 	// By default a heartbeat packet is sent every 25 seconds.
@@ -59,24 +59,14 @@ type Options struct {
 
 // DefaultOptions is a convenient set of options to be used for sockjs
 var DefaultOptions = Options{
-	Websocket:       true,
-	RawWebsocket:    false,
-	JSessionID:      nil,
-	SockJSURL:       "//cdnjs.cloudflare.com/ajax/libs/sockjs-client/0.3.4/sockjs.min.js",
-	HeartbeatDelay:  25 * time.Second,
-	DisconnectDelay: 5 * time.Second,
-	ResponseLimit:   128 * 1024,
-	WebsocketUpgrader: websocket.Upgrader{
-		ReadBufferSize:  WebSocketReadBufSize,
-		WriteBufferSize: WebSocketWriteBufSize,
-		CheckOrigin: func(_ *http.Request) bool {
-			// Allow all connections by default.
-			return true
-		},
-		Error: func(w http.ResponseWriter, r *http.Request, status int, reason error) {
-			// Don't return errors to maintain backwards compatibility.
-		},
-	},
+	Websocket:         true,
+	RawWebsocket:      false,
+	JSessionID:        nil,
+	SockJSURL:         "//cdnjs.cloudflare.com/ajax/libs/sockjs-client/0.3.4/sockjs.min.js",
+	HeartbeatDelay:    25 * time.Second,
+	DisconnectDelay:   5 * time.Second,
+	ResponseLimit:     128 * 1024,
+	WebsocketUpgrader: nil,
 }
 
 type info struct {
