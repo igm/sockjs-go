@@ -57,8 +57,7 @@ func BenchmarkMessages(b *testing.B) {
 		wg.Add(1)
 		go func(session int) {
 			reqc := 0
-			// req, _ := http.NewRequest("POST", server.URL+fmt.Sprintf("/echo/server/%d/xhr_streaming", session), nil)
-			req, _ := http.NewRequest("GET", server.URL+fmt.Sprintf("/echo/server/%d/eventsource", session), nil)
+			req, _ := http.NewRequest("POST", server.URL+fmt.Sprintf("/echo/server/%d/xhr_streaming", session), nil)
 			for {
 				reqc++
 				resp, err := http.DefaultClient.Do(req)
@@ -97,6 +96,7 @@ func BenchmarkMessageWebsocket(b *testing.B) {
 
 	msg := strings.Repeat("x", *size)
 	wsFrame := []byte(fmt.Sprintf("[%q]", msg))
+	doneFrame := []byte(`a["done"]`)
 
 	opts := Options{
 		Websocket:       true,
@@ -112,15 +112,14 @@ func BenchmarkMessageWebsocket(b *testing.B) {
 				b.Fatalf("Send()=%s", err)
 			}
 
-			msg, err := session.Recv()
-			if err != nil {
+			if _, err := session.Recv(); err != nil {
 				b.Fatalf("Recv()=%s", err)
 			}
-
-			_ = msg
 		}
 
-		session.Close(1060, "Go Away!")
+		if err := session.Send("done"); err != nil {
+			b.Fatalf("Send()=%s", err)
+		}
 	})
 
 	server := httptest.NewServer(h)
@@ -135,7 +134,6 @@ func BenchmarkMessageWebsocket(b *testing.B) {
 		if err != nil {
 			b.Fatalf("%d: Dial()=%s", i, err)
 		}
-		defer client.Close()
 
 		_, p, err := client.ReadMessage()
 		if err != nil || string(p) != "o" {
@@ -155,6 +153,7 @@ func BenchmarkMessageWebsocket(b *testing.B) {
 
 		go func(client *websocket.Conn) {
 			defer wg.Done()
+			defer client.Close()
 
 			for {
 				if err := client.WriteMessage(websocket.TextMessage, wsFrame); err != nil {
@@ -166,7 +165,7 @@ func BenchmarkMessageWebsocket(b *testing.B) {
 					b.Fatalf("ReadMessage()=%s", err)
 				}
 
-				if bytes.Compare(p, []byte(`c[1060,"Go Away!"]`)) == 0 {
+				if bytes.Compare(p, doneFrame) == 0 {
 					return
 				}
 			}
