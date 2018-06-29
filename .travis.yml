@@ -1,21 +1,25 @@
 sudo: false
 language: go
+
+go:
+  - "1.10.x"
+  - "1.9.x"
+  - tip
+
 notifications:
   email:
   - igor.mihalik+travis@gmail.com
 
 before_install:
-- go get golang.org/x/tools/cmd/cover
-- go get github.com/mattn/goveralls
+  - go get golang.org/x/tools/cmd/cover
+  - go get github.com/mattn/goveralls
 
 after_success:
-- go test ./sockjs -coverprofile=profile.out -covermode=count
-- PATH=$HOME/gopath/bin:$PATH goveralls -coverprofile=profile.out -service=travis-ci
+  - go test ./sockjs -coverprofile=profile.out -covermode=count
+  - PATH=$HOME/gopath/bin:$PATH goveralls -coverprofile=profile.out -service=travis-ci
 
 install:
-- go get -d -v -t ./...
+  - go get -d -v -t ./...
 
-script: go test ./sockjs -v -race
-
-go:
-- 1.4.1
+script:
+  - go test ./sockjs -v -race
