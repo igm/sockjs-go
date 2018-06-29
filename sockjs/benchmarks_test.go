@@ -2,7 +2,6 @@ package sockjs
 
 import (
 	"bufio"
-	"bytes"
 	"flag"
 	"fmt"
 	"log"
@@ -57,8 +56,7 @@ func BenchmarkMessages(b *testing.B) {
 		wg.Add(1)
 		go func(session int) {
 			reqc := 0
-			// req, _ := http.NewRequest("POST", server.URL+fmt.Sprintf("/echo/server/%d/xhr_streaming", session), nil)
-			req, _ := http.NewRequest("GET", server.URL+fmt.Sprintf("/echo/server/%d/eventsource", session), nil)
+			req, _ := http.NewRequest("POST", server.URL+fmt.Sprintf("/echo/server/%d/xhr_streaming", session), nil)
 			for {
 				reqc++
 				resp, err := http.DefaultClient.Do(req)
@@ -87,10 +85,7 @@ func BenchmarkMessages(b *testing.B) {
 	server.Close()
 }
 
-var (
-	clients = flag.Int("clients", 25, "Number of concurrent clients.")
-	size    = flag.Int("size", 4*1024, "Size of one message.")
-)
+var size = flag.Int("size", 4*1024, "Size of one message.")
 
 func BenchmarkMessageWebsocket(b *testing.B) {
 	flag.Parse()
@@ -107,73 +102,52 @@ func BenchmarkMessageWebsocket(b *testing.B) {
 	}
 
 	h := NewHandler("/echo", opts, func(session Session) {
-		for i := 0; i < b.N; i++ {
-			if err := session.Send(msg); err != nil {
-				b.Fatalf("Send()=%s", err)
-			}
-
+		for {
 			msg, err := session.Recv()
 			if err != nil {
+				if session.GetSessionState() != SessionActive {
+					break
+				}
 				b.Fatalf("Recv()=%s", err)
 			}
 
-			_ = msg
+			if err := session.Send(msg); err != nil {
+				b.Fatalf("Send()=%s", err)
+			}
 		}
-
-		session.Close(1060, "Go Away!")
 	})
 
 	server := httptest.NewServer(h)
 	defer server.Close()
 
-	clients := make([]*websocket.Conn, *clients)
+	url := "ws" + server.URL[4:] + "/echo/server/0/websocket"
 
-	for i := range clients {
-		url := "ws" + server.URL[4:] + fmt.Sprintf("/echo/server/%d/websocket", i)
-
-		client, _, err := websocket.DefaultDialer.Dial(url, nil)
-		if err != nil {
-			b.Fatalf("%d: Dial()=%s", i, err)
-		}
-		defer client.Close()
-
-		_, p, err := client.ReadMessage()
-		if err != nil || string(p) != "o" {
-			b.Fatalf("%d: failed to start new session: frame=%v, err=%v", i, p, err)
-		}
-
-		clients[i] = client
+	client, _, err := websocket.DefaultDialer.Dial(url, nil)
+	if err != nil {
+		b.Fatalf("Dial()=%s", err)
 	}
 
-	var wg sync.WaitGroup
+	_, p, err := client.ReadMessage()
+	if err != nil || string(p) != "o" {
+		b.Fatalf("failed to start new session: frame=%v, err=%v", p, err)
+	}
 
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	for _, c := range clients {
-		wg.Add(1)
+	for i := 0; i < b.N; i++ {
+		if err := client.WriteMessage(websocket.TextMessage, wsFrame); err != nil {
+			b.Fatalf("WriteMessage()=%s", err)
+		}
 
-		go func(client *websocket.Conn) {
-			defer wg.Done()
-
-			for {
-				if err := client.WriteMessage(websocket.TextMessage, wsFrame); err != nil {
-					b.Fatalf("WriteMessage()=%s", err)
-				}
-
-				_, p, err := client.ReadMessage()
-				if err != nil {
-					b.Fatalf("ReadMessage()=%s", err)
-				}
-
-				if bytes.Compare(p, []byte(`c[1060,"Go Away!"]`)) == 0 {
-					return
-				}
-			}
-		}(c)
+		if _, _, err := client.ReadMessage(); err != nil {
+			b.Fatalf("ReadMessage()=%s", err)
+		}
 	}
 
-	wg.Wait()
+	if err := client.Close(); err != nil {
+		b.Fatalf("Close()=%s", err)
+	}
 }
 
 func BenchmarkHandler_ParseSessionID(b *testing.B) {
