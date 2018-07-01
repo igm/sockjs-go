@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/gorilla/websocket"
+	"github.com/stretchr/testify/require"
 )
 
 func TestHandler_WebSocketHandshakeError(t *testing.T) {
@@ -16,7 +17,9 @@ func TestHandler_WebSocketHandshakeError(t *testing.T) {
 	defer server.Close()
 	req, _ := http.NewRequest("GET", server.URL, nil)
 	req.Header.Set("origin", "https"+server.URL[4:])
-	resp, _ := http.DefaultClient.Do(req)
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Errorf("Unexpected response code, got '%d', expected '%d'", resp.StatusCode, http.StatusBadRequest)
 	}
@@ -30,12 +33,9 @@ func TestHandler_WebSocket(t *testing.T) {
 	var connCh = make(chan Session)
 	h.handlerFunc = func(conn Session) { connCh <- conn }
 	conn, resp, err := websocket.DefaultDialer.Dial(url, nil)
-	if conn == nil {
-		t.Errorf("Connection should not be nil")
-	}
-	if err != nil {
-		t.Errorf("Unexpected error '%v'", err)
-	}
+	require.NoError(t, err)
+	require.NotNil(t, conn)
+	require.NotNil(t, resp)
 	if resp.StatusCode != http.StatusSwitchingProtocols {
 		t.Errorf("Wrong response code returned, got '%d', expected '%d'", resp.StatusCode, http.StatusSwitchingProtocols)
 	}
@@ -56,9 +56,7 @@ func TestHandler_WebSocketTerminationByServer(t *testing.T) {
 		conn.Close(0, "this should be ignored")
 	}
 	conn, _, err := websocket.DefaultDialer.Dial(url, map[string][]string{"Origin": []string{server.URL}})
-	if err != nil {
-		t.Fatalf("websocket dial failed: %v", err)
-	}
+	require.NoError(t, err)
 	_, msg, err := conn.ReadMessage()
 	if string(msg) != "o" || err != nil {
 		t.Errorf("Open frame expected, got '%s' and error '%v', expected '%s' without error", msg, err, "o")
@@ -88,7 +86,8 @@ func TestHandler_WebSocketTerminationByClient(t *testing.T) {
 		}
 		close(done)
 	}
-	conn, _, _ := websocket.DefaultDialer.Dial(url, map[string][]string{"Origin": []string{server.URL}})
+	conn, _, _ := websocket.DefaultDialer.Dial(url, map[string][]string{"Origin": {server.URL}})
+	require.NotNil(t, conn)
 	conn.Close()
 	<-done
 }
@@ -111,6 +110,7 @@ func TestHandler_WebSocketCommunication(t *testing.T) {
 		close(done)
 	}
 	conn, _, _ := websocket.DefaultDialer.Dial(url, map[string][]string{"Origin": []string{server.URL}})
+	require.NotNil(t, conn)
 	conn.WriteJSON([]string{"message 3"})
 	var expected = []string{"o", `a["message 1"]`, `a["message 2"]`, `c[123,"close"]`}
 	for _, exp := range expected {
@@ -145,6 +145,7 @@ func TestHandler_CustomWebSocketCommunication(t *testing.T) {
 		close(done)
 	}
 	conn, _, _ := websocket.DefaultDialer.Dial(url, map[string][]string{"Origin": []string{server.URL}})
+	require.NotNil(t, conn)
 	conn.WriteJSON([]string{"message 3"})
 	var expected = []string{"o", `a["message 1"]`, `a["message 2"]`, `c[123,"close"]`}
 	for _, exp := range expected {

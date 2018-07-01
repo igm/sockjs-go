@@ -8,6 +8,8 @@ import (
 	"net/url"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/require"
 )
 
 var testOptions = DefaultOptions
@@ -28,9 +30,8 @@ func TestHandler_Create(t *testing.T) {
 	defer server.Close()
 
 	resp, err := http.Get(server.URL + "/echo")
-	if err != nil {
-		t.Errorf("There should not be any error, got '%s'", err)
-	}
+	require.NoError(t, err)
+	require.NotNil(t, resp)
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Unexpected status code receiver, got '%d' expected '%d'", resp.StatusCode, http.StatusOK)
 	}
@@ -45,9 +46,9 @@ func TestHandler_RootPrefixInfoHandler(t *testing.T) {
 	defer server.Close()
 
 	resp, err := http.Get(server.URL + "/info")
-	if err != nil {
-		t.Errorf("There should not be any error, got '%s'", err)
-	}
+	require.NoError(t, err)
+	require.NotNil(t, resp)
+
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Unexpected status code receiver, got '%d' expected '%d'", resp.StatusCode, http.StatusOK)
 	}
