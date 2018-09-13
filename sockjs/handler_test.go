@@ -34,11 +34,27 @@ func TestHandler_Create(t *testing.T) {
 	}
 }
 
-func TestHandler_ParseSessionId(t *testing.T) {
-	h := handler{prefix: "/prefix"}
+func TestHandler_ParseSessionID_Plain(t *testing.T) {
+	h := newHandler("/prefix", testOptions, nil)
 	url, _ := url.Parse("http://server:80/prefix/server/session/whatever")
 	if session, err := h.parseSessionID(url); session != "session" || err != nil {
 		t.Errorf("Wrong session parsed, got '%s' expected '%s' with error = '%v'", session, "session", err)
+	}
+	url, _ = url.Parse("http://server:80/asdasd/server/session/whatever")
+	if _, err := h.parseSessionID(url); err == nil {
+		t.Errorf("Should return error")
+	}
+}
+
+func TestHandler_ParseSessionID_Regex(t *testing.T) {
+	h := newHandler("/prefix/[0-9]+", testOptions, nil)
+	url, _ := url.Parse("http://server:80/prefix/123/server/session/whatever")
+	if session, err := h.parseSessionID(url); session != "session" || err != nil {
+		t.Errorf("Wrong session parsed, got '%s' expected '%s' with error = '%v'", session, "session", err)
+	}
+	url, _ = url.Parse("http://server:80/prefix/asdasd/server/session/whatever")
+	if _, err := h.parseSessionID(url); err == nil {
+		t.Errorf("Should return error")
 	}
 	url, _ = url.Parse("http://server:80/asdasd/server/session/whatever")
 	if _, err := h.parseSessionID(url); err == nil {
