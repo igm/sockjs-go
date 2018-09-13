@@ -10,12 +10,14 @@ import (
 )
 
 var (
-	prefixRegexp   = make(map[string]*regexp.Regexp)
-	prefixRegexpMu sync.Mutex // protects prefixRegexp
+	plainPrefixRe = regexp.MustCompile(`^[0-9a-zA-Z-_\/]*$`)
+
+	errUnableToParseSessionID = errors.New("unable to parse URL for session")
 )
 
 type handler struct {
 	prefix      string
+	prefixRe    *regexp.Regexp // nil when the prefix is not regex-like.
 	options     Options
 	handlerFunc func(Session)
 	mappings    []*mapping
@@ -31,8 +33,18 @@ func NewHandler(prefix string, opts Options, handleFunc func(Session)) http.Hand
 }
 
 func newHandler(prefix string, opts Options, handlerFunc func(Session)) *handler {
+	var prefixRe *regexp.Regexp
+	if !plainPrefixRe.MatchString(prefix) { // whether a prefix is regex-like?
+		p := prefix
+		if !strings.HasPrefix(prefix, "^") {
+			p = "^" + p
+		}
+		prefixRe = regexp.MustCompile(p)
+	}
+
 	h := &handler{
 		prefix:      prefix,
+		prefixRe:    prefixRe,
 		options:     opts,
 		handlerFunc: handlerFunc,
 		sessions:    make(map[string]*session),
@@ -95,20 +107,27 @@ func (h *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 }
 
 func (h *handler) parseSessionID(url *url.URL) (string, error) {
-	// cache compiled regexp objects for most used prefixes
-	prefixRegexpMu.Lock()
-	session, ok := prefixRegexp[h.prefix]
-	if !ok {
-		session = regexp.MustCompile(h.prefix + "/(?P<server>[^/.]+)/(?P<session>[^/.]+)/.*")
-		prefixRegexp[h.prefix] = session
-	}
-	prefixRegexpMu.Unlock()
+	urlPath := url.Path
+	prefix := h.prefix
 
-	matches := session.FindStringSubmatch(url.Path)
-	if len(matches) == 3 {
-		return matches[2], nil
+	if h.prefixRe != nil {
+		prefix = h.prefixRe.FindString(urlPath)
+		if prefix == "" {
+			return "", errUnableToParseSessionID
+		}
 	}
-	return "", errors.New("unable to parse URL for session")
+
+	subPath := strings.TrimPrefix(urlPath, prefix+"/")
+	if len(subPath) == len(urlPath) { // no trim performed
+		return "", errUnableToParseSessionID
+	}
+
+	parts := strings.SplitN(subPath, "/", 3)
+	if len(parts) != 3 {
+		return "", errUnableToParseSessionID
+	}
+
+	return parts[1], nil
 }
 
 func (h *handler) sessionByRequest(req *http.Request) (*session, error) {

@@ -151,7 +151,7 @@ func BenchmarkMessageWebsocket(b *testing.B) {
 }
 
 func BenchmarkHandler_ParseSessionID(b *testing.B) {
-	h := handler{prefix: "/prefix"}
+	h := newHandler("/prefix", testOptions, nil)
 	url, _ := url.Parse("http://server:80/prefix/server/session/whatever")
 
 	b.ReportAllocs()
