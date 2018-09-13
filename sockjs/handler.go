@@ -4,14 +4,8 @@ import (
 	"errors"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strings"
 	"sync"
-)
-
-var (
-	prefixRegexp   = make(map[string]*regexp.Regexp)
-	prefixRegexpMu sync.Mutex // protects prefixRegexp
 )
 
 type handler struct {
@@ -94,21 +88,23 @@ func (h *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	http.NotFound(rw, req)
 }
 
-func (h *handler) parseSessionID(url *url.URL) (string, error) {
-	// cache compiled regexp objects for most used prefixes
-	prefixRegexpMu.Lock()
-	session, ok := prefixRegexp[h.prefix]
-	if !ok {
-		session = regexp.MustCompile(h.prefix + "/(?P<server>[^/.]+)/(?P<session>[^/.]+)/.*")
-		prefixRegexp[h.prefix] = session
-	}
-	prefixRegexpMu.Unlock()
+var (
+	errUnableToParseSessionID = errors.New("unable to parse URL for session")
+)
 
-	matches := session.FindStringSubmatch(url.Path)
-	if len(matches) == 3 {
-		return matches[2], nil
+func (h *handler) parseSessionID(url *url.URL) (string, error) {
+	prefix := h.prefix + "/"
+	subPath := strings.TrimPrefix(url.Path, prefix)
+	if len(subPath) == len(url.Path) { // no trim performed
+		return "", errUnableToParseSessionID
 	}
-	return "", errors.New("unable to parse URL for session")
+
+	parts := strings.SplitN(subPath, "/", 3)
+	if len(parts) != 3 {
+		return "", errUnableToParseSessionID
+	}
+
+	return parts[1], nil
 }
 
 func (h *handler) sessionByRequest(req *http.Request) (*session, error) {
