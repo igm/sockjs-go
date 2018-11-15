@@ -95,6 +95,7 @@ func TestHandler_WebSocketTerminationByClient(t *testing.T) {
 
 func TestHandler_WebSocketCommunication(t *testing.T) {
 	h := newTestHandler()
+	h.options.WebsocketWriteTimeout = time.Second
 	server := httptest.NewServer(http.HandlerFunc(h.sockjsWebsocket))
 	// defer server.CloseClientConnections()
 	url := "ws" + server.URL[4:]
@@ -129,6 +130,7 @@ func TestHandler_CustomWebSocketCommunication(t *testing.T) {
 		CheckOrigin:     func(_ *http.Request) bool { return true },
 		Error:           func(w http.ResponseWriter, r *http.Request, status int, reason error) {},
 	}
+	h.options.WebsocketWriteTimeout = time.Second
 	server := httptest.NewServer(http.HandlerFunc(h.sockjsWebsocket))
 	url := "ws" + server.URL[4:]
 	var done = make(chan struct{})

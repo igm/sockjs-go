@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -38,7 +39,7 @@ func (h *handler) sockjsWebsocket(rw http.ResponseWriter, req *http.Request) {
 		go h.handlerFunc(sess)
 	}
 
-	receiver := newWsReceiver(conn)
+	receiver := newWsReceiver(conn, h.options.WebsocketWriteTimeout)
 	sess.attachReceiver(receiver)
 	readCloseCh := make(chan struct{})
 	go func() {
@@ -62,14 +63,16 @@ func (h *handler) sockjsWebsocket(rw http.ResponseWriter, req *http.Request) {
 }
 
 type wsReceiver struct {
-	conn    *websocket.Conn
-	closeCh chan struct{}
+	conn         *websocket.Conn
+	closeCh      chan struct{}
+	writeTimeout time.Duration
 }
 
-func newWsReceiver(conn *websocket.Conn) *wsReceiver {
+func newWsReceiver(conn *websocket.Conn, writeTimeout time.Duration) *wsReceiver {
 	return &wsReceiver{
-		conn:    conn,
-		closeCh: make(chan struct{}),
+		conn:         conn,
+		closeCh:      make(chan struct{}),
+		writeTimeout: writeTimeout,
 	}
 }
 
@@ -80,6 +83,9 @@ func (w *wsReceiver) sendBulk(messages ...string) {
 }
 
 func (w *wsReceiver) sendFrame(frame string) {
+	if w.writeTimeout != 0 {
+		w.conn.SetWriteDeadline(time.Now().Add(w.writeTimeout))
+	}
 	if err := w.conn.WriteMessage(websocket.TextMessage, []byte(frame)); err != nil {
 		w.close()
 	}

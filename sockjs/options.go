@@ -43,6 +43,9 @@ type Options struct {
 	// Provide a custom Upgrader for Websocket connections to enable features like compression.
 	// See https://godoc.org/github.com/gorilla/websocket#Upgrader for more details.
 	WebsocketUpgrader *websocket.Upgrader
+	// WebsocketWriteTimeout is a custom write timeout for Websocket underlying network connection.
+	// A zero value means writes will not time out.
+	WebsocketWriteTimeout time.Duration
 	// In order to keep proxies and load balancers from closing long running http requests we need to pretend that the connection is active
 	// and send a heartbeat packet once in a while. This setting controls how often this is done.
 	// By default a heartbeat packet is sent every 25 seconds.
