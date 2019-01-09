@@ -13,6 +13,7 @@ func (h *handler) eventSource(rw http.ResponseWriter, req *http.Request) {
 
 	recv := newHTTPReceiver(rw, h.options.ResponseLimit, new(eventSourceFrameWriter))
 	sess, _ := h.sessionByRequest(req)
+	sess.transport = TransportEventSource
 	if err := sess.attachReceiver(recv); err != nil {
 		recv.sendFrame(cFrame)
 		recv.close()

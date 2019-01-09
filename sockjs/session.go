@@ -42,6 +42,9 @@ type session struct {
 	// do not use SockJS framing for raw websocket connections
 	raw bool
 
+	// transport name
+	transport string
+
 	// internal timer used to handle session expiration if no receiver is attached, or heartbeats if recevier is attached
 	sessionTimeoutInterval time.Duration
 	heartbeatInterval      time.Duration
@@ -215,4 +218,8 @@ func (s *session) GetSessionState() SessionState {
 
 func (s *session) Request() *http.Request {
 	return s.req
+}
+
+func (s *session) Transport() string {
+	return s.transport
 }

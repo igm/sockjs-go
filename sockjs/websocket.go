@@ -35,6 +35,9 @@ func (h *handler) sockjsWebsocket(rw http.ResponseWriter, req *http.Request) {
 	}
 	sessID, _ := h.parseSessionID(req.URL)
 	sess := newSession(req, sessID, h.options.DisconnectDelay, h.options.HeartbeatDelay)
+
+	sess.transport = TransportWebSocket
+
 	if h.handlerFunc != nil {
 		go h.handlerFunc(sess)
 	}

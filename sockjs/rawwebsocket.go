@@ -28,6 +28,7 @@ func (h *handler) rawWebsocket(rw http.ResponseWriter, req *http.Request) {
 
 	sessID := ""
 	sess := newSession(req, sessID, h.options.DisconnectDelay, h.options.HeartbeatDelay)
+	sess.transport = TransportWebSocket
 	sess.raw = true
 	if h.handlerFunc != nil {
 		go h.handlerFunc(sess)

@@ -39,6 +39,7 @@ func (h *handler) htmlFile(rw http.ResponseWriter, req *http.Request) {
 	fmt.Fprintf(rw, iframeTemplate, callback)
 	rw.(http.Flusher).Flush()
 	sess, _ := h.sessionByRequest(req)
+	sess.transport = TransportIframeHTMLFile
 	recv := newHTTPReceiver(rw, h.options.ResponseLimit, new(htmlfileFrameWriter))
 	if err := sess.attachReceiver(recv); err != nil {
 		recv.sendFrame(cFrame)

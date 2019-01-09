@@ -21,6 +21,7 @@ func (h *handler) jsonp(rw http.ResponseWriter, req *http.Request) {
 	rw.(http.Flusher).Flush()
 
 	sess, _ := h.sessionByRequest(req)
+	sess.transport = TransportJSONPPOlling
 	recv := newHTTPReceiver(rw, 1, &jsonpFrameWriter{callback})
 	if err := sess.attachReceiver(recv); err != nil {
 		recv.sendFrame(cFrame)
