@@ -39,6 +39,26 @@ func TestHandler_htmlFile(t *testing.T) {
 
 }
 
+func TestHandler_cannotIntoXSS(t *testing.T) {
+	h := newTestHandler()
+	rw := httptest.NewRecorder()
+	// test simple injection
+	req, _ := http.NewRequest("GET", "/server/session/htmlfile?c=fake%3Balert(1337)", nil)
+	h.htmlFile(rw, req)
+	if rw.Code != http.StatusBadRequest {
+		t.Errorf("Unexpected response code, got '%d', expected '%d'", rw.Code, http.StatusBadRequest)
+	}
+
+	h = newTestHandler()
+	rw = httptest.NewRecorder()
+	// test simple injection
+	req, _ = http.NewRequest("GET", "/server/session/htmlfile?c=fake%2Dalert", nil)
+	h.htmlFile(rw, req)
+	if rw.Code != http.StatusBadRequest {
+		t.Errorf("Unexpected response code, got '%d', expected '%d'", rw.Code, http.StatusBadRequest)
+	}
+}
+
 func init() {
 	expectedIFrame += strings.Repeat(" ", 1024-len(expectedIFrame)+len("testCallack")+13)
 	expectedIFrame += "\r\n\r\n"
