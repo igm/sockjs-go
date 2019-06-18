@@ -94,3 +94,13 @@ func TestHandler_jsonpSend(t *testing.T) {
 		t.Errorf("Unexpected body, got '%s', expected 'ok'", rw.Body)
 	}
 }
+
+func TestHandler_jsonpCannotIntoXSS(t *testing.T) {
+	h := newTestHandler()
+	rw := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/server/session/jsonp?c=%3Chtml%3E%3Chead%3E%3Cscript%3Ealert(5520)%3C%2Fscript%3E", nil)
+	h.jsonp(rw, req)
+	if rw.Code != http.StatusBadRequest {
+		t.Errorf("JsonP forwarded an exploitable response.")
+	}
+}
