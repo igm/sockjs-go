@@ -6,18 +6,23 @@ import (
 	"time"
 )
 
-func xhrCors(rw http.ResponseWriter, req *http.Request) {
-	header := rw.Header()
-	origin := req.Header.Get("origin")
-	if origin == "" {
-		origin = "*"
-	}
-	header.Set("Access-Control-Allow-Origin", origin)
+func xhrCorsFactory(defaultOrigin string) func(rw http.ResponseWriter, req *http.Request) {
+	return func(rw http.ResponseWriter, req *http.Request) {
+		header := rw.Header()
+		origin := defaultOrigin
+		if origin == "" {
+			origin = req.Header.Get("origin")
+		}
+		if origin == "" || origin == "null" {
+			origin = "*"
+		}
+		header.Set("Access-Control-Allow-Origin", origin)
 
-	if allowHeaders := req.Header.Get("Access-Control-Request-Headers"); allowHeaders != "" && allowHeaders != "null" {
-		header.Add("Access-Control-Allow-Headers", allowHeaders)
+		if allowHeaders := req.Header.Get("Access-Control-Request-Headers"); allowHeaders != "" && allowHeaders != "null" {
+			header.Add("Access-Control-Allow-Headers", allowHeaders)
+		}
+		header.Set("Access-Control-Allow-Credentials", "true")
 	}
-	header.Set("Access-Control-Allow-Credentials", "true")
 }
 
 func xhrOptions(rw http.ResponseWriter, req *http.Request) {
