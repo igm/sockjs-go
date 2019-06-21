@@ -10,6 +10,7 @@ import (
 func TestXhrCors(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/", nil)
+	xhrCors := xhrCorsFactory("")
 	xhrCors(recorder, req)
 	acao := recorder.Header().Get("access-control-allow-origin")
 	if acao != "*" {
