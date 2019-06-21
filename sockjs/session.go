@@ -68,8 +68,8 @@ type receiver interface {
 func newSession(req *http.Request, sessionID string, sessionTimeoutInterval, heartbeatInterval time.Duration) *session {
 
 	s := &session{
-		id:  sessionID,
-		req: req,
+		id:                     sessionID,
+		req:                    req,
 		sessionTimeoutInterval: sessionTimeoutInterval,
 		heartbeatInterval:      heartbeatInterval,
 		recvBuffer:             newMessageBuffer(),
