@@ -6,22 +6,38 @@ import (
 	"time"
 )
 
-func xhrCorsFactory(defaultOrigin string) func(rw http.ResponseWriter, req *http.Request) {
+func xhrCorsFactory(opts Options) func(rw http.ResponseWriter, req *http.Request) {
 	return func(rw http.ResponseWriter, req *http.Request) {
 		header := rw.Header()
-		origin := defaultOrigin
-		if origin == "" {
-			origin = req.Header.Get("origin")
-		}
-		if origin == "" || origin == "null" {
-			origin = "*"
-		}
-		header.Set("Access-Control-Allow-Origin", origin)
+		var corsEnabled bool
+		var corsOrigin string
 
-		if allowHeaders := req.Header.Get("Access-Control-Request-Headers"); allowHeaders != "" && allowHeaders != "null" {
-			header.Add("Access-Control-Allow-Headers", allowHeaders)
+		if opts.CheckOrigin != nil {
+			corsEnabled = opts.CheckOrigin(req)
+			if corsEnabled {
+				corsOrigin = req.Header.Get("origin")
+				if corsOrigin == "" {
+					corsOrigin = "*"
+				}
+			}
+		} else {
+			corsEnabled = true
+			corsOrigin = opts.Origin
+			if corsOrigin == "" {
+				corsOrigin = req.Header.Get("origin")
+			}
+			if corsOrigin == "" || corsOrigin == "null" {
+				corsOrigin = "*"
+			}
 		}
-		header.Set("Access-Control-Allow-Credentials", "true")
+
+		if corsEnabled {
+			header.Set("Access-Control-Allow-Origin", corsOrigin)
+			if allowHeaders := req.Header.Get("Access-Control-Request-Headers"); allowHeaders != "" && allowHeaders != "null" {
+				header.Add("Access-Control-Allow-Headers", allowHeaders)
+			}
+			header.Set("Access-Control-Allow-Credentials", "true")
+		}
 	}
 }
 

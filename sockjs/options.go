@@ -61,6 +61,13 @@ type Options struct {
 	// CORS origin to be set on outgoing responses. If set to the empty string, it will default to the
 	// incoming `Origin` header, or "*" if the Origin header isn't set.
 	Origin string
+	// CheckOrigin allows to dynamically decide whether server should set CORS
+	// headers or not in case of XHR requests. When true returned CORS will be
+	// configured with allowed origin equal to incoming `Origin` header, or "*"
+	// if the request Origin header isn't set. When false returned CORS headers
+	// won't be set at all. If this function is nil then Origin option above will
+	// be taken into account.
+	CheckOrigin func(*http.Request) bool
 }
 
 // DefaultOptions is a convenient set of options to be used for sockjs
