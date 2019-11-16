@@ -10,6 +10,7 @@ import (
 func TestXhrCors(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/", nil)
+	xhrCors := xhrCorsFactory(Options{})
 	xhrCors(recorder, req)
 	acao := recorder.Header().Get("access-control-allow-origin")
 	if acao != "*" {
@@ -21,7 +22,6 @@ func TestXhrCors(t *testing.T) {
 	if acao != "localhost" {
 		t.Errorf("Incorrect value for access-control-allow-origin header, got %s, expected %s", acao, "localhost")
 	}
-
 	req.Header.Set("access-control-request-headers", "some value")
 	rec := httptest.NewRecorder()
 	xhrCors(rec, req)
@@ -42,6 +42,53 @@ func TestXhrCors(t *testing.T) {
 	acac := rec.Header()["Access-Control-Allow-Credentials"]
 	if len(acac) != 1 || acac[0] != "true" {
 		t.Errorf("Incorent value for ACAC, got %s", strings.Join(acac, ","))
+	}
+}
+
+func TestCheckOriginCORSAllowedNullOrigin(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/", nil)
+	xhrCors := xhrCorsFactory(Options{
+		CheckOrigin: func(req *http.Request) bool {
+			return true
+		},
+	})
+	req.Header.Set("origin", "null")
+	xhrCors(recorder, req)
+	acao := recorder.Header().Get("access-control-allow-origin")
+	if acao != "null" {
+		t.Errorf("Incorrect value for access-control-allow-origin header, got %s, expected %s", acao, "null")
+	}
+}
+
+func TestCheckOriginCORSAllowedEmptyOrigin(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/", nil)
+	xhrCors := xhrCorsFactory(Options{
+		CheckOrigin: func(req *http.Request) bool {
+			return true
+		},
+	})
+	xhrCors(recorder, req)
+	acao := recorder.Header().Get("access-control-allow-origin")
+	if acao != "*" {
+		t.Errorf("Incorrect value for access-control-allow-origin header, got %s, expected %s", acao, "*")
+	}
+}
+
+func TestCheckOriginCORSNotAllowed(t *testing.T) {
+	recorder := httptest.NewRecorder()
+	req, _ := http.NewRequest("GET", "/", nil)
+	xhrCors := xhrCorsFactory(Options{
+		CheckOrigin: func(req *http.Request) bool {
+			return false
+		},
+	})
+	req.Header.Set("origin", "localhost")
+	xhrCors(recorder, req)
+	acao := recorder.Header().Get("access-control-allow-origin")
+	if acao != "" {
+		t.Errorf("Incorrect value for access-control-allow-origin header, got %s, expected %s", acao, "")
 	}
 }
 

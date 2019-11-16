@@ -1,6 +1,8 @@
 package sockjs
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -34,8 +36,37 @@ func TestHandler_Create(t *testing.T) {
 	}
 }
 
-func TestHandler_ParseSessionID_Plain(t *testing.T) {
-	h := newHandler("/prefix", testOptions, nil)
+func TestHandler_RootPrefixInfoHandler(t *testing.T) {
+	handler := newHandler("", testOptions, nil)
+	if handler.Prefix() != "" {
+		t.Errorf("Prefix not properly set, got '%s' expected '%s'", handler.Prefix(), "")
+	}
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	resp, err := http.Get(server.URL + "/info")
+	if err != nil {
+		t.Errorf("There should not be any error, got '%s'", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("Unexpected status code receiver, got '%d' expected '%d'", resp.StatusCode, http.StatusOK)
+	}
+	infoData, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Errorf("Error reading body: '%v'", err)
+	}
+	var i info
+	err = json.Unmarshal(infoData, &i)
+	if err != nil {
+		t.Fatalf("Error unmarshaling info: '%v', data was: '%s'", err, string(infoData))
+	}
+	if i.Websocket != true {
+		t.Fatalf("Expected websocket to be true")
+	}
+}
+
+func TestHandler_ParseSessionId(t *testing.T) {
+	h := handler{prefix: "/prefix"}
 	url, _ := url.Parse("http://server:80/prefix/server/session/whatever")
 	if session, err := h.parseSessionID(url); session != "session" || err != nil {
 		t.Errorf("Wrong session parsed, got '%s' expected '%s' with error = '%v'", session, "session", err)

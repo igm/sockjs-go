@@ -93,6 +93,7 @@ func TestHandler_RawWebSocketTerminationByClient(t *testing.T) {
 
 func TestHandler_RawWebSocketCommunication(t *testing.T) {
 	h := newTestHandler()
+	h.options.WebsocketWriteTimeout = time.Second
 	server := httptest.NewServer(http.HandlerFunc(h.rawWebsocket))
 	// defer server.CloseClientConnections()
 	url := "ws" + server.URL[4:]
@@ -122,6 +123,7 @@ func TestHandler_RawWebSocketCommunication(t *testing.T) {
 
 func TestHandler_RawCustomWebSocketCommunication(t *testing.T) {
 	h := newTestHandler()
+	h.options.WebsocketWriteTimeout = time.Second
 	h.options.WebsocketUpgrader = &websocket.Upgrader{
 		ReadBufferSize:  0,
 		WriteBufferSize: 0,
