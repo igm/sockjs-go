@@ -3,6 +3,7 @@ package sockjs
 import (
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -15,11 +16,13 @@ func TestHandler_EventSource(t *testing.T) {
 	go func() {
 		var sess *session
 		for exists := false; !exists; {
+			runtime.Gosched()
 			h.sessionsMux.Lock()
 			sess, exists = h.sessions["session"]
 			h.sessionsMux.Unlock()
 		}
 		for exists := false; !exists; {
+			runtime.Gosched()
 			sess.RLock()
 			exists = sess.recv != nil
 			sess.RUnlock()
