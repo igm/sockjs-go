@@ -92,7 +92,12 @@ func TestSession_Timeout(t *testing.T) {
 	select {
 	case <-sess.closeCh:
 	case <-time.After(20 * time.Millisecond):
-		t.Errorf("sess close notification channel should close")
+		select {
+		case <-sess.closeCh:
+			// still ok
+		default:
+			t.Errorf("sess close notification channel should close")
+		}
 	}
 	if sess.GetSessionState() != SessionClosed {
 		t.Errorf("Session did not timeout")

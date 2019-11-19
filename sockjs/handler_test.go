@@ -30,6 +30,11 @@ func TestHandler_Create(t *testing.T) {
 	resp, err := http.Get(server.URL + "/echo")
 	if err != nil {
 		t.Errorf("There should not be any error, got '%s'", err)
+		t.FailNow()
+	}
+	if resp == nil {
+		t.Errorf("Response should not be nil")
+		t.FailNow()
 	}
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Unexpected status code receiver, got '%d' expected '%d'", resp.StatusCode, http.StatusOK)
@@ -47,7 +52,13 @@ func TestHandler_RootPrefixInfoHandler(t *testing.T) {
 	resp, err := http.Get(server.URL + "/info")
 	if err != nil {
 		t.Errorf("There should not be any error, got '%s'", err)
+		t.FailNow()
 	}
+	if resp == nil {
+		t.Errorf("Response should not be nil")
+		t.FailNow()
+	}
+
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Unexpected status code receiver, got '%d' expected '%d'", resp.StatusCode, http.StatusOK)
 	}

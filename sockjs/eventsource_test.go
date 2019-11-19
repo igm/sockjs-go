@@ -3,6 +3,7 @@ package sockjs
 import (
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"testing"
 	"time"
 )
@@ -13,14 +14,22 @@ func TestHandler_EventSource(t *testing.T) {
 	h := newTestHandler()
 	h.options.ResponseLimit = 1024
 	go func() {
-		time.Sleep(1 * time.Millisecond)
-		h.sessionsMux.Lock()
-		defer h.sessionsMux.Unlock()
-		sess := h.sessions["session"]
-		sess.Lock()
-		defer sess.Unlock()
-		recv := sess.recv
-		recv.close()
+		var sess *session
+		for exists := false; !exists; {
+			runtime.Gosched()
+			h.sessionsMux.Lock()
+			sess, exists = h.sessions["session"]
+			h.sessionsMux.Unlock()
+		}
+		for exists := false; !exists; {
+			runtime.Gosched()
+			sess.RLock()
+			exists = sess.recv != nil
+			sess.RUnlock()
+		}
+		sess.RLock()
+		sess.recv.close()
+		sess.RUnlock()
 	}()
 	h.eventSource(rw, req)
 	contentType := rw.Header().Get("content-type")
@@ -65,7 +74,11 @@ func TestHandler_EventSourceConnectionInterrupted(t *testing.T) {
 	rw := newClosableRecorder()
 	close(rw.closeNotifCh)
 	h.eventSource(rw, req)
-	time.Sleep(1 * time.Millisecond)
+	select {
+	case <-sess.closeCh:
+	case <-time.After(1 * time.Second):
+		t.Errorf("session close channel should be closed")
+	}
 	sess.Lock()
 	if sess.state != SessionClosed {
 		t.Errorf("Session should be closed")

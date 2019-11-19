@@ -4,6 +4,7 @@ import (
 	"io"
 	"net/http/httptest"
 	"testing"
+	"time"
 )
 
 type testFrameWriter struct {
@@ -94,7 +95,11 @@ func TestHttpReceiver_ConnectionInterrupt(t *testing.T) {
 	rw := newClosableRecorder()
 	recv := newHTTPReceiver(rw, 1024, nil)
 	rw.closeNotifCh <- true
-	recv.Lock()
+	select {
+	case <-recv.interruptCh:
+	case <-time.After(1 * time.Second):
+		t.Errorf("should interrupt")
+	}
 	if recv.state != stateHTTPReceiverClosed {
 		t.Errorf("Unexpected state, got '%d', expected '%d'", recv.state, stateHTTPReceiverClosed)
 	}
