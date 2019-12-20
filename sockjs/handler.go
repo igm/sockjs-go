@@ -22,11 +22,6 @@ var (
 	}
 )
 
-type CheckableHandler interface {
-	http.Handler
-	SetRequestChecker(c func(req *http.Request) bool)
-}
-
 type handler struct {
 	prefix      string
 	options     Options
@@ -40,11 +35,11 @@ type handler struct {
 
 // NewHandler creates new HTTP handler that conforms to the basic net/http.Handler interface.
 // It takes path prefix, options and sockjs handler function as parameters
-func NewHandler(prefix string, opts Options, handleFunc func(Session), checker RequestChecker) CheckableHandler {
+func NewHandler(prefix string, opts Options, handleFunc func(Session), checker RequestChecker) *handler {
 	return newHandler(prefix, opts, handleFunc, checker)
 }
 
-func newHandler(prefix string, opts Options, handlerFunc func(Session), checker RequestChecker) CheckableHandler {
+func newHandler(prefix string, opts Options, handlerFunc func(Session), checker RequestChecker) *handler {
 	hChacker := DefaultRequestChecker
 	if checker != nil {
 		hChacker = checker

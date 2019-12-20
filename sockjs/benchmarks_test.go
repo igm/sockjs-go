@@ -23,7 +23,7 @@ func BenchmarkSimple(b *testing.B) {
 			session.Send(m)
 		}
 		session.Close(1024, "Close")
-	})
+	}, nil)
 	server := httptest.NewServer(h)
 	defer server.Close()
 
@@ -47,7 +47,7 @@ func BenchmarkMessages(b *testing.B) {
 			session.Send(msg)
 		}
 		session.Close(1024, "Close")
-	})
+	}, nil)
 	server := httptest.NewServer(h)
 
 	var wg sync.WaitGroup
@@ -115,7 +115,7 @@ func BenchmarkMessageWebsocket(b *testing.B) {
 				b.Fatalf("Send()=%s", err)
 			}
 		}
-	})
+	}, nil)
 
 	server := httptest.NewServer(h)
 	defer server.Close()

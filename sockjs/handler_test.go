@@ -17,7 +17,7 @@ func init() {
 }
 
 func TestHandler_Create(t *testing.T) {
-	handler := newHandler("/echo", testOptions, nil)
+	handler := newHandler("/echo", testOptions, nil, nil)
 	if handler.Prefix() != "/echo" {
 		t.Errorf("Prefix not properly set, got '%s' expected '%s'", handler.Prefix(), "/echo")
 	}
@@ -42,7 +42,7 @@ func TestHandler_Create(t *testing.T) {
 }
 
 func TestHandler_RootPrefixInfoHandler(t *testing.T) {
-	handler := newHandler("", testOptions, nil)
+	handler := newHandler("", testOptions, nil, nil)
 	if handler.Prefix() != "" {
 		t.Errorf("Prefix not properly set, got '%s' expected '%s'", handler.Prefix(), "")
 	}
@@ -89,7 +89,7 @@ func TestHandler_ParseSessionId(t *testing.T) {
 }
 
 func TestHandler_SessionByRequest(t *testing.T) {
-	h := newHandler("", testOptions, nil)
+	h := newHandler("", testOptions, nil, nil)
 	h.options.DisconnectDelay = 10 * time.Millisecond
 	var handlerFuncCalled = make(chan Session)
 	h.handlerFunc = func(conn Session) { handlerFuncCalled <- conn }
