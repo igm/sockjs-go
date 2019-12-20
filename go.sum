@@ -1,4 +1,8 @@
 github.com/gorilla/websocket v1.4.1 h1:q7AeDBpnBk8AogcD4DSag/Ukw/KV+YhzLj2bP5HvKCM=
 github.com/gorilla/websocket v1.4.1/go.mod h1:YR8l580nyteQvAITg2hZ9XVh4b55+EU/adAjf1fMHhE=
+github.com/igm/pubsub v1.0.0 h1:K3r9hgE32X2WBvc9PDk//VqPOS9nqApGFlp4O5Fudd8=
+github.com/igm/pubsub v1.0.0/go.mod h1:q4OjwAiOVflOQD1dXrh3QfJ+IqTG/xiQIvZwDeQIiqY=
 github.com/igm/sockjs-go v2.0.1+incompatible h1:iyv0auU1Xh1KC8N+GIiLPa3zZXwRsfRZTIzo09UzeUU=
 github.com/igm/sockjs-go v2.0.1+incompatible/go.mod h1:Yu6pvqjNniWNJe07LPObeCG6R77Qc97C6Kss0roF8tU=
+gopkg.in/igm/sockjs-go.v2 v2.0.1 h1:TJr+r4W3oNGANvL5UEH4bIemyXL84+qlO2HIJDOyLGk=
+gopkg.in/igm/sockjs-go.v2 v2.0.1/go.mod h1:xvdpHZ3OpjP0TzQzl+174DglrrnYZKVd6qHPIX20Z1Q=
