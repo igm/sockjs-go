@@ -14,6 +14,19 @@ var (
 	prefixRegexpMu sync.Mutex // protects prefixRegexp
 )
 
+type RequestChecker func(req *http.Request) bool
+
+var (
+	DefaultRequestChecker = func(req *http.Request) bool {
+		return true
+	}
+)
+
+type CheckableHandler interface {
+	http.Handler
+	SetRequestChecker(c func(req *http.Request) bool)
+}
+
 type handler struct {
 	prefix      string
 	options     Options
@@ -22,20 +35,22 @@ type handler struct {
 
 	sessionsMux sync.Mutex
 	sessions    map[string]*session
+	reqChecker  RequestChecker
 }
 
 // NewHandler creates new HTTP handler that conforms to the basic net/http.Handler interface.
 // It takes path prefix, options and sockjs handler function as parameters
-func NewHandler(prefix string, opts Options, handleFunc func(Session)) http.Handler {
+func NewHandler(prefix string, opts Options, handleFunc func(Session)) CheckableHandler {
 	return newHandler(prefix, opts, handleFunc)
 }
 
-func newHandler(prefix string, opts Options, handlerFunc func(Session)) *handler {
+func newHandler(prefix string, opts Options, handlerFunc func(Session)) CheckableHandler {
 	h := &handler{
 		prefix:      prefix,
 		options:     opts,
 		handlerFunc: handlerFunc,
 		sessions:    make(map[string]*session),
+		reqChecker:  DefaultRequestChecker,
 	}
 	xhrCors := xhrCorsFactory(opts)
 	matchPrefix := prefix
@@ -77,6 +92,10 @@ func newHandler(prefix string, opts Options, handlerFunc func(Session)) *handler
 func (h *handler) Prefix() string { return h.prefix }
 
 func (h *handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	if !h.reqChecker(req) {
+		rw.WriteHeader(http.StatusForbidden)
+		return
+	}
 	// iterate over mappings
 	allowedMethods := []string{}
 	for _, mapping := range h.mappings {
@@ -107,7 +126,6 @@ func (h *handler) parseSessionID(url *url.URL) (string, error) {
 		prefixRegexp[h.prefix] = session
 	}
 	prefixRegexpMu.Unlock()
-
 	matches := session.FindStringSubmatch(url.Path)
 	if len(matches) == 3 {
 		return matches[2], nil
