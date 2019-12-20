@@ -1,9 +1,6 @@
-[![](https://img.shields.io/badge/godoc-reference-5272B4.svg)](https://godoc.org/github.com/kanopeld/sockjs-go)
-[![Go Report Card](https://goreportcard.com/badge/github.com/kanopeld/sockjs-go)](https://goreportcard.com/report/github.com/kanopeld/sockjs-go)
+[![](https://img.shields.io/badge/godoc-reference-5272B4.svg)](https://godoc.org/github.com/kanopeld/sockjs-go/socket)
+[![Go Report Card](https://goreportcard.com/badge/github.com/kanopeld/sockjs-go/socket)](https://goreportcard.com/report/github.com/kanopeld/sockjs-go/socket)
 ![](https://github.com/kanopeld/sockjs-go/workflows/ci/badge.svg)
-
-
-[![Build Status](https://api.travis-ci.org/igm/sockjs-go.svg?branch=v2)](https://travis-ci.org/igm/sockjs-go) [![GoDoc](http://godoc.org/gopkg.in/igm/sockjs-go.v2/sockjs?status.svg)](http://godoc.org/gopkg.in/igm/sockjs-go.v2/sockjs) [![Coverage Status](https://coveralls.io/repos/igm/sockjs-go/badge.svg?branch=v2)](https://coveralls.io/r/igm/sockjs-go?branch=v2)
 
 What is SockJS?
 =
@@ -13,6 +10,7 @@ object. SockJS gives you a coherent, cross-browser, Javascript API
 which creates a low latency, full duplex, cross-domain communication
 channel between the browser and the web server, with WebSockets or without.
 This necessitates the use of a server, which this is one version of, for GO.
+
 
 
 SockJS-Go server library
