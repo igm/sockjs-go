@@ -40,17 +40,22 @@ type handler struct {
 
 // NewHandler creates new HTTP handler that conforms to the basic net/http.Handler interface.
 // It takes path prefix, options and sockjs handler function as parameters
-func NewHandler(prefix string, opts Options, handleFunc func(Session)) CheckableHandler {
-	return newHandler(prefix, opts, handleFunc)
+func NewHandler(prefix string, opts Options, handleFunc func(Session), checker RequestChecker) CheckableHandler {
+	return newHandler(prefix, opts, handleFunc, checker)
 }
 
-func newHandler(prefix string, opts Options, handlerFunc func(Session)) CheckableHandler {
+func newHandler(prefix string, opts Options, handlerFunc func(Session), checker RequestChecker) CheckableHandler {
+	hChacker := DefaultRequestChecker
+	if checker != nil {
+		hChacker = checker
+	}
+
 	h := &handler{
 		prefix:      prefix,
 		options:     opts,
 		handlerFunc: handlerFunc,
 		sessions:    make(map[string]*session),
-		reqChecker:  DefaultRequestChecker,
+		reqChecker:  hChacker,
 	}
 	xhrCors := xhrCorsFactory(opts)
 	matchPrefix := prefix
