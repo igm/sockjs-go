@@ -205,6 +205,20 @@ func (s *session) Send(msg string) error {
 	return s.sendMessage(msg)
 }
 
+func (s *session) ReceiverType() string {
+	if s.recv != nil {
+		switch s.recv.(type) {
+		case *wsReceiver:
+			return "Websocket"
+		case *rawWsReceiver:
+			return "Raw Websocket"
+		case *httpReceiver:
+			return "HTTP Fallback"
+		}
+	}
+	return "None"
+}
+
 func (s *session) ID() string { return s.id }
 
 func (s *session) GetSessionState() SessionState {
