@@ -1,4 +1,6 @@
-[![Build Status](https://api.travis-ci.org/igm/sockjs-go.svg?branch=v2)](https://travis-ci.org/igm/sockjs-go) [![GoDoc](http://godoc.org/gopkg.in/igm/sockjs-go.v2/sockjs?status.svg)](http://godoc.org/gopkg.in/igm/sockjs-go.v2/sockjs) [![Coverage Status](https://coveralls.io/repos/igm/sockjs-go/badge.svg?branch=v2)](https://coveralls.io/r/igm/sockjs-go?branch=v2)
+[![Build Status](https://api.travis-ci.org/igm/sockjs-go.svg?branch=v2)](https://travis-ci.org/igm/sockjs-go) 
+[![GoDoc](http://godoc.org/github.com/igm/sockjs-go/v2/sockjs?status.svg)](http://godoc.org/github.com/igm/sockjs-go/v2/sockjs) 
+[![Coverage Status](https://coveralls.io/repos/igm/sockjs-go/badge.svg?branch=v2)](https://coveralls.io/r/igm/sockjs-go?branch=v2)
 
 What is SockJS?
 =
@@ -27,10 +29,10 @@ Each version should have different import path and thus in the beginning
 SockJS-Go project adopted [gopkg.in](http://gopkg.in) approach for versioning. 
 
 With the introduction of [go modules](https://golang.org/doc/go1.11#modules) we adopted
-the standard and update the source layout accordingly. 
+the standard and updated the source layout accordingly. 
 
 All the development for *all versions* happens in `master`. Branches `v2` and `v1` will 
-remain in the repository for backwards compatibility reasons so that
+remain in the repository for backward compatibility reasons so that
 importing `gopkg.in/igm/sockjs-go.v2/sockjs` will work as before. 
 No further functionality will be added into those branches.
 
