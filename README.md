@@ -15,25 +15,32 @@ SockJS-Go server library
 
 SockJS-Go is a [SockJS](https://github.com/sockjs/sockjs-client) server library written in Go.
 
-To use current stable version **v2**
+To use current stable version **v2** use the import path:
 
-    go get gopkg.in/igm/sockjs-go.v2/sockjs
-
-To use previous version **v1** (DEPRECATED)
-
-    go get gopkg.in/igm/sockjs-go.v1/sockjs
-
-To install **development** version of `sockjs-go` run:
-
-    go get github.com/igm/sockjs-go/sockjs
+    github.com/igm/sockjs-go/v2/sockjs
 
 
 Versioning
 -
 
-SockJS-Go project adopted [gopkg.in](http://gopkg.in) approach for versioning. SockJS-Go library details can be found [here](https://gopkg.in/igm/sockjs-go.v2/sockjs)
+Each version should have different import path and thus in the beginning 
+SockJS-Go project adopted [gopkg.in](http://gopkg.in) approach for versioning. 
 
+With the introduction of [go modules](https://golang.org/doc/go1.11#modules) we adopted
+the standard and update the source layout accordingly. 
 
+All the development for *all versions* happens in `master`. Branches `v2` and `v1` will 
+remain in the repository for backwards compatibility reasons so that
+importing `gopkg.in/igm/sockjs-go.v2/sockjs` will work as before. 
+No further functionality will be added into those branches.
+
+Migration to go mod
+--
+
+In order to migrate existing project to go modules change the import path from
+`gopkg.in/igm/sockjs-go.v2/sockjs` to `github.com/igm/sockjs-go/v2/sockjs` in the codebase.
+
+ 
 Example
 -
 
@@ -47,7 +54,7 @@ import (
 	"log"
 	"net/http"
 
-	"gopkg.in/igm/sockjs-go.v2/sockjs"
+	"github.com/igm/sockjs-go/v2/sockjs"
 )
 
 func main() {
