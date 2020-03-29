@@ -1,8 +1,7 @@
 language: go
 
 go:
-  - "1.14.x"
-  - tip
+  - 1.14.x
 
 before_install:
   - go get golang.org/x/tools/cmd/cover
@@ -16,4 +15,4 @@ install:
   - go get -d -v -t ./...
 
 script:
-  - go test -v -race ./...
+  - go test -race ./...
