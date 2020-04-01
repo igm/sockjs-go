@@ -1,21 +1,18 @@
-sudo: false
 language: go
 
 go:
-  - "1.13.x"
-  - "1.12.x"
-  - tip
+  - "1.14.x"
 
 before_install:
   - go get golang.org/x/tools/cmd/cover
   - go get github.com/mattn/goveralls
 
 after_success:
-  - go test ./sockjs -coverprofile=profile.out -covermode=count
+  - go test ./... -coverprofile=profile.out -covermode=count
   - PATH=$HOME/gopath/bin:$PATH goveralls -coverprofile=profile.out -service=travis-ci
 
 install:
   - go get -d -v -t ./...
 
 script:
-  - go test ./sockjs -v -race
+  - go test -race ./...
