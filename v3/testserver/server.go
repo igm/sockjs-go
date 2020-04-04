@@ -13,7 +13,7 @@ type testHandler struct {
 	handler http.Handler
 }
 
-func newSockjsHandler(prefix string, options sockjs.Options, fn func(*sockjs.Session)) *testHandler {
+func newSockjsHandler(prefix string, options sockjs.Options, fn func(sockjs.Session)) *testHandler {
 	return &testHandler{prefix, sockjs.NewHandler(prefix, options, fn)}
 }
 
@@ -53,8 +53,8 @@ func (t testHandlers) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	http.NotFound(rw, req)
 }
 
-func closeHandler(conn *sockjs.Session) { conn.Close(3000, "Go away!") }
-func echoHandler(conn *sockjs.Session) {
+func closeHandler(conn sockjs.Session) { conn.Close(3000, "Go away!") }
+func echoHandler(conn sockjs.Session) {
 	log.Println("New connection created")
 	for {
 		if msg, err := conn.Recv(); err != nil {

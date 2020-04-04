@@ -9,23 +9,23 @@ import (
 	"time"
 )
 
-func newTestSession() *Session {
+func newTestSession() *session {
 	// session with long expiration and heartbeats with ID
 	return newSession(nil, "sessionId", 1000*time.Second, 1000*time.Second)
 }
 
 func TestSession_Create(t *testing.T) {
 	session := newTestSession()
-	session.sendMessage("this is a message")
+	_ = session.sendMessage("this is a message")
 	if len(session.sendBuffer) != 1 {
-		t.Errorf("Session send buffer should contain 1 message")
+		t.Errorf("session send buffer should contain 1 message")
 	}
-	session.sendMessage("another message")
+	_ = session.sendMessage("another message")
 	if len(session.sendBuffer) != 2 {
-		t.Errorf("Session send buffer should contain 2 messages")
+		t.Errorf("session send buffer should contain 2 messages")
 	}
 	if session.GetSessionState() != SessionOpening {
-		t.Errorf("Session in wrong state %v, should be %v", session.GetSessionState(), SessionOpening)
+		t.Errorf("session in wrong state %v, should be %v", session.GetSessionState(), SessionOpening)
 	}
 }
 
@@ -34,7 +34,7 @@ func TestSession_Request(t *testing.T) {
 	sess := newSession(req, "session", time.Second, time.Second)
 
 	if sess.Request() == nil {
-		t.Error("Session initial request should have been saved.")
+		t.Error("session initial request should have been saved.")
 	}
 	if sess.Request().URL.String() != req.URL.String() {
 		t.Errorf("Expected stored session request URL to equal %s, got %s", req.URL.String(), sess.Request().URL.String())
@@ -46,7 +46,7 @@ func TestSession_ConcurrentSend(t *testing.T) {
 	done := make(chan bool)
 	for i := 0; i < 100; i++ {
 		go func() {
-			session.sendMessage("message D")
+			_ = session.sendMessage("message D")
 			done <- true
 		}()
 	}
@@ -54,34 +54,20 @@ func TestSession_ConcurrentSend(t *testing.T) {
 		<-done
 	}
 	if len(session.sendBuffer) != 100 {
-		t.Errorf("Session send buffer should contain 100 messages")
+		t.Errorf("session send buffer should contain 100 messages")
 	}
 }
 
 func TestSession_AttachReceiver(t *testing.T) {
 	session := newTestSession()
 	recv := &testReceiver{}
-	// recv := &mockRecv{
-	// 	_sendFrame: func(frame string) {
-	// 		if frame != "o" {
-	// 			t.Errorf("Incorrect open header received")
-	// 		}
-	// 	},
-	// 	_sendBulk: func(...string) {},
-	// }
 	if err := session.attachReceiver(recv); err != nil {
 		t.Errorf("Should not return error")
 	}
 	if session.GetSessionState() != SessionActive {
-		t.Errorf("Session in wrong state after receiver attached %d, should be %d", session.GetSessionState(), SessionActive)
+		t.Errorf("session in wrong state after receiver attached %d, should be %d", session.GetSessionState(), SessionActive)
 	}
 	session.detachReceiver()
-	// recv = &mockRecv{
-	// 	_sendFrame: func(frame string) {
-	// 		t.Errorf("No frame shold be send, got '%s'", frame)
-	// 	},
-	// 	_sendBulk: func(...string) {},
-	// }
 	if err := session.attachReceiver(recv); err != nil {
 		t.Errorf("Should not return error")
 	}
@@ -100,7 +86,7 @@ func TestSession_Timeout(t *testing.T) {
 		}
 	}
 	if sess.GetSessionState() != SessionClosed {
-		t.Errorf("Session did not timeout")
+		t.Errorf("session did not timeout")
 	}
 }
 
@@ -125,7 +111,7 @@ func TestSession_AttachReceiverAndCheckHeartbeats(t *testing.T) {
 	session := newSession(nil, "id", time.Second, 10*time.Millisecond) // 10ms heartbeats
 	recv := newTestReceiver()
 	defer close(recv.doneCh)
-	session.attachReceiver(recv)
+	noError(t, session.attachReceiver(recv))
 	time.Sleep(120 * time.Millisecond)
 	recv.Lock()
 	if len(recv.frames) < 10 || len(recv.frames) > 13 { // should get around 10 heartbeats (120ms/10ms)
@@ -160,30 +146,30 @@ func TestSession_DetachRecevier(t *testing.T) {
 	session := newTestSession()
 	session.detachReceiver()
 	session.detachReceiver() // idempotent operation
-	session.attachReceiver(newTestReceiver())
+	_ = session.attachReceiver(newTestReceiver())
 	session.detachReceiver()
 
 }
 
 func TestSession_SendWithRecv(t *testing.T) {
 	session := newTestSession()
-	session.sendMessage("message A")
-	session.sendMessage("message B")
+	noError(t, session.sendMessage("message A"))
+	_ = session.sendMessage("message B")
 	if len(session.sendBuffer) != 2 {
 		t.Errorf("There should be 2 messages in buffer, but there are %d", len(session.sendBuffer))
 	}
 	recv := newTestReceiver()
 	defer close(recv.doneCh)
 
-	session.attachReceiver(recv)
+	noError(t, session.attachReceiver(recv))
 	if len(recv.frames[1:]) != 2 {
 		t.Errorf("Reciver should get 2 message frames from session, got %d", len(recv.frames))
 	}
-	session.sendMessage("message C")
+	noError(t, session.sendMessage("message C"))
 	if len(recv.frames[1:]) != 3 {
 		t.Errorf("Reciver should get 3 message frames from session, got %d", len(recv.frames))
 	}
-	session.sendMessage("message D")
+	noError(t, session.sendMessage("message D"))
 	if len(recv.frames[1:]) != 4 {
 		t.Errorf("Reciver should get 4 frames from session, got %d", len(recv.frames))
 	}
@@ -205,10 +191,10 @@ func TestSession_Recv(t *testing.T) {
 	go func() {
 		defer wg.Done()
 
-		session.accept("message A")
-		session.accept("message B")
+		noError(t, session.accept("message A"))
+		noError(t, session.accept("message B"))
 		if err := session.accept("message C"); err != ErrSessionNotOpen {
-			t.Errorf("Session should not accept new messages if closed, got '%v' expected '%v'", err, ErrSessionNotOpen)
+			t.Errorf("session should not accept new messages if closed, got '%v' expected '%v'", err, ErrSessionNotOpen)
 		}
 	}()
 	if msg, _ := session.Recv(); msg != "message A" {
@@ -226,17 +212,17 @@ func TestSession_Closing(t *testing.T) {
 	session := newTestSession()
 	session.closing()
 	if _, err := session.Recv(); err == nil {
-		t.Errorf("Session's receive buffer channel should close")
+		t.Errorf("session's receive buffer channel should close")
 	}
 	if err := session.sendMessage("some message"); err != ErrSessionNotOpen {
-		t.Errorf("Session should not accept new message after close")
+		t.Errorf("session should not accept new message after close")
 	}
 }
 
 func TestSession_SessionRecv(t *testing.T) {
 	s := newTestSession()
 	go func() {
-		s.accept("message 1")
+		noError(t, s.accept("message 1"))
 	}()
 	msg, err := s.Recv()
 	if msg != "message 1" || err != nil {
@@ -246,12 +232,12 @@ func TestSession_SessionRecv(t *testing.T) {
 		s.closing()
 		_, err := s.Recv()
 		if err != ErrSessionNotOpen {
-			t.Errorf("Session not in correct state, got '%v', expected '%v'", err, ErrSessionNotOpen)
+			t.Errorf("session not in correct state, got '%v', expected '%v'", err, ErrSessionNotOpen)
 		}
 	}()
 	_, err = s.Recv()
 	if err != ErrSessionNotOpen {
-		t.Errorf("Session not in correct state, got '%v', expected '%v'", err, ErrSessionNotOpen)
+		t.Errorf("session not in correct state, got '%v', expected '%v'", err, ErrSessionNotOpen)
 	}
 }
 
@@ -259,7 +245,7 @@ func TestSession_SessionSend(t *testing.T) {
 	s := newTestSession()
 	err := s.Send("message A")
 	if err != nil {
-		t.Errorf("Session should take messages by default")
+		t.Errorf("session should take messages by default")
 	}
 	if len(s.sendBuffer) != 1 || s.sendBuffer[0] != "message A" {
 		t.Errorf("Message not properly queued in session, got '%v'", s.sendBuffer)
@@ -270,7 +256,7 @@ func TestSession_SessionClose(t *testing.T) {
 	s := newTestSession()
 	s.state = SessionActive
 	recv := newTestReceiver()
-	s.attachReceiver(recv)
+	noError(t, s.attachReceiver(recv))
 	err := s.Close(1, "some reason")
 	if len(recv.frames) != 1 || recv.frames[0] != "c[1,\"some reason\"]" {
 		t.Errorf("Expected close frame, got '%v'", recv.frames)
@@ -335,13 +321,24 @@ func (t *testReceiver) canSend() bool {
 		return true
 	}
 }
-func (t *testReceiver) sendBulk(messages ...string) {
+func (t *testReceiver) sendBulk(messages ...string) error {
 	for _, m := range messages {
-		t.sendFrame(m)
+		if err := t.sendFrame(m); err != nil {
+			return err
+		}
 	}
+	return nil
 }
-func (t *testReceiver) sendFrame(frame string) {
+func (t *testReceiver) sendFrame(frame string) error {
 	t.Lock()
 	defer t.Unlock()
 	t.frames = append(t.frames, frame)
+	return nil
+}
+
+func noError(t *testing.T, err error) {
+	if err != nil {
+		t.Error(err)
+		t.Fail()
+	}
 }

@@ -93,12 +93,14 @@ func (options *Options) info(rw http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case http.MethodGet:
 		rw.Header().Set("Content-Type", "application/json; charset=UTF-8")
-		_ = json.NewEncoder(rw).Encode(info{
+		if err := json.NewEncoder(rw).Encode(info{
 			Websocket:    options.Websocket,
 			CookieNeeded: options.JSessionID != nil,
 			Origins:      []string{"*:*"},
 			Entropy:      generateEntropy(),
-		})
+		}); err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+		}
 	case http.MethodOptions:
 		rw.Header().Set("Access-Control-Allow-Methods", "OPTIONS, GET")
 		rw.Header().Set("Access-Control-Max-Age", fmt.Sprintf("%d", 365*24*60*60))

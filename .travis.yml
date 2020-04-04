@@ -1,25 +1,18 @@
-sudo: false
 language: go
 
 go:
-  - "1.13.x"
-  - "1.12.x"
-  - tip
-
-notifications:
-  email:
-  - igor.mihalik+travis@gmail.com
+  - "1.14.x"
 
 before_install:
+  - cd v3
   - go get golang.org/x/tools/cmd/cover
   - go get github.com/mattn/goveralls
+  - go get github.com/golangci/golangci-lint/cmd/golangci-lint
 
 after_success:
-  - go test ./sockjs -coverprofile=profile.out -covermode=count
+  - go test ./... -coverprofile=profile.out -covermode=count
   - PATH=$HOME/gopath/bin:$PATH goveralls -coverprofile=profile.out -service=travis-ci
 
-install:
-  - go get -d -v -t ./...
-
 script:
-  - go test ./sockjs -v -race
+  - golangci-lint run
+  - go test ./... -race

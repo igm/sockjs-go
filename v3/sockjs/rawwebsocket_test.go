@@ -26,8 +26,8 @@ func TestHandler_RawWebSocket(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(h.rawWebsocket))
 	defer server.CloseClientConnections()
 	url := "ws" + server.URL[4:]
-	var connCh = make(chan *Session)
-	h.handlerFunc = func(conn *Session) { connCh <- conn }
+	var connCh = make(chan *session)
+	h.handlerFunc = func(conn *session) { connCh <- conn }
 	conn, resp, err := websocket.DefaultDialer.Dial(url, nil)
 	if conn == nil {
 		t.Errorf("Connection should not be nil")
@@ -50,7 +50,7 @@ func TestHandler_RawWebSocketTerminationByServer(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(h.rawWebsocket))
 	defer server.Close()
 	url := "ws" + server.URL[4:]
-	h.handlerFunc = func(conn *Session) {
+	h.handlerFunc = func(conn *session) {
 		// close the session without sending any message
 		conn.Close(3000, "some close message")
 		conn.Close(0, "this should be ignored")
@@ -80,7 +80,7 @@ func TestHandler_RawWebSocketTerminationByClient(t *testing.T) {
 	defer server.Close()
 	url := "ws" + server.URL[4:]
 	var done = make(chan struct{})
-	h.handlerFunc = func(conn *Session) {
+	h.handlerFunc = func(conn *session) {
 		if _, err := conn.Recv(); err != ErrSessionNotOpen {
 			t.Errorf("Recv should fail")
 		}
@@ -98,19 +98,19 @@ func TestHandler_RawWebSocketCommunication(t *testing.T) {
 	// defer server.CloseClientConnections()
 	url := "ws" + server.URL[4:]
 	var done = make(chan struct{})
-	h.handlerFunc = func(conn *Session) {
-		conn.Send("message 1")
-		conn.Send("message 2")
+	h.handlerFunc = func(conn *session) {
+		_ = conn.Send("message 1")
+		_ = conn.Send("message 2")
 		expected := "[\"message 3\"]\n"
 		msg, err := conn.Recv()
 		if msg != expected || err != nil {
 			t.Errorf("Got '%s', expected '%s'", msg, expected)
 		}
-		conn.Close(123, "close")
+		_ = conn.Close(123, "close")
 		close(done)
 	}
 	conn, _, _ := websocket.DefaultDialer.Dial(url, map[string][]string{"Origin": []string{server.URL}})
-	conn.WriteJSON([]string{"message 3"})
+	_ = conn.WriteJSON([]string{"message 3"})
 	var expected = []string{"message 1", "message 2"}
 	for _, exp := range expected {
 		_, msg, err := conn.ReadMessage()
@@ -133,19 +133,19 @@ func TestHandler_RawCustomWebSocketCommunication(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(h.rawWebsocket))
 	url := "ws" + server.URL[4:]
 	var done = make(chan struct{})
-	h.handlerFunc = func(conn *Session) {
-		conn.Send("message 1")
-		conn.Send("message 2")
+	h.handlerFunc = func(conn *session) {
+		_ = conn.Send("message 1")
+		_ = conn.Send("message 2")
 		expected := "[\"message 3\"]\n"
 		msg, err := conn.Recv()
 		if msg != expected || err != nil {
 			t.Errorf("Got '%s', expected '%s'", msg, expected)
 		}
-		conn.Close(123, "close")
+		_ = conn.Close(123, "close")
 		close(done)
 	}
 	conn, _, _ := websocket.DefaultDialer.Dial(url, map[string][]string{"Origin": []string{server.URL}})
-	conn.WriteJSON([]string{"message 3"})
+	_ = conn.WriteJSON([]string{"message 3"})
 	var expected = []string{"message 1", "message 2"}
 	for _, exp := range expected {
 		_, msg, err := conn.ReadMessage()

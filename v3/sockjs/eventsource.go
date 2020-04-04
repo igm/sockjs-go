@@ -18,7 +18,10 @@ func (h *Handler) eventSource(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	if err := sess.attachReceiver(recv); err != nil {
-		recv.sendFrame(cFrame)
+		if err := recv.sendFrame(cFrame); err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		recv.close()
 		return
 	}

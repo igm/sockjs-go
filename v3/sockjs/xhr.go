@@ -39,7 +39,10 @@ func (h *Handler) xhrSend(rw http.ResponseWriter, req *http.Request) {
 	if sess, ok := h.sessions[sessionID]; !ok {
 		http.NotFound(rw, req)
 	} else {
-		_ = sess.accept(messages...)                                 // TODO(igm) reponse with SISE in case of err?
+		if err := sess.accept(messages...); err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		rw.Header().Set("content-type", "text/plain; charset=UTF-8") // Ignored by net/http (but protocol test complains), see https://code.google.com/p/go/source/detail?r=902dc062bff8
 		rw.WriteHeader(http.StatusNoContent)
 	}
@@ -60,7 +63,10 @@ func (h *Handler) xhrPoll(rw http.ResponseWriter, req *http.Request) {
 	}
 	receiver := newHTTPReceiver(rw, req, 1, new(xhrFrameWriter))
 	if err := sess.attachReceiver(receiver); err != nil {
-		receiver.sendFrame(cFrame)
+		if err := receiver.sendFrame(cFrame); err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		receiver.close()
 		return
 	}
@@ -84,7 +90,10 @@ func (h *Handler) xhrStreaming(rw http.ResponseWriter, req *http.Request) {
 	receiver := newHTTPReceiver(rw, req, h.options.ResponseLimit, new(xhrFrameWriter))
 
 	if err := sess.attachReceiver(receiver); err != nil {
-		receiver.sendFrame(cFrame)
+		if err := receiver.sendFrame(cFrame); err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		receiver.close()
 		return
 	}

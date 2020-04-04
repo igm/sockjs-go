@@ -15,7 +15,7 @@ func TestHandler_EventSource(t *testing.T) {
 	h := newTestHandler()
 	h.options.ResponseLimit = 1024
 	go func() {
-		var sess *Session
+		var sess *session
 		for exists := false; !exists; {
 			runtime.Gosched()
 			h.sessionsMux.Lock()
@@ -84,6 +84,6 @@ func TestHandler_EventSourceConnectionInterrupted(t *testing.T) {
 	}
 	sess.mux.Lock()
 	if sess.state != SessionClosed {
-		t.Errorf("Session should be closed")
+		t.Errorf("session should be closed")
 	}
 }

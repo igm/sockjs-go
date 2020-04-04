@@ -42,7 +42,7 @@ func TestHandler_jsonpSendNoPayload(t *testing.T) {
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/session/jsonp_send", nil)
 	h.jsonpSend(rw, req)
-	if rw.Code != http.StatusInternalServerError {
+	if rw.Code != http.StatusBadRequest {
 		t.Errorf("Unexpected response code, got '%d', expected '%d'", rw.Code, http.StatusInternalServerError)
 	}
 }
@@ -52,7 +52,7 @@ func TestHandler_jsonpSendWrongPayload(t *testing.T) {
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/session/jsonp_send", strings.NewReader("wrong payload"))
 	h.jsonpSend(rw, req)
-	if rw.Code != http.StatusInternalServerError {
+	if rw.Code != http.StatusBadRequest {
 		t.Errorf("Unexpected response code, got '%d', expected '%d'", rw.Code, http.StatusInternalServerError)
 	}
 }

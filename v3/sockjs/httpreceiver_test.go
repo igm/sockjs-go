@@ -37,7 +37,7 @@ func TestHttpReceiver_SendEmptyFrames(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "", nil)
 	recv := newHTTPReceiver(rec, req, 1024, new(testFrameWriter))
-	recv.sendBulk()
+	noError(t, recv.sendBulk())
 	if rec.Body.String() != "" {
 		t.Errorf("Incorrect body content received from receiver '%s'", rec.Body.String())
 	}
@@ -49,7 +49,7 @@ func TestHttpReceiver_SendFrame(t *testing.T) {
 	req, _ := http.NewRequest("GET", "", nil)
 	recv := newHTTPReceiver(rec, req, 1024, fw)
 	var frame = "some frame content"
-	recv.sendFrame(frame)
+	noError(t, recv.sendFrame(frame))
 	if len(fw.frames) != 1 || fw.frames[0] != frame {
 		t.Errorf("Incorrect body content received, got '%s', expected '%s'", fw.frames, frame)
 	}
@@ -61,7 +61,7 @@ func TestHttpReceiver_SendBulk(t *testing.T) {
 	fw := new(testFrameWriter)
 	req, _ := http.NewRequest("GET", "", nil)
 	recv := newHTTPReceiver(rec, req, 1024, fw)
-	recv.sendBulk("message 1", "message 2", "message 3")
+	noError(t, recv.sendBulk("message 1", "message 2", "message 3"))
 	expected := "a[\"message 1\",\"message 2\",\"message 3\"]"
 	if len(fw.frames) != 1 || fw.frames[0] != expected {
 		t.Errorf("Incorrect body content received from receiver, got '%s' expected '%s'", fw.frames, expected)
@@ -72,7 +72,7 @@ func TestHttpReceiver_MaximumResponseSize(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "", nil)
 	recv := newHTTPReceiver(rec, req, 52, new(testFrameWriter))
-	recv.sendBulk("message 1", "message 2") // produces 26 bytes of response in 1 frame
+	noError(t, recv.sendBulk("message 1", "message 2")) // produces 26 bytes of response in 1 frame
 	if recv.currentResponseSize != 26 {
 		t.Errorf("Incorrect response size calcualated, got '%d' expected '%d'", recv.currentResponseSize, 26)
 	}
@@ -81,7 +81,7 @@ func TestHttpReceiver_MaximumResponseSize(t *testing.T) {
 		t.Errorf("Receiver should not be done yet")
 	default: // ok
 	}
-	recv.sendBulk("message 1", "message 2") // produces another 26 bytes of response in 1 frame to go over max resposne size
+	noError(t, recv.sendBulk("message 1", "message 2")) // produces another 26 bytes of response in 1 frame to go over max resposne size
 	select {
 	case <-recv.doneNotify(): // ok
 	default:

@@ -1,4 +1,6 @@
-[![Build Status](https://api.travis-ci.org/igm/sockjs-go.svg?branch=v2)](https://travis-ci.org/igm/sockjs-go) [![GoDoc](http://godoc.org/gopkg.in/igm/sockjs-go.v2/sockjs?status.svg)](http://godoc.org/gopkg.in/igm/sockjs-go.v2/sockjs) [![Coverage Status](https://coveralls.io/repos/igm/sockjs-go/badge.svg?branch=v2)](https://coveralls.io/r/igm/sockjs-go?branch=v2)
+[![Build Status](https://api.travis-ci.org/igm/sockjs-go.svg?branch=master)](https://travis-ci.org/igm/sockjs-go) 
+[![GoDoc](https://godoc.org/github.com/igm/sockjs-go/v3/sockjs?status.svg)](http://godoc.org/https://godoc.org/github.com/igm/sockjs-go/v3/sockjs) 
+[![Coverage Status](https://coveralls.io/repos/github/igm/sockjs-go/badge.svg?branch=master)](https://coveralls.io/github/igm/sockjs-go?branch=master)
 
 What is SockJS?
 =
@@ -25,14 +27,18 @@ To use previous version **v1** (DEPRECATED)
 
 To install **development** version of `sockjs-go` run:
 
-    go get github.com/igm/sockjs-go/sockjs
+    go get github.com/igm/sockjs-go/v3/sockjs
 
+Note: using `github.com/igm/sockjs-go/sockjs` is not recommended. It exists for backwards compatibility reasons and
+is not maintained. 
 
 Versioning
 -
 
 SockJS-Go project adopted [gopkg.in](http://gopkg.in) approach for versioning. SockJS-Go library details can be found [here](https://gopkg.in/igm/sockjs-go.v2/sockjs)
 
+With the introduction of go modules a new version `v3` is developed and maintained in the `master`  and 
+has new import part `github.com/igm/sockjs-go/v3/sockjs`. 
 
 Example
 -

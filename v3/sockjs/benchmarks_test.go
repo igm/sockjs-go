@@ -18,11 +18,11 @@ import (
 
 func BenchmarkSimple(b *testing.B) {
 	var messages = make(chan string, 10)
-	h := NewHandler("/echo", DefaultOptions, func(session *Session) {
+	h := NewHandler("/echo", DefaultOptions, func(session *session) {
 		for m := range messages {
-			session.Send(m)
+			_ = session.Send(m)
 		}
-		session.Close(1024, "Close")
+		_ = session.Close(1024, "Close")
 	})
 	server := httptest.NewServer(h)
 	defer server.Close()
@@ -42,11 +42,11 @@ func BenchmarkSimple(b *testing.B) {
 
 func BenchmarkMessages(b *testing.B) {
 	msg := strings.Repeat("m", 10)
-	h := NewHandler("/echo", DefaultOptions, func(session *Session) {
+	h := NewHandler("/echo", DefaultOptions, func(session *session) {
 		for n := 0; n < b.N; n++ {
-			session.Send(msg)
+			_ = session.Send(msg)
 		}
-		session.Close(1024, "Close")
+		_ = session.Close(1024, "Close")
 	})
 	server := httptest.NewServer(h)
 
@@ -101,7 +101,7 @@ func BenchmarkMessageWebsocket(b *testing.B) {
 		ResponseLimit:   uint32(*size),
 	}
 
-	h := NewHandler("/echo", opts, func(session *Session) {
+	h := NewHandler("/echo", opts, func(session *session) {
 		for {
 			msg, err := session.Recv()
 			if err != nil {
@@ -157,6 +157,6 @@ func BenchmarkHandler_ParseSessionID(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		h.parseSessionID(url)
+		_, _ = h.parseSessionID(url)
 	}
 }

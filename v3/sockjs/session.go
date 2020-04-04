@@ -30,7 +30,9 @@ var (
 	errSessionParse            = errors.New("sockjs: unable to parse URL for session")
 )
 
-type Session struct {
+type Session = *session
+
+type session struct {
 	mux   sync.RWMutex
 	id    string
 	req   *http.Request
@@ -54,9 +56,9 @@ type Session struct {
 
 type receiver interface {
 	// sendBulk send multiple data messages in frame frame in format: a["msg 1", "msg 2", ....]
-	sendBulk(...string)
+	sendBulk(...string) error
 	// sendFrame sends given frame over the wire (with possible chunking depending on receiver)
-	sendFrame(string)
+	sendFrame(string) error
 	// close closes the receiver in a "done" way (idempotent)
 	close()
 	canSend() bool
@@ -66,9 +68,9 @@ type receiver interface {
 	interruptedNotify() <-chan struct{}
 }
 
-// Session is a central component that handles receiving and sending frames. It maintains internal state
-func newSession(req *http.Request, sessionID string, sessionTimeoutInterval, heartbeatInterval time.Duration) *Session {
-	s := &Session{
+// session is a central component that handles receiving and sending frames. It maintains internal state
+func newSession(req *http.Request, sessionID string, sessionTimeoutInterval, heartbeatInterval time.Duration) *session {
+	s := &session{
 		id:                     sessionID,
 		req:                    req,
 		heartbeatInterval:      heartbeatInterval,
@@ -83,7 +85,7 @@ func newSession(req *http.Request, sessionID string, sessionTimeoutInterval, hea
 	return s
 }
 
-func (s *Session) sendMessage(msg string) error {
+func (s *session) sendMessage(msg string) error {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	if s.state > SessionActive {
@@ -91,13 +93,15 @@ func (s *Session) sendMessage(msg string) error {
 	}
 	s.sendBuffer = append(s.sendBuffer, msg)
 	if s.recv != nil && s.recv.canSend() {
-		s.recv.sendBulk(s.sendBuffer...)
+		if err := s.recv.sendBulk(s.sendBuffer...); err != nil {
+			return err
+		}
 		s.sendBuffer = nil
 	}
 	return nil
 }
 
-func (s *Session) attachReceiver(recv receiver) error {
+func (s *session) attachReceiver(recv receiver) error {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	if s.recv != nil {
@@ -116,18 +120,24 @@ func (s *Session) attachReceiver(recv receiver) error {
 
 	if s.state == SessionClosing {
 		if !s.raw {
-			s.recv.sendFrame(s.closeFrame)
+			if err := s.recv.sendFrame(s.closeFrame); err != nil {
+				return err
+			}
 		}
 		s.recv.close()
 		return nil
 	}
 	if s.state == SessionOpening {
 		if !s.raw {
-			s.recv.sendFrame("o")
+			if err := s.recv.sendFrame("o"); err != nil {
+				return err
+			}
 		}
 		s.state = SessionActive
 	}
-	s.recv.sendBulk(s.sendBuffer...)
+	if err := s.recv.sendBulk(s.sendBuffer...); err != nil {
+		return err
+	}
 	s.sendBuffer = nil
 	s.timer.Stop()
 	if s.heartbeatInterval > 0 {
@@ -136,7 +146,7 @@ func (s *Session) attachReceiver(recv receiver) error {
 	return nil
 }
 
-func (s *Session) detachReceiver() {
+func (s *session) detachReceiver() {
 	s.mux.Lock()
 	s.timer.Stop()
 	s.timer = time.AfterFunc(s.sessionTimeoutInterval, s.close)
@@ -144,35 +154,35 @@ func (s *Session) detachReceiver() {
 	s.mux.Unlock()
 }
 
-func (s *Session) heartbeat() {
+func (s *session) heartbeat() {
 	s.mux.Lock()
 	if s.recv != nil { // timer could have fired between Lock and timer.Stop in detachReceiver
-		s.recv.sendFrame("h")
+		_ = s.recv.sendFrame("h")
 		s.timer = time.AfterFunc(s.heartbeatInterval, s.heartbeat)
 	}
 	s.mux.Unlock()
 }
 
-func (s *Session) accept(messages ...string) error {
+func (s *session) accept(messages ...string) error {
 	return s.recvBuffer.push(messages...)
 }
 
 // idempotent operation
-func (s *Session) closing() {
+func (s *session) closing() {
 	s.mux.Lock()
 	defer s.mux.Unlock()
 	if s.state < SessionClosing {
 		s.state = SessionClosing
 		s.recvBuffer.close()
 		if s.recv != nil {
-			s.recv.sendFrame(s.closeFrame)
+			_ = s.recv.sendFrame(s.closeFrame)
 			s.recv.close()
 		}
 	}
 }
 
 // idempotent operation
-func (s *Session) close() {
+func (s *session) close() {
 	s.closing()
 	s.mux.Lock()
 	defer s.mux.Unlock()
@@ -183,7 +193,7 @@ func (s *Session) close() {
 	}
 }
 
-func (s *Session) Close(status uint32, reason string) error {
+func (s *session) Close(status uint32, reason string) error {
 	s.mux.Lock()
 	if s.state < SessionClosing {
 		s.closeFrame = closeFrame(status, reason)
@@ -195,12 +205,12 @@ func (s *Session) Close(status uint32, reason string) error {
 	return ErrSessionNotOpen
 }
 
-func (s *Session) Recv() (string, error)                       { return s.recvBuffer.pop(context.Background()) }
-func (s *Session) RecvCtx(ctx context.Context) (string, error) { return s.recvBuffer.pop(ctx) }
-func (s *Session) Send(msg string) error                       { return s.sendMessage(msg) }
-func (s *Session) ID() string                                  { return s.id }
-func (s *Session) Request() *http.Request                      { return s.req }
-func (s *Session) GetSessionState() SessionState {
+func (s *session) Recv() (string, error)                       { return s.recvBuffer.pop(context.Background()) }
+func (s *session) RecvCtx(ctx context.Context) (string, error) { return s.recvBuffer.pop(ctx) }
+func (s *session) Send(msg string) error                       { return s.sendMessage(msg) }
+func (s *session) ID() string                                  { return s.id }
+func (s *session) Request() *http.Request                      { return s.req }
+func (s *session) GetSessionState() SessionState {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 	return s.state

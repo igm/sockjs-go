@@ -16,7 +16,7 @@ func main() {
 	log.Fatal(http.ListenAndServe(":8080", nil))
 }
 
-func echoHandler(session *sockjs.Session) {
+func echoHandler(session sockjs.Session) {
 	log.Println("new sockjs session established")
 	var closedSession = make(chan struct{})
 	chat.Publish("[info] new participant joined chat")

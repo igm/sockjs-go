@@ -21,7 +21,10 @@ func (h *Handler) sockjsWebsocket(rw http.ResponseWriter, req *http.Request) {
 	sessID, _ := h.parseSessionID(req.URL)
 	sess := newSession(req, sessID, h.options.DisconnectDelay, h.options.HeartbeatDelay)
 	receiver := newWsReceiver(conn, h.options.WebsocketWriteTimeout)
-	sess.attachReceiver(receiver)
+	if err := sess.attachReceiver(receiver); err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	if h.handlerFunc != nil {
 		go h.handlerFunc(sess)
 	}
@@ -34,7 +37,10 @@ func (h *Handler) sockjsWebsocket(rw http.ResponseWriter, req *http.Request) {
 				close(readCloseCh)
 				return
 			}
-			sess.accept(d...)
+			if err := sess.accept(d...); err != nil {
+				close(readCloseCh)
+				return
+			}
 		}
 	}()
 
@@ -43,7 +49,10 @@ func (h *Handler) sockjsWebsocket(rw http.ResponseWriter, req *http.Request) {
 	case <-receiver.doneNotify():
 	}
 	sess.close()
-	conn.Close()
+	if err := conn.Close(); err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 type wsReceiver struct {
@@ -60,19 +69,25 @@ func newWsReceiver(conn *websocket.Conn, writeTimeout time.Duration) *wsReceiver
 	}
 }
 
-func (w *wsReceiver) sendBulk(messages ...string) {
+func (w *wsReceiver) sendBulk(messages ...string) error {
 	if len(messages) > 0 {
-		w.sendFrame(fmt.Sprintf("a[%s]", strings.Join(transform(messages, quote), ",")))
+		return w.sendFrame(fmt.Sprintf("a[%s]", strings.Join(transform(messages, quote), ",")))
 	}
+	return nil
 }
 
-func (w *wsReceiver) sendFrame(frame string) {
+func (w *wsReceiver) sendFrame(frame string) error {
 	if w.writeTimeout != 0 {
-		w.conn.SetWriteDeadline(time.Now().Add(w.writeTimeout))
+		if err := w.conn.SetWriteDeadline(time.Now().Add(w.writeTimeout)); err != nil {
+			w.close()
+			return err
+		}
 	}
 	if err := w.conn.WriteMessage(websocket.TextMessage, []byte(frame)); err != nil {
 		w.close()
+		return err
 	}
+	return nil
 }
 
 func (w *wsReceiver) close() {

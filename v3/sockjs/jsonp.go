@@ -11,7 +11,10 @@ import (
 func (h *Handler) jsonp(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Set("content-type", "application/javascript; charset=UTF-8")
 
-	req.ParseForm()
+	if err := req.ParseForm(); err != nil {
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+		return
+	}
 	callback := req.Form.Get("c")
 	if callback == "" {
 		http.Error(rw, `"callback" parameter required`, http.StatusInternalServerError)
@@ -30,7 +33,10 @@ func (h *Handler) jsonp(rw http.ResponseWriter, req *http.Request) {
 	}
 	recv := newHTTPReceiver(rw, req, 1, &jsonpFrameWriter{callback})
 	if err := sess.attachReceiver(recv); err != nil {
-		recv.sendFrame(cFrame)
+		if err := recv.sendFrame(cFrame); err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		recv.close()
 		return
 	}
@@ -41,7 +47,10 @@ func (h *Handler) jsonp(rw http.ResponseWriter, req *http.Request) {
 }
 
 func (h *Handler) jsonpSend(rw http.ResponseWriter, req *http.Request) {
-	req.ParseForm()
+	if err := req.ParseForm(); err != nil {
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+		return
+	}
 	var data io.Reader
 	data = req.Body
 
@@ -50,17 +59,17 @@ func (h *Handler) jsonpSend(rw http.ResponseWriter, req *http.Request) {
 		data = formReader
 	}
 	if data == nil {
-		http.Error(rw, "Payload expected.", http.StatusInternalServerError)
+		http.Error(rw, "Payload expected.", http.StatusBadRequest)
 		return
 	}
 	var messages []string
 	err := json.NewDecoder(data).Decode(&messages)
 	if err == io.EOF {
-		http.Error(rw, "Payload expected.", http.StatusInternalServerError)
+		http.Error(rw, "Payload expected.", http.StatusBadRequest)
 		return
 	}
 	if err != nil {
-		http.Error(rw, "Broken JSON encoding.", http.StatusInternalServerError)
+		http.Error(rw, "Broken JSON encoding.", http.StatusBadRequest)
 		return
 	}
 	sessionID, _ := h.parseSessionID(req.URL)
@@ -69,9 +78,12 @@ func (h *Handler) jsonpSend(rw http.ResponseWriter, req *http.Request) {
 	if sess, ok := h.sessions[sessionID]; !ok {
 		http.NotFound(rw, req)
 	} else {
-		_ = sess.accept(messages...) // TODO(igm) reponse with http.StatusInternalServerError in case of err?
+		if err := sess.accept(messages...); err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		rw.Header().Set("content-type", "text/plain; charset=UTF-8")
-		rw.Write([]byte("ok"))
+		_, _ = rw.Write([]byte("ok"))
 	}
 }
 

@@ -88,12 +88,12 @@ func TestHandler_ParseSessionId(t *testing.T) {
 func TestHandler_SessionByRequest(t *testing.T) {
 	h := NewHandler("", testOptions, nil)
 	h.options.DisconnectDelay = 10 * time.Millisecond
-	var handlerFuncCalled = make(chan *Session)
-	h.handlerFunc = func(s *Session) { handlerFuncCalled <- s }
+	var handlerFuncCalled = make(chan *session)
+	h.handlerFunc = func(s *session) { handlerFuncCalled <- s }
 	req, _ := http.NewRequest("POST", "/server/sessionid/whatever/follows", nil)
 	sess, err := h.sessionByRequest(req)
 	if sess == nil || err != nil {
-		t.Errorf("Session should be returned")
+		t.Errorf("session should be returned")
 		// test handlerFunc was called
 		select {
 		case s := <-handlerFuncCalled: // ok
@@ -113,7 +113,7 @@ func TestHandler_SessionByRequest(t *testing.T) {
 	time.Sleep(15 * time.Millisecond)
 	h.sessionsMux.Lock()
 	if _, exists := h.sessions["sessionid"]; exists {
-		t.Errorf("Session should not exist in handler after timeout")
+		t.Errorf("session should not exist in handler after timeout")
 	}
 	h.sessionsMux.Unlock()
 	// test proper behaviour in case URL is not correct

@@ -11,11 +11,11 @@ import (
 type Handler struct {
 	prefix      string
 	options     Options
-	handlerFunc func(*Session)
+	handlerFunc func(*session)
 	mappings    []*mapping
 
 	sessionsMux sync.Mutex
-	sessions    map[string]*Session
+	sessions    map[string]*session
 }
 
 const sessionPrefix = "^/([^/.]+)/([^/.]+)"
@@ -24,12 +24,12 @@ var sessionRegExp = regexp.MustCompile(sessionPrefix)
 
 // NewHandler creates new HTTP handler that conforms to the basic net/http.Handler interface.
 // It takes path prefix, options and sockjs handler function as parameters
-func NewHandler(prefix string, opts Options, handlerFunc func(*Session)) *Handler {
+func NewHandler(prefix string, opts Options, handlerFunc func(*session)) *Handler {
 	h := &Handler{
 		prefix:      prefix,
 		options:     opts,
 		handlerFunc: handlerFunc,
-		sessions:    make(map[string]*Session),
+		sessions:    make(map[string]*session),
 	}
 	xhrCors := xhrCorsFactory(opts)
 	h.mappings = []*mapping{
@@ -97,7 +97,7 @@ func (h *Handler) parseSessionID(url *url.URL) (string, error) {
 	return "", errSessionParse
 }
 
-func (h *Handler) sessionByRequest(req *http.Request) (*Session, error) {
+func (h *Handler) sessionByRequest(req *http.Request) (*session, error) {
 	h.sessionsMux.Lock()
 	defer h.sessionsMux.Unlock()
 	sessionID, err := h.parseSessionID(req.URL)

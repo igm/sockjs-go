@@ -35,8 +35,8 @@ func TestHandler_WebSocket(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(h.sockjsWebsocket))
 	defer server.CloseClientConnections()
 	url := "ws" + server.URL[4:]
-	var connCh = make(chan *Session)
-	h.handlerFunc = func(conn *Session) { connCh <- conn }
+	var connCh = make(chan *session)
+	h.handlerFunc = func(conn *session) { connCh <- conn }
 	conn, resp, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		t.Errorf("Unexpected error '%v'", err)
@@ -65,7 +65,7 @@ func TestHandler_WebSocketTerminationByServer(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(h.sockjsWebsocket))
 	defer server.Close()
 	url := "ws" + server.URL[4:]
-	h.handlerFunc = func(conn *Session) {
+	h.handlerFunc = func(conn *session) {
 		conn.Close(1024, "some close message")
 		conn.Close(0, "this should be ignored")
 	}
@@ -86,7 +86,7 @@ func TestHandler_WebSocketTerminationByServer(t *testing.T) {
 	if string(msg) != `c[1024,"some close message"]` || err != nil {
 		t.Errorf("Close frame expected, got '%s' and error '%v', expected '%s' without error", msg, err, `c[1024,"some close message"]`)
 	}
-	_, msg, err = conn.ReadMessage()
+	_, _, err = conn.ReadMessage()
 	// gorilla websocket keeps `errUnexpectedEOF` private so we need to introspect the error message
 	if err != nil {
 		if !strings.Contains(err.Error(), "unexpected EOF") {
@@ -101,7 +101,7 @@ func TestHandler_WebSocketTerminationByClient(t *testing.T) {
 	defer server.Close()
 	url := "ws" + server.URL[4:]
 	var done = make(chan struct{})
-	h.handlerFunc = func(conn *Session) {
+	h.handlerFunc = func(conn *session) {
 		if _, err := conn.Recv(); err != ErrSessionNotOpen {
 			t.Errorf("Recv should fail")
 		}
@@ -123,18 +123,18 @@ func TestHandler_WebSocketCommunication(t *testing.T) {
 	// defer server.CloseClientConnections()
 	url := "ws" + server.URL[4:]
 	var done = make(chan struct{})
-	h.handlerFunc = func(conn *Session) {
-		conn.Send("message 1")
-		conn.Send("message 2")
+	h.handlerFunc = func(conn *session) {
+		noError(t, conn.Send("message 1"))
+		noError(t, conn.Send("message 2"))
 		msg, err := conn.Recv()
 		if msg != "message 3" || err != nil {
 			t.Errorf("Got '%s', expected '%s'", msg, "message 3")
 		}
-		conn.Close(123, "close")
+		noError(t, conn.Close(123, "close"))
 		close(done)
 	}
 	conn, _, _ := websocket.DefaultDialer.Dial(url, map[string][]string{"Origin": []string{server.URL}})
-	conn.WriteJSON([]string{"message 3"})
+	noError(t, conn.WriteJSON([]string{"message 3"}))
 	var expected = []string{"o", `a["message 1"]`, `a["message 2"]`, `c[123,"close"]`}
 	for _, exp := range expected {
 		_, msg, err := conn.ReadMessage()
@@ -157,18 +157,18 @@ func TestHandler_CustomWebSocketCommunication(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(h.sockjsWebsocket))
 	url := "ws" + server.URL[4:]
 	var done = make(chan struct{})
-	h.handlerFunc = func(conn *Session) {
-		conn.Send("message 1")
-		conn.Send("message 2")
+	h.handlerFunc = func(conn *session) {
+		noError(t, conn.Send("message 1"))
+		noError(t, conn.Send("message 2"))
 		msg, err := conn.Recv()
 		if msg != "message 3" || err != nil {
 			t.Errorf("Got '%s', expected '%s'", msg, "message 3")
 		}
-		conn.Close(123, "close")
+		noError(t, conn.Close(123, "close"))
 		close(done)
 	}
 	conn, _, _ := websocket.DefaultDialer.Dial(url, map[string][]string{"Origin": []string{server.URL}})
-	conn.WriteJSON([]string{"message 3"})
+	noError(t, conn.WriteJSON([]string{"message 3"}))
 	var expected = []string{"o", `a["message 1"]`, `a["message 2"]`, `c[123,"close"]`}
 	for _, exp := range expected {
 		_, msg, err := conn.ReadMessage()

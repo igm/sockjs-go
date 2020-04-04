@@ -32,7 +32,10 @@ func init() {
 func (h *Handler) htmlFile(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Set("content-type", "text/html; charset=UTF-8")
 
-	req.ParseForm()
+	if err := req.ParseForm(); err != nil {
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+		return
+	}
 	callback := req.Form.Get("c")
 	if callback == "" {
 		http.Error(rw, `"callback" parameter required`, http.StatusInternalServerError)
@@ -51,7 +54,10 @@ func (h *Handler) htmlFile(rw http.ResponseWriter, req *http.Request) {
 	}
 	recv := newHTTPReceiver(rw, req, h.options.ResponseLimit, new(htmlfileFrameWriter))
 	if err := sess.attachReceiver(recv); err != nil {
-		recv.sendFrame(cFrame)
+		if err := recv.sendFrame(cFrame); err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
 		recv.close()
 		return
 	}

@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"testing"
 )
-import "testing"
 
 func TestInfoGet(t *testing.T) {
 	recorder := httptest.NewRecorder()
@@ -18,7 +18,10 @@ func TestInfoGet(t *testing.T) {
 
 	decoder := json.NewDecoder(recorder.Body)
 	var a info
-	decoder.Decode(&a)
+	if err := decoder.Decode(&a); err != nil {
+		t.Error(err)
+		t.Fail()
+	}
 	if !a.Websocket {
 		t.Errorf("Websocket field should be set true")
 	}

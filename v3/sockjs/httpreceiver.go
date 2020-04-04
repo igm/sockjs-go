@@ -58,24 +58,27 @@ func newHTTPReceiver(rw http.ResponseWriter, req *http.Request, maxResponse uint
 	return recv
 }
 
-func (recv *httpReceiver) sendBulk(messages ...string) {
+func (recv *httpReceiver) sendBulk(messages ...string) error {
 	if len(messages) > 0 {
-		recv.sendFrame(fmt.Sprintf("a[%s]",
+		return recv.sendFrame(fmt.Sprintf("a[%s]",
 			strings.Join(
 				transform(messages, quote),
 				",",
 			),
 		))
 	}
+	return nil
 }
 
-func (recv *httpReceiver) sendFrame(value string) {
+func (recv *httpReceiver) sendFrame(value string) error {
 	recv.Lock()
 	defer recv.Unlock()
 
 	if recv.state == stateHTTPReceiverActive {
-		// TODO(igm) check err, possibly act as if interrupted
-		n, _ := recv.frameWriter.write(recv.rw, value)
+		n, err := recv.frameWriter.write(recv.rw, value)
+		if err != nil {
+			return err
+		}
 		recv.currentResponseSize += uint32(n)
 		if recv.currentResponseSize >= recv.maxResponseSize {
 			recv.state = stateHTTPReceiverClosed
@@ -84,6 +87,7 @@ func (recv *httpReceiver) sendFrame(value string) {
 			recv.rw.(http.Flusher).Flush()
 		}
 	}
+	return nil
 }
 
 func (recv *httpReceiver) doneNotify() <-chan struct{}        { return recv.doneCh }

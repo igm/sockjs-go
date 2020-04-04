@@ -123,7 +123,7 @@ func TestHandler_XhrPollConnectionInterrupted(t *testing.T) {
 	time.Sleep(1 * time.Millisecond)
 	sess.mux.Lock()
 	if sess.state != SessionClosed {
-		t.Errorf("Session should be closed")
+		t.Errorf("session should be closed")
 	}
 }
 
@@ -133,7 +133,7 @@ func TestHandler_XhrPollAnotherConnectionExists(t *testing.T) {
 	// turn of timeoutes and heartbeats
 	sess := newSession(req, "session", time.Hour, time.Hour)
 	h.sessions["session"] = sess
-	sess.attachReceiver(newTestReceiver())
+	noError(t, sess.attachReceiver(newTestReceiver()))
 	req, _ = http.NewRequest("POST", "/server/session/xhr", nil)
 	rw2 := httptest.NewRecorder()
 	h.xhrPoll(rw2, req)
@@ -174,7 +174,7 @@ func TestHandler_XhrStreamingAnotherReceiver(t *testing.T) {
 
 // various test only structs
 func newTestHandler() *Handler {
-	h := &Handler{sessions: make(map[string]*Session)}
+	h := &Handler{sessions: make(map[string]*session)}
 	h.options.HeartbeatDelay = time.Hour
 	h.options.DisconnectDelay = time.Hour
 	return h
