@@ -48,14 +48,6 @@ func TestSession_ConcurrentSend(t *testing.T) {
 func TestSession_AttachReceiver(t *testing.T) {
 	session := newTestSession()
 	recv := &testReceiver{}
-	// recv := &mockRecv{
-	// 	_sendFrame: func(frame string) {
-	// 		if frame != "o" {
-	// 			t.Errorf("Incorrect open header received")
-	// 		}
-	// 	},
-	// 	_sendBulk: func(...string) {},
-	// }
 	if err := session.attachReceiver(recv); err != nil {
 		t.Errorf("Should not return error")
 	}
@@ -63,12 +55,6 @@ func TestSession_AttachReceiver(t *testing.T) {
 		t.Errorf("Session in wrong state after receiver attached %d, should be %d", session.state, sessionActive)
 	}
 	session.detachReceiver()
-	// recv = &mockRecv{
-	// 	_sendFrame: func(frame string) {
-	// 		t.Errorf("No frame shold be send, got '%s'", frame)
-	// 	},
-	// 	_sendBulk: func(...string) {},
-	// }
 	if err := session.attachReceiver(recv); err != nil {
 		t.Errorf("Should not return error")
 	}

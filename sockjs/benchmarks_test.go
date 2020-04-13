@@ -52,7 +52,6 @@ func BenchmarkMessages(b *testing.B) {
 		wg.Add(1)
 		go func(session int) {
 			reqc := 0
-			// req, _ := http.NewRequest("POST", server.URL+fmt.Sprintf("/echo/server/%d/xhr_streaming", session), nil)
 			req, _ := http.NewRequest("GET", server.URL+fmt.Sprintf("/echo/server/%d/eventsource", session), nil)
 			for {
 				reqc++
