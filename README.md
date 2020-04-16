@@ -19,26 +19,24 @@ SockJS-Go is a [SockJS](https://github.com/sockjs/sockjs-client) server library 
 
 To use current stable version **v2**
 
-    go get gopkg.in/igm/sockjs-go.v2/sockjs
+    gopkg.in/igm/sockjs-go.v2/sockjs
 
-To use previous version **v1** (DEPRECATED)
+To latest v3 **development** version of `sockjs-go` use:
 
-    go get gopkg.in/igm/sockjs-go.v1/sockjs
+    github.com/igm/sockjs-go/v3/sockjs
 
-To install **development** version of `sockjs-go` run:
+Using version **v1** is not recommended (DEPRECATED)
 
-    go get github.com/igm/sockjs-go/v3/sockjs
+    gopkg.in/igm/sockjs-go.v1/sockjs
 
-Note: using `github.com/igm/sockjs-go/sockjs` is not recommended. It exists for backwards compatibility reasons and
-is not maintained. 
+Note: using `github.com/igm/sockjs-go/sockjs` is not recommended. It exists for backwards compatibility reasons and is not maintained. 
 
 Versioning
 -
 
 SockJS-Go project adopted [gopkg.in](http://gopkg.in) approach for versioning. SockJS-Go library details can be found [here](https://gopkg.in/igm/sockjs-go.v2/sockjs)
 
-With the introduction of go modules a new version `v3` is developed and maintained in the `master`  and 
-has new import part `github.com/igm/sockjs-go/v3/sockjs`. 
+With the introduction of go modules a new version `v3` is developed and maintained in the `master`  and has new import part `github.com/igm/sockjs-go/v3/sockjs`. 
 
 Example
 -
@@ -53,11 +51,11 @@ import (
 	"log"
 	"net/http"
 
-	"gopkg.in/igm/sockjs-go.v2/sockjs"
+	"github.com/igm/sockjs-go/v3/sockjs"
 )
 
 func main() {
-	handler := sockjs.NewHandler("/echo", sockjs.DefaultOptions, echoHandler) 
+	handler := sockjs.NewHandler("/echo", sockjs.DefaultOptions, echoHandler)
 	log.Fatal(http.ListenAndServe(":8081", handler))
 }
 
