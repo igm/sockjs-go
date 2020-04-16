@@ -4,11 +4,10 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/igm/pubsub"
 	"gopkg.in/igm/sockjs-go.v2/sockjs"
 )
 
-var chat pubsub.Publisher
+var chat Publisher
 
 func main() {
 	http.Handle("/echo/", sockjs.NewHandler("/echo", sockjs.DefaultOptions, echoHandler))
