@@ -29,15 +29,17 @@ type httpReceiver struct {
 	currentResponseSize uint32
 	doneCh              chan struct{}
 	interruptCh         chan struct{}
+	recType             ReceiverType
 }
 
-func newHTTPReceiver(rw http.ResponseWriter, req *http.Request, maxResponse uint32, frameWriter frameWriter) *httpReceiver {
+func newHTTPReceiver(rw http.ResponseWriter, req *http.Request, maxResponse uint32, frameWriter frameWriter, receiverType ReceiverType) *httpReceiver {
 	recv := &httpReceiver{
 		rw:              rw,
 		frameWriter:     frameWriter,
 		maxResponseSize: maxResponse,
 		doneCh:          make(chan struct{}),
 		interruptCh:     make(chan struct{}),
+		recType:         receiverType,
 	}
 	ctx := req.Context()
 
@@ -104,4 +106,8 @@ func (recv *httpReceiver) canSend() bool {
 	recv.Lock()
 	defer recv.Unlock()
 	return recv.state != stateHTTPReceiverClosed
+}
+
+func (recv *httpReceiver) receiverType() ReceiverType {
+	return recv.recType
 }

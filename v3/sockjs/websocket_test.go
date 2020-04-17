@@ -36,7 +36,12 @@ func TestHandler_WebSocket(t *testing.T) {
 	defer server.CloseClientConnections()
 	url := "ws" + server.URL[4:]
 	var connCh = make(chan *session)
-	h.handlerFunc = func(conn *session) { connCh <- conn }
+	h.handlerFunc = func(conn *session) {
+		if rt := conn.ReceiverType(); rt != ReceiverTypeWebsocket {
+			t.Errorf("Unexpected recevier type, got '%v', extected '%v'", rt, ReceiverTypeWebsocket)
+		}
+		connCh <- conn
+	}
 	conn, resp, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		t.Errorf("Unexpected error '%v'", err)

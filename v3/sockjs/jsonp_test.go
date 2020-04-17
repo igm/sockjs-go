@@ -35,6 +35,10 @@ func TestHandler_jsonp(t *testing.T) {
 	if rw.Body.String() != expectedBody {
 		t.Errorf("Unexpected body, got '%s', expected '%s'", rw.Body, expectedBody)
 	}
+	sess, _ := h.sessionByRequest(req)
+	if rt := sess.ReceiverType(); rt != ReceiverTypeJSONP {
+		t.Errorf("Unexpected recevier type, got '%v', extected '%v'", rt, ReceiverTypeJSONP)
+	}
 }
 
 func TestHandler_jsonpSendNoPayload(t *testing.T) {

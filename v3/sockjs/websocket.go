@@ -107,3 +107,4 @@ func (w *wsReceiver) canSend() bool {
 }
 func (w *wsReceiver) doneNotify() <-chan struct{}        { return w.closeCh }
 func (w *wsReceiver) interruptedNotify() <-chan struct{} { return nil }
+func (w *wsReceiver) receiverType() ReceiverType         { return ReceiverTypeWebsocket }

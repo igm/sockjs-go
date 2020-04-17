@@ -123,6 +123,10 @@ func (w *rawWsReceiver) sendFrame(frame string) error {
 	return nil
 }
 
+func (w *rawWsReceiver) receiverType() ReceiverType {
+	return ReceiverTypeRawWebsocket
+}
+
 func parseCloseFrame(frame string) (status uint32, reason string, err error) {
 	var items [2]interface{}
 	if err := json.Unmarshal([]byte(frame)[1:], &items); err != nil {

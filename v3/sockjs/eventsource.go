@@ -11,7 +11,7 @@ func (h *Handler) eventSource(rw http.ResponseWriter, req *http.Request) {
 	_, _ = fmt.Fprint(rw, "\r\n")
 	rw.(http.Flusher).Flush()
 
-	recv := newHTTPReceiver(rw, req, h.options.ResponseLimit, new(eventSourceFrameWriter))
+	recv := newHTTPReceiver(rw, req, h.options.ResponseLimit, new(eventSourceFrameWriter), ReceiverTypeEventSource)
 	sess, err := h.sessionByRequest(req)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)

@@ -38,10 +38,11 @@ type session struct {
 	req   *http.Request
 	state SessionState
 
-	recv       receiver       // protocol dependent receiver (xhr, eventsource, ...)
-	sendBuffer []string       // messages to be sent to client
-	recvBuffer *messageBuffer // messages received from client to be consumed by application
-	closeFrame string         // closeFrame to send after session is closed
+	recv         receiver // protocol dependent receiver (xhr, eventsource, ...)
+	receiverType ReceiverType
+	sendBuffer   []string       // messages to be sent to client
+	recvBuffer   *messageBuffer // messages received from client to be consumed by application
+	closeFrame   string         // closeFrame to send after session is closed
 
 	// do not use SockJS framing for raw websocket connections
 	raw bool
@@ -54,20 +55,6 @@ type session struct {
 	closeCh chan struct{}
 }
 
-type receiver interface {
-	// sendBulk send multiple data messages in frame frame in format: a["msg 1", "msg 2", ....]
-	sendBulk(...string) error
-	// sendFrame sends given frame over the wire (with possible chunking depending on receiver)
-	sendFrame(string) error
-	// close closes the receiver in a "done" way (idempotent)
-	close()
-	canSend() bool
-	// done notification channel gets closed whenever receiver ends
-	doneNotify() <-chan struct{}
-	// interrupted channel gets closed whenever receiver is interrupted (i.e. http connection drops,...)
-	interruptedNotify() <-chan struct{}
-}
-
 // session is a central component that handles receiving and sending frames. It maintains internal state
 func newSession(req *http.Request, sessionID string, sessionTimeoutInterval, heartbeatInterval time.Duration) *session {
 	s := &session{
@@ -77,6 +64,7 @@ func newSession(req *http.Request, sessionID string, sessionTimeoutInterval, hea
 		recvBuffer:             newMessageBuffer(),
 		closeCh:                make(chan struct{}),
 		sessionTimeoutInterval: sessionTimeoutInterval,
+		receiverType:           ReceiverTypeNone,
 	}
 
 	s.mux.Lock() // "go test -race" complains if ommited, not sure why as no race can happen here
@@ -108,6 +96,7 @@ func (s *session) attachReceiver(recv receiver) error {
 		return errSessionReceiverAttached
 	}
 	s.recv = recv
+	s.receiverType = recv.receiverType()
 	go func(r receiver) {
 		select {
 		case <-r.doneNotify():
@@ -224,4 +213,10 @@ func (s *session) GetSessionState() SessionState {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 	return s.state
+}
+
+func (s *session) ReceiverType() ReceiverType {
+	s.mux.RLock()
+	defer s.mux.RUnlock()
+	return s.receiverType
 }

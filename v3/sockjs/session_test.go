@@ -342,3 +342,7 @@ func noError(t *testing.T, err error) {
 		t.Fail()
 	}
 }
+
+func (t *testReceiver) receiverType() ReceiverType {
+	return ReceiverTypeNone
+}

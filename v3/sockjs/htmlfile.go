@@ -52,7 +52,7 @@ func (h *Handler) htmlFile(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	recv := newHTTPReceiver(rw, req, h.options.ResponseLimit, new(htmlfileFrameWriter))
+	recv := newHTTPReceiver(rw, req, h.options.ResponseLimit, new(htmlfileFrameWriter), ReceiverTypeHtmlFile)
 	if err := sess.attachReceiver(recv); err != nil {
 		if err := recv.sendFrame(cFrame); err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)

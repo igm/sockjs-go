@@ -107,6 +107,10 @@ func TestHandler_XhrPoll(t *testing.T) {
 	if rw.Header().Get("content-type") != "application/javascript; charset=UTF-8" {
 		t.Errorf("Wrong content type received, got '%s'", rw.Header().Get("content-type"))
 	}
+	sess, _ := h.sessionByRequest(req)
+	if rt := sess.ReceiverType(); rt != ReceiverTypeXHR {
+		t.Errorf("Unexpected recevier type, got '%v', extected '%v'", rt, ReceiverTypeXHR)
+	}
 }
 
 func TestHandler_XhrPollConnectionInterrupted(t *testing.T) {
@@ -150,6 +154,10 @@ func TestHandler_XhrStreaming(t *testing.T) {
 	expectedBody := strings.Repeat("h", 2048) + "\no\n"
 	if rw.Body.String() != expectedBody {
 		t.Errorf("Unexpected body, got '%s' expected '%s'", rw.Body, expectedBody)
+	}
+	sess, _ := h.sessionByRequest(req)
+	if rt := sess.ReceiverType(); rt != ReceiverTypeXHRStreaming {
+		t.Errorf("Unexpected recevier type, got '%v', extected '%v'", rt, ReceiverTypeXHRStreaming)
 	}
 }
 

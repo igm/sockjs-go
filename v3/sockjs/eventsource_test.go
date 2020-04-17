@@ -28,11 +28,15 @@ func TestHandler_EventSource(t *testing.T) {
 			exists = sess.recv != nil
 			sess.mux.RUnlock()
 		}
+		if rt := sess.ReceiverType(); rt != ReceiverTypeEventSource {
+			t.Errorf("Unexpected recevier type, got '%v', extected '%v'", rt, ReceiverTypeEventSource)
+		}
 		sess.mux.RLock()
 		sess.recv.close()
 		sess.mux.RUnlock()
 	}()
 	h.eventSource(rw, req)
+
 	contentType := rw.Header().Get("content-type")
 	expected := "text/event-stream; charset=UTF-8"
 	if contentType != expected {

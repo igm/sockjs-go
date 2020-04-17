@@ -31,7 +31,7 @@ func (h *Handler) jsonp(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	recv := newHTTPReceiver(rw, req, 1, &jsonpFrameWriter{callback})
+	recv := newHTTPReceiver(rw, req, 1, &jsonpFrameWriter{callback}, ReceiverTypeJSONP)
 	if err := sess.attachReceiver(recv); err != nil {
 		if err := recv.sendFrame(cFrame); err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)

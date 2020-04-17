@@ -61,7 +61,7 @@ func (h *Handler) xhrPoll(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	receiver := newHTTPReceiver(rw, req, 1, new(xhrFrameWriter))
+	receiver := newHTTPReceiver(rw, req, 1, new(xhrFrameWriter), ReceiverTypeXHR)
 	if err := sess.attachReceiver(receiver); err != nil {
 		if err := receiver.sendFrame(cFrame); err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -87,7 +87,7 @@ func (h *Handler) xhrStreaming(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	receiver := newHTTPReceiver(rw, req, h.options.ResponseLimit, new(xhrFrameWriter))
+	receiver := newHTTPReceiver(rw, req, h.options.ResponseLimit, new(xhrFrameWriter), ReceiverTypeXHRStreaming)
 
 	if err := sess.attachReceiver(receiver); err != nil {
 		if err := receiver.sendFrame(cFrame); err != nil {

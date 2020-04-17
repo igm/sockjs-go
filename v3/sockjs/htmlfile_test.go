@@ -36,7 +36,10 @@ func TestHandler_htmlFile(t *testing.T) {
 	if rw.Body.String() != expectedIFrame {
 		t.Errorf("Unexpected response body, got '%s', expected '%s'", rw.Body, expectedIFrame)
 	}
-
+	sess, _ := h.sessionByRequest(req)
+	if rt := sess.ReceiverType(); rt != ReceiverTypeHtmlFile {
+		t.Errorf("Unexpected recevier type, got '%v', extected '%v'", rt, ReceiverTypeHtmlFile)
+	}
 }
 
 func TestHandler_cannotIntoXSS(t *testing.T) {

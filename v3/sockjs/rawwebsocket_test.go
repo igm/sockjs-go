@@ -52,6 +52,9 @@ func TestHandler_RawWebSocketTerminationByServer(t *testing.T) {
 	url := "ws" + server.URL[4:]
 	h.handlerFunc = func(conn *session) {
 		// close the session without sending any message
+		if rt := conn.ReceiverType(); rt != ReceiverTypeRawWebsocket {
+			t.Errorf("Unexpected recevier type, got '%v', extected '%v'", rt, ReceiverTypeRawWebsocket)
+		}
 		conn.Close(3000, "some close message")
 		conn.Close(0, "this should be ignored")
 	}
