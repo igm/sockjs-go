@@ -17,13 +17,13 @@ SockJS-Go server library
 
 SockJS-Go is a [SockJS](https://github.com/sockjs/sockjs-client) server library written in Go.
 
-To use current stable version **v2**
-
-    gopkg.in/igm/sockjs-go.v2/sockjs
-
-To latest v3 **development** version of `sockjs-go` use:
+For latest **v3** version of `sockjs-go` use:
 
     github.com/igm/sockjs-go/v3/sockjs
+
+For **v2** version of `sockjs-go` use:
+
+    gopkg.in/igm/sockjs-go.v2/sockjs
 
 Using version **v1** is not recommended (DEPRECATED)
 
@@ -36,7 +36,7 @@ Versioning
 
 SockJS-Go project adopted [gopkg.in](http://gopkg.in) approach for versioning. SockJS-Go library details can be found [here](https://gopkg.in/igm/sockjs-go.v2/sockjs)
 
-With the introduction of go modules a new version `v3` is developed and maintained in the `master`  and has new import part `github.com/igm/sockjs-go/v3/sockjs`. 
+With the introduction of go modules a new version `v3` is developed and maintained in the `master` and has new import part `github.com/igm/sockjs-go/v3/sockjs`. 
 
 Example
 -
