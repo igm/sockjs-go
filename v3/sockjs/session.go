@@ -205,11 +205,21 @@ func (s *session) Close(status uint32, reason string) error {
 	return ErrSessionNotOpen
 }
 
+func (s *session) setCurrentRequest(req *http.Request) {
+	s.mux.Lock()
+	s.req = req
+	s.mux.Unlock()
+}
+
 func (s *session) Recv() (string, error)                       { return s.recvBuffer.pop(context.Background()) }
 func (s *session) RecvCtx(ctx context.Context) (string, error) { return s.recvBuffer.pop(ctx) }
 func (s *session) Send(msg string) error                       { return s.sendMessage(msg) }
 func (s *session) ID() string                                  { return s.id }
-func (s *session) Request() *http.Request                      { return s.req }
+func (s *session) Request() *http.Request {
+	s.mux.RLock()
+	defer s.mux.RUnlock()
+	return s.req
+}
 func (s *session) GetSessionState() SessionState {
 	s.mux.RLock()
 	defer s.mux.RUnlock()

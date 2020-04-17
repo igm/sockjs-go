@@ -118,6 +118,6 @@ func (h *Handler) sessionByRequest(req *http.Request) (*session, error) {
 			h.sessionsMux.Unlock()
 		}()
 	}
-	sess.req = req
+	sess.setCurrentRequest(req)
 	return sess, nil
 }
