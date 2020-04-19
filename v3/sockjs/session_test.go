@@ -88,6 +88,11 @@ func TestSession_Timeout(t *testing.T) {
 	if sess.GetSessionState() != SessionClosed {
 		t.Errorf("session did not timeout")
 	}
+	select {
+	case <-sess.Context().Done():
+	case <-time.After(1 * time.Second):
+		t.Errorf("session context not done")
+	}
 }
 
 func TestSession_TimeoutOfClosedSession(t *testing.T) {
@@ -142,7 +147,7 @@ func TestSession_AttachReceiverAndRefuse(t *testing.T) {
 	a.Wait()
 }
 
-func TestSession_DetachRecevier(t *testing.T) {
+func TestSession_DetachReceiver(t *testing.T) {
 	session := newTestSession()
 	session.detachReceiver()
 	session.detachReceiver() // idempotent operation

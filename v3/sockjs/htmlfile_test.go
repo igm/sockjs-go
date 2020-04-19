@@ -12,8 +12,8 @@ func TestHandler_htmlFileNoCallback(t *testing.T) {
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/server/session/htmlfile", nil)
 	h.htmlFile(rw, req)
-	if rw.Code != http.StatusInternalServerError {
-		t.Errorf("Unexpected response code, got '%d', expected '%d'", rw.Code, http.StatusInternalServerError)
+	if rw.Code != http.StatusBadRequest {
+		t.Errorf("Unexpected response code, got '%d', expected '%d'", rw.Code, http.StatusBadRequest)
 	}
 	expectedContentType := "text/plain; charset=utf-8"
 	if rw.Header().Get("content-type") != expectedContentType {

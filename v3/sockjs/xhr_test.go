@@ -14,8 +14,8 @@ func TestHandler_XhrSendNilBody(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/non_existing_session/xhr_send", nil)
 	h.xhrSend(rec, req)
-	if rec.Code != http.StatusInternalServerError {
-		t.Errorf("Unexpected response status, got '%d' expected '%d'", rec.Code, http.StatusInternalServerError)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("Unexpected response status, got '%d' expected '%d'", rec.Code, http.StatusBadRequest)
 	}
 	if rec.Body.String() != "Payload expected." {
 		t.Errorf("Unexcpected body received: '%s'", rec.Body.String())
@@ -27,8 +27,8 @@ func TestHandler_XhrSendEmptyBody(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/non_existing_session/xhr_send", strings.NewReader(""))
 	h.xhrSend(rec, req)
-	if rec.Code != http.StatusInternalServerError {
-		t.Errorf("Unexpected response status, got '%d' expected '%d'", rec.Code, http.StatusInternalServerError)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("Unexpected response status, got '%d' expected '%d'", rec.Code, http.StatusBadRequest)
 	}
 	if rec.Body.String() != "Payload expected." {
 		t.Errorf("Unexcpected body received: '%s'", rec.Body.String())
@@ -40,8 +40,8 @@ func TestHandler_XhrSendWrongUrlPath(t *testing.T) {
 	rec := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "incorrect", strings.NewReader("[\"a\"]"))
 	h.xhrSend(rec, req)
-	if rec.Code != http.StatusInternalServerError {
-		t.Errorf("Unexcpected response status, got '%d', expected '%d'", rec.Code, http.StatusInternalServerError)
+	if rec.Code != http.StatusBadRequest {
+		t.Errorf("Unexcpected response status, got '%d', expected '%d'", rec.Code, http.StatusBadRequest)
 	}
 }
 
@@ -76,16 +76,16 @@ func TestHandler_XhrSendInvalidInput(t *testing.T) {
 	req, _ := http.NewRequest("POST", "/server/session/xhr_send", strings.NewReader("some invalid message frame"))
 	rec := httptest.NewRecorder()
 	h.xhrSend(rec, req)
-	if rec.Code != http.StatusInternalServerError || rec.Body.String() != "Broken JSON encoding." {
-		t.Errorf("Unexpected response, got '%d,%s' expected '%d,Broken JSON encoding.'", rec.Code, rec.Body.String(), http.StatusInternalServerError)
+	if rec.Code != http.StatusBadRequest || rec.Body.String() != "Broken JSON encoding." {
+		t.Errorf("Unexpected response, got '%d,%s' expected '%d,Broken JSON encoding.'", rec.Code, rec.Body.String(), http.StatusBadRequest)
 	}
 
 	// unexpected EOF
 	req, _ = http.NewRequest("POST", "/server/session/xhr_send", strings.NewReader("[\"x"))
 	rec = httptest.NewRecorder()
 	h.xhrSend(rec, req)
-	if rec.Code != http.StatusInternalServerError || rec.Body.String() != "Broken JSON encoding." {
-		t.Errorf("Unexpected response, got '%d,%s' expected '%d,Broken JSON encoding.'", rec.Code, rec.Body.String(), http.StatusInternalServerError)
+	if rec.Code != http.StatusBadRequest || rec.Body.String() != "Broken JSON encoding." {
+		t.Errorf("Unexpected response, got '%d,%s' expected '%d,Broken JSON encoding.'", rec.Code, rec.Body.String(), http.StatusBadRequest)
 	}
 }
 
@@ -185,5 +185,6 @@ func newTestHandler() *Handler {
 	h := &Handler{sessions: make(map[string]*session)}
 	h.options.HeartbeatDelay = time.Hour
 	h.options.DisconnectDelay = time.Hour
+	h.handlerFunc = func(s *session) {}
 	return h
 }

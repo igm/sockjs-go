@@ -38,7 +38,7 @@ func (h *Handler) htmlFile(rw http.ResponseWriter, req *http.Request) {
 	}
 	callback := req.Form.Get("c")
 	if callback == "" {
-		http.Error(rw, `"callback" parameter required`, http.StatusInternalServerError)
+		http.Error(rw, `"callback" parameter required`, http.StatusBadRequest)
 		return
 	} else if invalidCallback.MatchString(callback) {
 		http.Error(rw, `invalid character in "callback" parameter`, http.StatusBadRequest)
@@ -61,6 +61,7 @@ func (h *Handler) htmlFile(rw http.ResponseWriter, req *http.Request) {
 		recv.close()
 		return
 	}
+	sess.startHandlerOnce.Do(func() { go h.handlerFunc(sess) })
 	select {
 	case <-recv.doneNotify():
 	case <-recv.interruptedNotify():

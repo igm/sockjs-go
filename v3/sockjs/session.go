@@ -52,11 +52,15 @@ type session struct {
 	heartbeatInterval      time.Duration
 	timer                  *time.Timer
 	// once the session timeouts this channel also closes
-	closeCh chan struct{}
+	closeCh          chan struct{}
+	startHandlerOnce sync.Once
+	context          context.Context
+	cancelFunc       func()
 }
 
 // session is a central component that handles receiving and sending frames. It maintains internal state
 func newSession(req *http.Request, sessionID string, sessionTimeoutInterval, heartbeatInterval time.Duration) *session {
+	context, cancel := context.WithCancel(context.Background())
 	s := &session{
 		id:                     sessionID,
 		req:                    req,
@@ -65,6 +69,8 @@ func newSession(req *http.Request, sessionID string, sessionTimeoutInterval, hea
 		closeCh:                make(chan struct{}),
 		sessionTimeoutInterval: sessionTimeoutInterval,
 		receiverType:           ReceiverTypeNone,
+		context:                context,
+		cancelFunc:             cancel,
 	}
 
 	s.mux.Lock() // "go test -race" complains if ommited, not sure why as no race can happen here
@@ -167,6 +173,7 @@ func (s *session) closing() {
 			_ = s.recv.sendFrame(s.closeFrame)
 			s.recv.close()
 		}
+		s.cancelFunc()
 	}
 }
 
@@ -179,9 +186,17 @@ func (s *session) close() {
 		s.state = SessionClosed
 		s.timer.Stop()
 		close(s.closeCh)
+		s.cancelFunc()
 	}
 }
 
+func (s *session) setCurrentRequest(req *http.Request) {
+	s.mux.Lock()
+	s.req = req
+	s.mux.Unlock()
+}
+
+// Close closes the session with provided code and reason.
 func (s *session) Close(status uint32, reason string) error {
 	s.mux.Lock()
 	if s.state < SessionClosing {
@@ -194,29 +209,50 @@ func (s *session) Close(status uint32, reason string) error {
 	return ErrSessionNotOpen
 }
 
-func (s *session) setCurrentRequest(req *http.Request) {
-	s.mux.Lock()
-	s.req = req
-	s.mux.Unlock()
+// ID returns a session id
+func (s *session) ID() string {
+	return s.id
 }
 
-func (s *session) Recv() (string, error)                       { return s.recvBuffer.pop(context.Background()) }
-func (s *session) RecvCtx(ctx context.Context) (string, error) { return s.recvBuffer.pop(ctx) }
-func (s *session) Send(msg string) error                       { return s.sendMessage(msg) }
-func (s *session) ID() string                                  { return s.id }
+// Recv reads one text frame from session
+func (s *session) Recv() (string, error) {
+	return s.recvBuffer.pop(context.Background())
+}
+
+// RecvCtx reads one text frame from session
+func (s *session) RecvCtx(ctx context.Context) (string, error) {
+	return s.recvBuffer.pop(ctx)
+}
+
+// Send sends one text frame to session
+func (s *session) Send(msg string) error {
+	return s.sendMessage(msg)
+}
+
+// Request returns the first http request
 func (s *session) Request() *http.Request {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
+	s.req.Context()
 	return s.req
 }
+
+//GetSessionState returns the current state of the session
 func (s *session) GetSessionState() SessionState {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 	return s.state
 }
 
+//ReceiverType returns receiver used in session
 func (s *session) ReceiverType() ReceiverType {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 	return s.receiverType
+}
+
+// Context returns session context, the context is cancelled
+// whenever the session gets into closing or closed state
+func (s *session) Context() context.Context {
+	return s.context
 }

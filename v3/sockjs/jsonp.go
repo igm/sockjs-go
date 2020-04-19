@@ -40,6 +40,7 @@ func (h *Handler) jsonp(rw http.ResponseWriter, req *http.Request) {
 		recv.close()
 		return
 	}
+	sess.startHandlerOnce.Do(func() { go h.handlerFunc(sess) })
 	select {
 	case <-recv.doneNotify():
 	case <-recv.interruptedNotify():

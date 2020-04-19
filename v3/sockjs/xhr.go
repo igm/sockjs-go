@@ -15,22 +15,22 @@ var (
 
 func (h *Handler) xhrSend(rw http.ResponseWriter, req *http.Request) {
 	if req.Body == nil {
-		httpError(rw, "Payload expected.", http.StatusInternalServerError)
+		httpError(rw, "Payload expected.", http.StatusBadRequest)
 		return
 	}
 	var messages []string
 	err := json.NewDecoder(req.Body).Decode(&messages)
 	if err == io.EOF {
-		httpError(rw, "Payload expected.", http.StatusInternalServerError)
+		httpError(rw, "Payload expected.", http.StatusBadRequest)
 		return
 	}
 	if _, ok := err.(*json.SyntaxError); ok || err == io.ErrUnexpectedEOF {
-		httpError(rw, "Broken JSON encoding.", http.StatusInternalServerError)
+		httpError(rw, "Broken JSON encoding.", http.StatusBadRequest)
 		return
 	}
 	sessionID, err := h.parseSessionID(req.URL)
 	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -71,6 +71,12 @@ func (h *Handler) xhrPoll(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	sess.startHandlerOnce.Do(func() {
+		if h.handlerFunc != nil {
+			go h.handlerFunc(sess)
+		}
+	})
+
 	select {
 	case <-receiver.doneNotify():
 	case <-receiver.interruptedNotify():
@@ -97,6 +103,7 @@ func (h *Handler) xhrStreaming(rw http.ResponseWriter, req *http.Request) {
 		receiver.close()
 		return
 	}
+	sess.startHandlerOnce.Do(func() { go h.handlerFunc(sess) })
 
 	select {
 	case <-receiver.doneNotify():

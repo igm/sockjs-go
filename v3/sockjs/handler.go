@@ -25,6 +25,9 @@ var sessionRegExp = regexp.MustCompile(sessionPrefix)
 // NewHandler creates new HTTP handler that conforms to the basic net/http.Handler interface.
 // It takes path prefix, options and sockjs handler function as parameters
 func NewHandler(prefix string, opts Options, handlerFunc func(Session)) *Handler {
+	if handlerFunc == nil {
+		handlerFunc = func(s Session) {}
+	}
 	h := &Handler{
 		prefix:      prefix,
 		options:     opts,
@@ -108,9 +111,6 @@ func (h *Handler) sessionByRequest(req *http.Request) (*session, error) {
 	if !exists {
 		sess = newSession(req, sessionID, h.options.DisconnectDelay, h.options.HeartbeatDelay)
 		h.sessions[sessionID] = sess
-		if h.handlerFunc != nil {
-			go h.handlerFunc(sess)
-		}
 		go func() {
 			<-sess.closeCh
 			h.sessionsMux.Lock()
