@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/igm/sockjs-go/sockjs"
+	"github.com/igm/sockjs-go/v3/sockjs"
 )
 
 type testHandler struct {
@@ -40,7 +40,7 @@ func main() {
 		newSockjsHandler("/close", closeOptions, closeHandler),
 		newSockjsHandler("/disabled_websocket_echo", disabledWebsocketOptions, echoHandler),
 	}
-	log.Fatal(http.ListenAndServe(":8081", testHandlers(handlers)))
+	log.Fatal(http.ListenAndServe("localhost:8081", testHandlers(handlers)))
 }
 
 func (t testHandlers) ServeHTTP(rw http.ResponseWriter, req *http.Request) {

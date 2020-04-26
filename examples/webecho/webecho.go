@@ -5,7 +5,7 @@ import (
 	"log"
 	"net/http"
 
-	"gopkg.in/igm/sockjs-go.v2/sockjs"
+	"github.com/igm/sockjs-go/v3/sockjs"
 )
 
 var (
@@ -30,7 +30,9 @@ func echoHandler(session sockjs.Session) {
 	log.Println("new sockjs session established")
 	for {
 		if msg, err := session.Recv(); err == nil {
-			session.Send(msg)
+			if err := session.Send(msg); err != nil {
+				break
+			}
 			continue
 		}
 		break
