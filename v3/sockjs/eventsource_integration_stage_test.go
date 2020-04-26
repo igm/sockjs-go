@@ -72,12 +72,6 @@ func (s *eventSourceStage) handler_is_invoked_with_session() *eventSourceStage {
 
 func (s *eventSourceStage) session_is_closed() *eventSourceStage {
 	s.session.Close(1024, "Close")
-	assert.Error(s.t, s.session.Context().Err())
-	select {
-	case <-s.session.Context().Done():
-	case <-time.After(1 * time.Second):
-		s.t.Fatal("no context should have been closed")
-	}
 	return s
 }
 

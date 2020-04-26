@@ -81,12 +81,6 @@ func (s *htmlFileStage) handler_should_be_started_with_session() *htmlFileStage 
 
 func (s *htmlFileStage) session_is_closed() *htmlFileStage {
 	require.NoError(s.t, s.session.Close(1024, "Close"))
-	assert.Error(s.t, s.session.Context().Err())
-	select {
-	case <-s.session.Context().Done():
-	case <-time.After(1 * time.Second):
-		s.t.Fatal("no context should have been closed")
-	}
 	return s
 }
 
