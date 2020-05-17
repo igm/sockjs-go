@@ -73,7 +73,7 @@ func (h *Handler) xhrPoll(rw http.ResponseWriter, req *http.Request) {
 
 	sess.startHandlerOnce.Do(func() {
 		if h.handlerFunc != nil {
-			go h.handlerFunc(sess)
+			go h.handlerFunc(Session{sess})
 		}
 	})
 
@@ -103,7 +103,7 @@ func (h *Handler) xhrStreaming(rw http.ResponseWriter, req *http.Request) {
 		receiver.close()
 		return
 	}
-	sess.startHandlerOnce.Do(func() { go h.handlerFunc(sess) })
+	sess.startHandlerOnce.Do(func() { go h.handlerFunc(Session{sess}) })
 
 	select {
 	case <-receiver.doneNotify():

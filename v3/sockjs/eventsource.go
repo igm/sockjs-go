@@ -25,7 +25,7 @@ func (h *Handler) eventSource(rw http.ResponseWriter, req *http.Request) {
 		recv.close()
 		return
 	}
-	sess.startHandlerOnce.Do(func() { go h.handlerFunc(sess) })
+	sess.startHandlerOnce.Do(func() { go h.handlerFunc(Session{sess}) })
 	select {
 	case <-recv.doneNotify():
 	case <-recv.interruptedNotify():
