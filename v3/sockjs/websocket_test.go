@@ -110,6 +110,11 @@ func TestHandler_WebSocketTerminationByClient(t *testing.T) {
 		if _, err := conn.Recv(); err != ErrSessionNotOpen {
 			t.Errorf("Recv should fail")
 		}
+		select {
+		case <-conn.Context().Done():
+		case <-time.After(1 * time.Second):
+			t.Errorf("context should have been done")
+		}
 		close(done)
 	}
 	conn, _, _ := websocket.DefaultDialer.Dial(url, map[string][]string{"Origin": []string{server.URL}})
