@@ -45,7 +45,12 @@ func TestHandler_Create(t *testing.T) {
 }
 
 func TestHandler_RootPrefixInfoHandler(t *testing.T) {
-	handler := NewHandler("", testOptions, nil)
+	infoOptions := testOptions
+	jSessionCalled := false
+	infoOptions.JSessionID = func(writer http.ResponseWriter, request *http.Request) {
+		jSessionCalled = true
+	}
+	handler := NewHandler("", infoOptions, nil)
 	if handler.Prefix() != "" {
 		t.Errorf("Prefix not properly set, got '%s' expected '%s'", handler.Prefix(), "")
 	}
@@ -66,6 +71,7 @@ func TestHandler_RootPrefixInfoHandler(t *testing.T) {
 		t.Errorf("Unexpected status code receiver, got '%d' expected '%d'", resp.StatusCode, http.StatusOK)
 		t.FailNow()
 	}
+	assert.True(t, jSessionCalled)
 	infoData, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		t.Errorf("Error reading body: '%v'", err)
