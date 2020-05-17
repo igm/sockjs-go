@@ -73,7 +73,7 @@ func (h *Handler) jsonpSend(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, "Broken JSON encoding.", http.StatusBadRequest)
 		return
 	}
-	sessionID, _ := h.parseSessionID(req.URL)
+	sessionID, _ := h.parseSessionID(req)
 	h.sessionsMux.Lock()
 	defer h.sessionsMux.Unlock()
 	if sess, ok := h.sessions[sessionID]; !ok {

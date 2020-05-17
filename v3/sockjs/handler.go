@@ -2,108 +2,101 @@ package sockjs
 
 import (
 	"net/http"
-	"net/url"
-	"regexp"
-	"strings"
 	"sync"
+
+	"github.com/gorilla/mux"
 )
 
 type Handler struct {
-	prefix      string
 	options     Options
 	handlerFunc func(*session)
-	mappings    []*mapping
+	router      *mux.Router
 
 	sessionsMux sync.Mutex
 	sessions    map[string]*session
 }
 
-const sessionPrefix = "^/([^/.]+)/([^/.]+)"
+const sessionPrefix = "/{server:[^/.]+}/{session:[^/.]+}"
 
-var sessionRegExp = regexp.MustCompile(sessionPrefix)
+func toMW(f func(rw http.ResponseWriter, req *http.Request)) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			f(w, r)
+			// Call the next handler, which can be another middleware in the chain, or the final handler.
+			next.ServeHTTP(w, r)
+		})
+	}
+}
 
 // NewHandler creates new HTTP handler that conforms to the basic net/http.Handler interface.
 // It takes path prefix, options and sockjs handler function as parameters
-func NewHandler(prefix string, opts Options, handlerFunc func(Session)) *Handler {
+func NewHandler(opts Options, handlerFunc func(Session)) *Handler {
 	if handlerFunc == nil {
 		handlerFunc = func(s Session) {}
 	}
 	h := &Handler{
-		prefix:      prefix,
 		options:     opts,
 		handlerFunc: handlerFunc,
 		sessions:    make(map[string]*session),
 	}
-	xhrCors := xhrCorsFactory(opts)
-	h.mappings = []*mapping{
-		newMapping("GET", "^[/]?$", welcomeHandler),
-		newMapping("OPTIONS", "^/info$", opts.cookie, xhrCors, cacheFor, opts.info),
-		newMapping("GET", "^/info$", xhrCors, noCache, opts.info),
-		// XHR
-		newMapping("POST", sessionPrefix+"/xhr_send$", opts.cookie, xhrCors, noCache, h.xhrSend),
-		newMapping("OPTIONS", sessionPrefix+"/xhr_send$", opts.cookie, xhrCors, cacheFor, xhrOptions),
-		newMapping("POST", sessionPrefix+"/xhr$", opts.cookie, xhrCors, noCache, h.xhrPoll),
-		newMapping("OPTIONS", sessionPrefix+"/xhr$", opts.cookie, xhrCors, cacheFor, xhrOptions),
-		newMapping("POST", sessionPrefix+"/xhr_streaming$", opts.cookie, xhrCors, noCache, h.xhrStreaming),
-		newMapping("OPTIONS", sessionPrefix+"/xhr_streaming$", opts.cookie, xhrCors, cacheFor, xhrOptions),
-		// EventStream
-		newMapping("GET", sessionPrefix+"/eventsource$", opts.cookie, xhrCors, noCache, h.eventSource),
-		// Htmlfile
-		newMapping("GET", sessionPrefix+"/htmlfile$", opts.cookie, xhrCors, noCache, h.htmlFile),
-		// JsonP
-		newMapping("GET", sessionPrefix+"/jsonp$", opts.cookie, xhrCors, noCache, h.jsonp),
-		newMapping("OPTIONS", sessionPrefix+"/jsonp$", opts.cookie, xhrCors, cacheFor, xhrOptions),
-		newMapping("POST", sessionPrefix+"/jsonp_send$", opts.cookie, xhrCors, noCache, h.jsonpSend),
-		// IFrame
-		newMapping("GET", "^/iframe[0-9-.a-z_]*.html$", cacheFor, h.iframe),
-	}
+
+	xhrCorsMW := toMW(xhrCorsFactory(opts))
+	cookieMW := toMW(opts.cookie)
+	cacheForMW := toMW(cacheFor)
+	noCacheMW := toMW(noCache)
+
+	r := mux.NewRouter()
+	r.HandleFunc("/", welcomeHandler).Methods(http.MethodGet)
+	r.Handle("/info", cookieMW(xhrCorsMW(cacheForMW(http.HandlerFunc(opts.info))))).Methods(http.MethodOptions)
+	r.Handle("/info", xhrCorsMW(noCacheMW(http.HandlerFunc(opts.info)))).Methods(http.MethodGet)
+
+	r.Handle(sessionPrefix+"/xhr_send", cookieMW(xhrCorsMW(noCacheMW(http.HandlerFunc(h.xhrSend))))).Methods(http.MethodPost)
+	r.Handle(sessionPrefix+"/xhr_send$", cookieMW(xhrCorsMW(cacheForMW(http.HandlerFunc(xhrOptions))))).Methods(http.MethodOptions)
+	r.Handle(sessionPrefix+"/xhr", cookieMW(xhrCorsMW(noCacheMW(http.HandlerFunc(h.xhrPoll))))).Methods(http.MethodPost)
+	r.Handle(sessionPrefix+"/xhr", cookieMW(xhrCorsMW(cacheForMW(http.HandlerFunc(xhrOptions))))).Methods(http.MethodOptions)
+	r.Handle(sessionPrefix+"/xhr_streaming", cookieMW(xhrCorsMW(noCacheMW(http.HandlerFunc(h.xhrStreaming))))).Methods(http.MethodPost)
+	r.Handle(sessionPrefix+"/xhr_streaming", cookieMW(xhrCorsMW(cacheForMW(http.HandlerFunc(xhrOptions))))).Methods(http.MethodOptions)
+
+	r.Handle(sessionPrefix+"/eventsource", cookieMW(xhrCorsMW(noCacheMW(http.HandlerFunc(h.eventSource))))).Methods(http.MethodGet)
+
+	r.Handle(sessionPrefix+"/htmlfile", cookieMW(xhrCorsMW(noCacheMW(http.HandlerFunc(h.htmlFile))))).Methods(http.MethodGet)
+
+	r.Handle(sessionPrefix+"/jsonp", cookieMW(xhrCorsMW(noCacheMW(http.HandlerFunc(h.jsonp))))).Methods(http.MethodGet)
+	r.Handle(sessionPrefix+"/jsonp", cookieMW(xhrCorsMW(cacheForMW(http.HandlerFunc(xhrOptions))))).Methods(http.MethodOptions)
+	r.Handle(sessionPrefix+"/jsonp_send", cookieMW(xhrCorsMW(noCacheMW(http.HandlerFunc(h.jsonpSend))))).Methods(http.MethodPost)
+
+	r.Handle("/iframe[0-9-.a-z_]*.html", cacheForMW(http.HandlerFunc(h.iframe))).Methods(http.MethodGet)
+
 	if opts.Websocket {
-		h.mappings = append(h.mappings, newMapping("GET", sessionPrefix+"/websocket$", h.sockjsWebsocket))
+		r.HandleFunc(sessionPrefix+"/websocket", h.sockjsWebsocket).Methods(http.MethodGet)
 	}
 	if opts.RawWebsocket {
-		h.mappings = append(h.mappings, newMapping("GET", "^/websocket$", h.rawWebsocket))
+		r.HandleFunc("/websocket", h.rawWebsocket).Methods(http.MethodGet)
 	}
+
+	h.router = r
 	return h
 }
 
-func (h *Handler) Prefix() string { return h.prefix }
+func (h *Handler) Prefix() string { return "" }
 
 func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
-	// iterate over mappings
-	http.StripPrefix(h.prefix, http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		var allowedMethods []string
-		for _, mapping := range h.mappings {
-			if match, method := mapping.matches(req); match == fullMatch {
-				for _, hf := range mapping.chain {
-					hf(rw, req)
-				}
-				return
-			} else if match == pathMatch {
-				allowedMethods = append(allowedMethods, method)
-			}
-		}
-		if len(allowedMethods) > 0 {
-			rw.Header().Set("allow", strings.Join(allowedMethods, ", "))
-			rw.Header().Set("Content-Type", "")
-			rw.WriteHeader(http.StatusMethodNotAllowed)
-			return
-		}
-		http.NotFound(rw, req)
-	})).ServeHTTP(rw, req)
+	h.router.ServeHTTP(rw, req)
 }
 
-func (h *Handler) parseSessionID(url *url.URL) (string, error) {
-	matches := sessionRegExp.FindStringSubmatch(url.Path)
-	if len(matches) == 3 {
-		return matches[2], nil
+func (h *Handler) parseSessionID(req *http.Request) (string, error) {
+	vars := mux.Vars(req)
+	sessionID := vars["session"]
+	if sessionID == "" {
+		return "", errSessionParse
 	}
-	return "", errSessionParse
+	return sessionID, nil
 }
 
 func (h *Handler) sessionByRequest(req *http.Request) (*session, error) {
 	h.sessionsMux.Lock()
 	defer h.sessionsMux.Unlock()
-	sessionID, err := h.parseSessionID(req.URL)
+	sessionID, err := h.parseSessionID(req)
 	if err != nil {
 		return nil, err
 	}

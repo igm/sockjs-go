@@ -28,7 +28,7 @@ func (h *Handler) xhrSend(rw http.ResponseWriter, req *http.Request) {
 		httpError(rw, "Broken JSON encoding.", http.StatusBadRequest)
 		return
 	}
-	sessionID, err := h.parseSessionID(req.URL)
+	sessionID, err := h.parseSessionID(req)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
@@ -104,7 +104,6 @@ func (h *Handler) xhrStreaming(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	sess.startHandlerOnce.Do(func() { go h.handlerFunc(sess) })
-
 	select {
 	case <-receiver.doneNotify():
 	case <-receiver.interruptedNotify():

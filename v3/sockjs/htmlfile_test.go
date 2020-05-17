@@ -3,14 +3,18 @@ package sockjs
 import (
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"strings"
 	"testing"
+
+	"github.com/gorilla/mux"
 )
 
 func TestHandler_htmlFileNoCallback(t *testing.T) {
 	h := newTestHandler()
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/server/session/htmlfile", nil)
+	req = mux.SetURLVars(req, map[string]string{"session": "session"})
 	h.htmlFile(rw, req)
 	if rw.Code != http.StatusBadRequest {
 		t.Errorf("Unexpected response code, got '%d', expected '%d'", rw.Code, http.StatusBadRequest)
@@ -25,6 +29,28 @@ func TestHandler_htmlFile(t *testing.T) {
 	h := newTestHandler()
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/server/session/htmlfile?c=testCallback", nil)
+	req = mux.SetURLVars(req, map[string]string{"session": "session"})
+	go func() {
+		var sess *session
+		for exists := false; !exists; {
+			runtime.Gosched()
+			h.sessionsMux.Lock()
+			sess, exists = h.sessions["session"]
+			h.sessionsMux.Unlock()
+		}
+		for exists := false; !exists; {
+			runtime.Gosched()
+			sess.mux.RLock()
+			exists = sess.recv != nil
+			sess.mux.RUnlock()
+		}
+		if rt := sess.ReceiverType(); rt != ReceiverTypeHtmlFile {
+			t.Errorf("Unexpected recevier type, got '%v', extected '%v'", rt, ReceiverTypeHtmlFile)
+		}
+		sess.mux.RLock()
+		sess.recv.close()
+		sess.mux.RUnlock()
+	}()
 	h.htmlFile(rw, req)
 	if rw.Code != http.StatusOK {
 		t.Errorf("Unexpected response code, got '%d', expected '%d'", rw.Code, http.StatusOK)
@@ -47,6 +73,7 @@ func TestHandler_cannotIntoXSS(t *testing.T) {
 	rw := httptest.NewRecorder()
 	// test simple injection
 	req, _ := http.NewRequest("GET", "/server/session/htmlfile?c=fake%3Balert(1337)", nil)
+	req = mux.SetURLVars(req, map[string]string{"session": "session"})
 	h.htmlFile(rw, req)
 	if rw.Code != http.StatusBadRequest {
 		t.Errorf("Unexpected response code, got '%d', expected '%d'", rw.Code, http.StatusBadRequest)
@@ -56,6 +83,7 @@ func TestHandler_cannotIntoXSS(t *testing.T) {
 	rw = httptest.NewRecorder()
 	// test simple injection
 	req, _ = http.NewRequest("GET", "/server/session/htmlfile?c=fake%2Dalert", nil)
+	req = mux.SetURLVars(req, map[string]string{"session": "session"})
 	h.htmlFile(rw, req)
 	if rw.Code != http.StatusBadRequest {
 		t.Errorf("Unexpected response code, got '%d', expected '%d'", rw.Code, http.StatusBadRequest)

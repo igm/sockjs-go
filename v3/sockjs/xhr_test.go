@@ -4,15 +4,19 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 func TestHandler_XhrSendNilBody(t *testing.T) {
 	h := newTestHandler()
 	rec := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/non_existing_session/xhr_send", nil)
+	req = mux.SetURLVars(req, map[string]string{"session": "non_existing_session"})
 	h.xhrSend(rec, req)
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("Unexpected response status, got '%d' expected '%d'", rec.Code, http.StatusBadRequest)
@@ -26,6 +30,7 @@ func TestHandler_XhrSendEmptyBody(t *testing.T) {
 	h := newTestHandler()
 	rec := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/non_existing_session/xhr_send", strings.NewReader(""))
+	req = mux.SetURLVars(req, map[string]string{"session": "non_existing_session"})
 	h.xhrSend(rec, req)
 	if rec.Code != http.StatusBadRequest {
 		t.Errorf("Unexpected response status, got '%d' expected '%d'", rec.Code, http.StatusBadRequest)
@@ -49,10 +54,12 @@ func TestHandler_XhrSendToExistingSession(t *testing.T) {
 	h := newTestHandler()
 	rec := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/session/xhr_send", strings.NewReader("[\"some message\"]"))
+	req = mux.SetURLVars(req, map[string]string{"session": "session"})
 	sess := newSession(req, "session", time.Second, time.Second)
 	h.sessions["session"] = sess
 
 	req, _ = http.NewRequest("POST", "/server/session/xhr_send", strings.NewReader("[\"some message\"]"))
+	req = mux.SetURLVars(req, map[string]string{"session": "session"})
 	var done = make(chan bool)
 	go func() {
 		h.xhrSend(rec, req)
@@ -74,6 +81,7 @@ func TestHandler_XhrSendToExistingSession(t *testing.T) {
 func TestHandler_XhrSendInvalidInput(t *testing.T) {
 	h := newTestHandler()
 	req, _ := http.NewRequest("POST", "/server/session/xhr_send", strings.NewReader("some invalid message frame"))
+	req = mux.SetURLVars(req, map[string]string{"session": "session"})
 	rec := httptest.NewRecorder()
 	h.xhrSend(rec, req)
 	if rec.Code != http.StatusBadRequest || rec.Body.String() != "Broken JSON encoding." {
@@ -82,6 +90,7 @@ func TestHandler_XhrSendInvalidInput(t *testing.T) {
 
 	// unexpected EOF
 	req, _ = http.NewRequest("POST", "/server/session/xhr_send", strings.NewReader("[\"x"))
+	req = mux.SetURLVars(req, map[string]string{"session": "session"})
 	rec = httptest.NewRecorder()
 	h.xhrSend(rec, req)
 	if rec.Code != http.StatusBadRequest || rec.Body.String() != "Broken JSON encoding." {
@@ -92,6 +101,7 @@ func TestHandler_XhrSendInvalidInput(t *testing.T) {
 func TestHandler_XhrSendSessionNotFound(t *testing.T) {
 	h := Handler{}
 	req, _ := http.NewRequest("POST", "/server/session/xhr_send", strings.NewReader("[\"some message\"]"))
+	req = mux.SetURLVars(req, map[string]string{"session": "session"})
 	rec := httptest.NewRecorder()
 	h.xhrSend(rec, req)
 	if rec.Code != http.StatusNotFound {
@@ -103,6 +113,7 @@ func TestHandler_XhrPoll(t *testing.T) {
 	h := newTestHandler()
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/session/xhr", nil)
+	req = mux.SetURLVars(req, map[string]string{"session": "session"})
 	h.xhrPoll(rw, req)
 	if rw.Header().Get("content-type") != "application/javascript; charset=UTF-8" {
 		t.Errorf("Wrong content type received, got '%s'", rw.Header().Get("content-type"))
@@ -119,6 +130,7 @@ func TestHandler_XhrPollConnectionInterrupted(t *testing.T) {
 	sess.state = SessionActive
 	h.sessions["session"] = sess
 	req, _ := http.NewRequest("POST", "/server/session/xhr", nil)
+	req = mux.SetURLVars(req, map[string]string{"session": "session"})
 	ctx, cancel := context.WithCancel(req.Context())
 	req = req.WithContext(ctx)
 	rw := httptest.NewRecorder()
@@ -134,11 +146,13 @@ func TestHandler_XhrPollConnectionInterrupted(t *testing.T) {
 func TestHandler_XhrPollAnotherConnectionExists(t *testing.T) {
 	h := newTestHandler()
 	req, _ := http.NewRequest("POST", "/server/session/xhr", nil)
+	req = mux.SetURLVars(req, map[string]string{"session": "session"})
 	// turn of timeoutes and heartbeats
 	sess := newSession(req, "session", time.Hour, time.Hour)
 	h.sessions["session"] = sess
 	noError(t, sess.attachReceiver(newTestReceiver()))
 	req, _ = http.NewRequest("POST", "/server/session/xhr", nil)
+	req = mux.SetURLVars(req, map[string]string{"session": "session"})
 	rw2 := httptest.NewRecorder()
 	h.xhrPoll(rw2, req)
 	if rw2.Body.String() != "c[2010,\"Another connection still open\"]\n" {
@@ -150,6 +164,28 @@ func TestHandler_XhrStreaming(t *testing.T) {
 	h := newTestHandler()
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/session/xhr_streaming", nil)
+	req = mux.SetURLVars(req, map[string]string{"session": "session"})
+	go func() {
+		var sess *session
+		for exists := false; !exists; {
+			runtime.Gosched()
+			h.sessionsMux.Lock()
+			sess, exists = h.sessions["session"]
+			h.sessionsMux.Unlock()
+		}
+		for exists := false; !exists; {
+			runtime.Gosched()
+			sess.mux.RLock()
+			exists = sess.recv != nil
+			sess.mux.RUnlock()
+		}
+		if rt := sess.ReceiverType(); rt != ReceiverTypeXHRStreaming {
+			t.Errorf("Unexpected recevier type, got '%v', extected '%v'", rt, ReceiverTypeXHRStreaming)
+		}
+		sess.mux.RLock()
+		sess.recv.close()
+		sess.mux.RUnlock()
+	}()
 	h.xhrStreaming(rw, req)
 	expectedBody := strings.Repeat("h", 2048) + "\no\n"
 	if rw.Body.String() != expectedBody {
@@ -166,6 +202,7 @@ func TestHandler_XhrStreamingAnotherReceiver(t *testing.T) {
 	h.options.ResponseLimit = 4096
 	rw1 := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/session/xhr_streaming", nil)
+	req = mux.SetURLVars(req, map[string]string{"session": "session"})
 	ctx, cancel := context.WithCancel(req.Context())
 	req = req.WithContext(ctx)
 	go func() {
@@ -182,9 +219,8 @@ func TestHandler_XhrStreamingAnotherReceiver(t *testing.T) {
 
 // various test only structs
 func newTestHandler() *Handler {
-	h := &Handler{sessions: make(map[string]*session)}
+	h := NewHandler(DefaultOptions, func(s *session) {})
 	h.options.HeartbeatDelay = time.Hour
 	h.options.DisconnectDelay = time.Hour
-	h.handlerFunc = func(s *session) {}
 	return h
 }

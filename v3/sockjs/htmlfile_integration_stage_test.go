@@ -35,7 +35,7 @@ func newHtmlFileStage(t *testing.T) (*htmlFileStage, *htmlFileStage, *htmlFileSt
 }
 
 func (s *htmlFileStage) a_new_sockjs_handler_is_created() *htmlFileStage {
-	s.handler = sockjs.NewHandler("/prefix", sockjs.DefaultOptions, func(sess sockjs.Session) {
+	s.handler = sockjs.NewHandler(sockjs.DefaultOptions, func(sess sockjs.Session) {
 		s.session = sess
 		close(s.haveSession)
 		for {
@@ -56,7 +56,7 @@ func (s *htmlFileStage) a_server_is_started() *htmlFileStage {
 }
 
 func (s *htmlFileStage) a_sockjs_htmlfile_connection_is_received() *htmlFileStage {
-	s.resp, s.err = http.Get(s.server.URL + "/prefix/123/123/htmlfile?c=testCallback")
+	s.resp, s.err = http.Get(s.server.URL + "/123/123/htmlfile?c=testCallback")
 	return s
 }
 
@@ -116,7 +116,7 @@ func (s *htmlFileStage) session_is_active() *htmlFileStage {
 func (s *htmlFileStage) a_message_is_sent_from_client(msg string) *htmlFileStage {
 	out, err := json.Marshal([]string{msg})
 	require.NoError(s.t, err)
-	r, err := http.Post(s.server.URL+"/prefix/123/123/xhr_send", "application/json", bytes.NewReader(out))
+	r, err := http.Post(s.server.URL+"/123/123/xhr_send", "application/json", bytes.NewReader(out))
 	require.NoError(s.t, err)
 	require.Equal(s.t, http.StatusNoContent, r.StatusCode)
 	return s

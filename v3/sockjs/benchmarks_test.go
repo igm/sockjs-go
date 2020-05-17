@@ -7,18 +7,19 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"strings"
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/gorilla/mux"
 
 	"github.com/gorilla/websocket"
 )
 
 func BenchmarkSimple(b *testing.B) {
 	var messages = make(chan string, 10)
-	h := NewHandler("/echo", DefaultOptions, func(session *session) {
+	h := NewHandler(DefaultOptions, func(session *session) {
 		for m := range messages {
 			_ = session.Send(m)
 		}
@@ -42,7 +43,7 @@ func BenchmarkSimple(b *testing.B) {
 
 func BenchmarkMessages(b *testing.B) {
 	msg := strings.Repeat("m", 10)
-	h := NewHandler("/echo", DefaultOptions, func(session *session) {
+	h := NewHandler(DefaultOptions, func(session *session) {
 		for n := 0; n < b.N; n++ {
 			_ = session.Send(msg)
 		}
@@ -101,7 +102,7 @@ func BenchmarkMessageWebsocket(b *testing.B) {
 		ResponseLimit:   uint32(*size),
 	}
 
-	h := NewHandler("/echo", opts, func(session *session) {
+	h := NewHandler(opts, func(session *session) {
 		for {
 			msg, err := session.Recv()
 			if err != nil {
@@ -120,7 +121,7 @@ func BenchmarkMessageWebsocket(b *testing.B) {
 	server := httptest.NewServer(h)
 	defer server.Close()
 
-	url := "ws" + server.URL[4:] + "/echo/server/0/websocket"
+	url := "ws" + server.URL[4:] + "/server/0/websocket"
 
 	client, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
@@ -151,12 +152,13 @@ func BenchmarkMessageWebsocket(b *testing.B) {
 }
 
 func BenchmarkHandler_ParseSessionID(b *testing.B) {
-	h := Handler{prefix: "/prefix"}
-	url, _ := url.Parse("http://server:80/prefix/server/session/whatever")
+	h := &Handler{}
+	req, _ := http.NewRequest("POST", "/server/session/xhr_streaming", nil)
+	req = mux.SetURLVars(req, map[string]string{"session": "session"})
 
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		_, _ = h.parseSessionID(url)
+		_, _ = h.parseSessionID(req)
 	}
 }

@@ -7,6 +7,8 @@ import (
 	"runtime"
 	"testing"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 func TestHandler_EventSource(t *testing.T) {
@@ -35,6 +37,7 @@ func TestHandler_EventSource(t *testing.T) {
 		sess.recv.close()
 		sess.mux.RUnlock()
 	}()
+	req = mux.SetURLVars(req, map[string]string{"session": "session"})
 	h.eventSource(rw, req)
 
 	contentType := rw.Header().Get("content-type")
@@ -67,6 +70,7 @@ func TestHandler_EventSourceMultipleConnections(t *testing.T) {
 		sess.close()
 		h.sessionsMux.Unlock()
 	}()
+	req = mux.SetURLVars(req, map[string]string{"session": "sess"})
 	h.eventSource(rw, req)
 }
 
@@ -80,6 +84,7 @@ func TestHandler_EventSourceConnectionInterrupted(t *testing.T) {
 	req = req.WithContext(ctx)
 	rw := httptest.NewRecorder()
 	cancel()
+	req = mux.SetURLVars(req, map[string]string{"session": "session"})
 	h.eventSource(rw, req)
 	select {
 	case <-sess.closeCh:

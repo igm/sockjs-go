@@ -31,7 +31,6 @@ func init() {
 
 func (h *Handler) htmlFile(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Set("content-type", "text/html; charset=UTF-8")
-
 	if err := req.ParseForm(); err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return

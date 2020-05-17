@@ -18,7 +18,7 @@ func (h *Handler) sockjsWebsocket(rw http.ResponseWriter, req *http.Request) {
 	if err != nil {
 		return
 	}
-	sessID, _ := h.parseSessionID(req.URL)
+	sessID, _ := h.parseSessionID(req)
 	sess := newSession(req, sessID, h.options.DisconnectDelay, h.options.HeartbeatDelay)
 	receiver := newWsReceiver(conn, h.options.WebsocketWriteTimeout)
 	if err := sess.attachReceiver(receiver); err != nil {

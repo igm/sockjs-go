@@ -5,9 +5,10 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 	"time"
+
+	"github.com/gorilla/mux"
 )
 
 var testOptions = DefaultOptions
@@ -17,17 +18,17 @@ func init() {
 }
 
 func TestHandler_Create(t *testing.T) {
-	handler := NewHandler("/echo", testOptions, nil)
-	if handler.Prefix() != "/echo" {
-		t.Errorf("Prefix not properly set, got '%s' expected '%s'", handler.Prefix(), "/echo")
-	}
+	handler := NewHandler(testOptions, nil)
+	//if handler.Prefix() != "/echo" {
+	//	t.Errorf("Prefix not properly set, got '%s' expected '%s'", handler.Prefix(), "/echo")
+	//}
 	if handler.sessions == nil {
 		t.Errorf("Handler session map not made")
 	}
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
-	resp, err := http.Get(server.URL + "/echo")
+	resp, err := http.Get(server.URL)
 	if err != nil {
 		t.Errorf("There should not be any error, got '%s'", err)
 		t.FailNow()
@@ -42,7 +43,7 @@ func TestHandler_Create(t *testing.T) {
 }
 
 func TestHandler_RootPrefixInfoHandler(t *testing.T) {
-	handler := NewHandler("", testOptions, nil)
+	handler := NewHandler(testOptions, nil)
 	if handler.Prefix() != "" {
 		t.Errorf("Prefix not properly set, got '%s' expected '%s'", handler.Prefix(), "")
 	}
@@ -77,20 +78,21 @@ func TestHandler_RootPrefixInfoHandler(t *testing.T) {
 	}
 }
 
-func TestHandler_ParseSessionId(t *testing.T) {
-	h := Handler{prefix: "/prefix"}
-	url, _ := url.Parse("http://server:80/server/session/whatever")
-	if session, err := h.parseSessionID(url); session != "session" || err != nil {
-		t.Errorf("Wrong session parsed, got '%s' expected '%s' with error = '%v'", session, "session", err)
-	}
-}
+//func TestHandler_ParseSessionId(t *testing.T) {
+//	h := Handler{prefix: "/prefix"}
+//	url, _ := url.Parse("http://server:80/server/session/whatever")
+//	if session, err := h.parseSessionID(url); session != "session" || err != nil {
+//		t.Errorf("Wrong session parsed, got '%s' expected '%s' with error = '%v'", session, "session", err)
+//	}
+//}
 
 func TestHandler_SessionByRequest(t *testing.T) {
-	h := NewHandler("", testOptions, nil)
+	h := NewHandler(testOptions, nil)
 	h.options.DisconnectDelay = 10 * time.Millisecond
 	var handlerFuncCalled = make(chan *session)
 	h.handlerFunc = func(s *session) { handlerFuncCalled <- s }
 	req, _ := http.NewRequest("POST", "/server/sessionid/whatever/follows", nil)
+	req = mux.SetURLVars(req, map[string]string{"session": "sessionid"})
 	sess, err := h.sessionByRequest(req)
 	if sess == nil || err != nil {
 		t.Errorf("session should be returned")
@@ -106,6 +108,7 @@ func TestHandler_SessionByRequest(t *testing.T) {
 	}
 	// test session is reused for multiple requests with same sessionID
 	req2, _ := http.NewRequest("POST", "/server/sessionid/whatever", nil)
+	req2 = mux.SetURLVars(req2, map[string]string{"session": "sessionid"})
 	if sess2, err := h.sessionByRequest(req2); sess2 != sess || err != nil {
 		t.Errorf("Expected error, got session: '%v'", sess)
 	}

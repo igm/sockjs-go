@@ -35,7 +35,7 @@ func newEventSourceStage(t *testing.T) (*eventSourceStage, *eventSourceStage, *e
 }
 
 func (s *eventSourceStage) a_new_sockjs_handler_is_created() *eventSourceStage {
-	s.handler = sockjs.NewHandler("/prefix", sockjs.DefaultOptions, func(sess sockjs.Session) {
+	s.handler = sockjs.NewHandler(sockjs.DefaultOptions, func(sess sockjs.Session) {
 		s.session = sess
 		close(s.haveSession)
 		for {
@@ -56,7 +56,7 @@ func (s *eventSourceStage) a_server_is_started() *eventSourceStage {
 }
 
 func (s *eventSourceStage) a_sockjs_eventsource_connection_is_received() *eventSourceStage {
-	s.resp, s.err = http.Get(s.server.URL + "/prefix/123/456/eventsource")
+	s.resp, s.err = http.Get(s.server.URL + "/123/456/eventsource")
 	return s
 }
 
@@ -91,7 +91,7 @@ func (s *eventSourceStage) valid_eventsource_frames_should_be_received() *eventS
 func (s *eventSourceStage) a_message_is_sent_from_client(msg string) *eventSourceStage {
 	out, err := json.Marshal([]string{msg})
 	require.NoError(s.t, err)
-	r, err := http.Post(s.server.URL+"/prefix/123/456/xhr_send", "application/json", bytes.NewReader(out))
+	r, err := http.Post(s.server.URL+"/123/456/xhr_send", "application/json", bytes.NewReader(out))
 	require.NoError(s.t, err)
 	require.Equal(s.t, http.StatusNoContent, r.StatusCode)
 	return s
