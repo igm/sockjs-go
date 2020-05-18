@@ -7,7 +7,7 @@ import (
 )
 
 func TestSockJS_ServeHTTP(t *testing.T) {
-	h := NewHandler(DefaultOptions, func(s Session) {
+	h := NewHandler("", DefaultOptions, func(s Session) {
 		_ = s.Close(3000, "")
 	})
 	mux := http.NewServeMux()
@@ -35,7 +35,7 @@ func TestSockJS_ServeHTTP(t *testing.T) {
 }
 
 func TestSockJS_ServeHTTP_Prefix(t *testing.T) {
-	h := NewHandler(DefaultOptions, func(s Session) {
+	h := NewHandler("", DefaultOptions, func(s Session) {
 		_ = s.Close(3000, "")
 	})
 

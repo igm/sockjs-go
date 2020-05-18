@@ -19,7 +19,7 @@ import (
 
 func BenchmarkSimple(b *testing.B) {
 	var messages = make(chan string, 10)
-	h := NewHandler(DefaultOptions, func(session *session) {
+	h := NewHandler("", DefaultOptions, func(session *session) {
 		for m := range messages {
 			_ = session.Send(m)
 		}
@@ -42,7 +42,7 @@ func BenchmarkSimple(b *testing.B) {
 
 func BenchmarkMessages(b *testing.B) {
 	msg := strings.Repeat("m", 10)
-	h := NewHandler(DefaultOptions, func(session *session) {
+	h := NewHandler("", DefaultOptions, func(session *session) {
 		for n := 0; n < b.N; n++ {
 			_ = session.Send(msg)
 		}
@@ -101,7 +101,7 @@ func BenchmarkMessageWebsocket(b *testing.B) {
 		ResponseLimit:   uint32(*size),
 	}
 
-	h := NewHandler(opts, func(session *session) {
+	h := NewHandler("", opts, func(session *session) {
 		for {
 			msg, err := session.Recv()
 			if err != nil {

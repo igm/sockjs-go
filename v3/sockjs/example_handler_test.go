@@ -7,7 +7,7 @@ import (
 )
 
 func ExampleNewHandler_simple() {
-	handler := sockjs.NewHandler(sockjs.DefaultOptions, func(session sockjs.Session) {
+	handler := sockjs.NewHandler("/echo", sockjs.DefaultOptions, func(session sockjs.Session) {
 		for {
 			if msg, err := session.Recv(); err == nil {
 				if session.Send(msg) != nil {
@@ -22,7 +22,7 @@ func ExampleNewHandler_simple() {
 }
 
 func ExampleNewHandler_defaultMux() {
-	handler := sockjs.NewHandler(sockjs.DefaultOptions, func(session sockjs.Session) {
+	handler := sockjs.NewHandler("/echo", sockjs.DefaultOptions, func(session sockjs.Session) {
 		for {
 			if msg, err := session.Recv(); err == nil {
 				if session.Send(msg) != nil {

@@ -35,7 +35,7 @@ func newHtmlFileStage(t *testing.T) (*htmlFileStage, *htmlFileStage, *htmlFileSt
 }
 
 func (s *htmlFileStage) a_new_sockjs_handler_is_created() *htmlFileStage {
-	s.handler = sockjs.NewHandler(sockjs.DefaultOptions, func(sess sockjs.Session) {
+	s.handler = sockjs.NewHandler("", sockjs.DefaultOptions, func(sess sockjs.Session) {
 		s.session = sess
 		close(s.haveSession)
 		for {

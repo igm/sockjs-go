@@ -219,7 +219,7 @@ func TestHandler_XhrStreamingAnotherReceiver(t *testing.T) {
 
 // various test only structs
 func newTestHandler() *Handler {
-	h := NewHandler(DefaultOptions, func(s *session) {})
+	h := NewHandler("", DefaultOptions, func(s *session) {})
 	h.options.HeartbeatDelay = time.Hour
 	h.options.DisconnectDelay = time.Hour
 	return h

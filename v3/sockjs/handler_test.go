@@ -18,7 +18,7 @@ func init() {
 }
 
 func TestHandler_Create(t *testing.T) {
-	handler := NewHandler(testOptions, nil)
+	handler := NewHandler("", testOptions, nil)
 	if handler.sessions == nil {
 		t.Errorf("Handler session map not made")
 	}
@@ -40,7 +40,7 @@ func TestHandler_Create(t *testing.T) {
 }
 
 func TestHandler_RootPrefixInfoHandler(t *testing.T) {
-	handler := NewHandler(testOptions, nil)
+	handler := NewHandler("", testOptions, nil)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
@@ -81,7 +81,7 @@ func TestHandler_RootPrefixInfoHandler(t *testing.T) {
 //}
 
 func TestHandler_SessionByRequest(t *testing.T) {
-	h := NewHandler(testOptions, nil)
+	h := NewHandler("", testOptions, nil)
 	h.options.DisconnectDelay = 10 * time.Millisecond
 	var handlerFuncCalled = make(chan *session)
 	h.handlerFunc = func(s *session) { handlerFuncCalled <- s }

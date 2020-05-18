@@ -10,7 +10,7 @@ import (
 type Handler struct {
 	options     Options
 	handlerFunc func(*session)
-	router      *mux.Router
+	router      http.Handler
 
 	sessionsMux sync.Mutex
 	sessions    map[string]*session
@@ -49,7 +49,7 @@ func (mb *middlewareBuilder) cookieCorsCacheFor(f func(rw http.ResponseWriter, r
 
 // NewHandler creates new HTTP handler that conforms to the basic net/http.Handler interface.
 // It takes path prefix, options and sockjs handler function as parameters
-func NewHandler(opts Options, handlerFunc func(Session)) *Handler {
+func NewHandler(prefix string, opts Options, handlerFunc func(Session)) *Handler {
 	if handlerFunc == nil {
 		handlerFunc = func(s Session) {}
 	}
@@ -91,7 +91,7 @@ func NewHandler(opts Options, handlerFunc func(Session)) *Handler {
 		r.HandleFunc("/websocket", h.rawWebsocket).Methods(http.MethodGet)
 	}
 
-	h.router = r
+	h.router = http.StripPrefix(prefix, r)
 	return h
 }
 

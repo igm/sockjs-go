@@ -35,7 +35,7 @@ func newEventSourceStage(t *testing.T) (*eventSourceStage, *eventSourceStage, *e
 }
 
 func (s *eventSourceStage) a_new_sockjs_handler_is_created() *eventSourceStage {
-	s.handler = sockjs.NewHandler(sockjs.DefaultOptions, func(sess sockjs.Session) {
+	s.handler = sockjs.NewHandler("", sockjs.DefaultOptions, func(sess sockjs.Session) {
 		s.session = sess
 		close(s.haveSession)
 		for {
