@@ -28,6 +28,25 @@ func toMW(f func(rw http.ResponseWriter, req *http.Request)) func(next http.Hand
 	}
 }
 
+// helper to build common middleware chains.
+type middlewareBuilder struct {
+	opts Options
+}
+
+func (mb *middlewareBuilder) cookieCorsNoCache(f func(rw http.ResponseWriter, req *http.Request)) http.Handler {
+	xhrCorsMW := toMW(xhrCorsFactory(mb.opts))
+	cookieMW := toMW(mb.opts.cookie)
+	noCacheMW := toMW(noCache)
+	return cookieMW(xhrCorsMW(noCacheMW(http.HandlerFunc(f))))
+}
+
+func (mb *middlewareBuilder) cookieCorsCacheFor(f func(rw http.ResponseWriter, req *http.Request)) http.Handler {
+	xhrCorsMW := toMW(xhrCorsFactory(mb.opts))
+	cookieMW := toMW(mb.opts.cookie)
+	cacheForMW := toMW(cacheFor)
+	return cookieMW(xhrCorsMW(cacheForMW(http.HandlerFunc(f))))
+}
+
 // NewHandler creates new HTTP handler that conforms to the basic net/http.Handler interface.
 // It takes path prefix, options and sockjs handler function as parameters
 func NewHandler(opts Options, handlerFunc func(Session)) *Handler {
@@ -40,32 +59,30 @@ func NewHandler(opts Options, handlerFunc func(Session)) *Handler {
 		sessions:    make(map[string]*session),
 	}
 
-	xhrCorsMW := toMW(xhrCorsFactory(opts))
-	cookieMW := toMW(opts.cookie)
-	cacheForMW := toMW(cacheFor)
-	noCacheMW := toMW(noCache)
-
 	r := mux.NewRouter()
+
+	mb := middlewareBuilder{opts: opts}
+
 	r.HandleFunc("/", welcomeHandler).Methods(http.MethodGet)
-	r.Handle("/info", cookieMW(xhrCorsMW(cacheForMW(http.HandlerFunc(opts.info))))).Methods(http.MethodOptions)
-	r.Handle("/info", xhrCorsMW(noCacheMW(http.HandlerFunc(opts.info)))).Methods(http.MethodGet)
+	r.Handle("/info", mb.cookieCorsCacheFor(opts.info)).Methods(http.MethodOptions)
+	r.Handle("/info", mb.cookieCorsNoCache(opts.info)).Methods(http.MethodGet)
 
-	r.Handle(sessionPrefix+"/xhr_send", cookieMW(xhrCorsMW(noCacheMW(http.HandlerFunc(h.xhrSend))))).Methods(http.MethodPost)
-	r.Handle(sessionPrefix+"/xhr_send$", cookieMW(xhrCorsMW(cacheForMW(http.HandlerFunc(xhrOptions))))).Methods(http.MethodOptions)
-	r.Handle(sessionPrefix+"/xhr", cookieMW(xhrCorsMW(noCacheMW(http.HandlerFunc(h.xhrPoll))))).Methods(http.MethodPost)
-	r.Handle(sessionPrefix+"/xhr", cookieMW(xhrCorsMW(cacheForMW(http.HandlerFunc(xhrOptions))))).Methods(http.MethodOptions)
-	r.Handle(sessionPrefix+"/xhr_streaming", cookieMW(xhrCorsMW(noCacheMW(http.HandlerFunc(h.xhrStreaming))))).Methods(http.MethodPost)
-	r.Handle(sessionPrefix+"/xhr_streaming", cookieMW(xhrCorsMW(cacheForMW(http.HandlerFunc(xhrOptions))))).Methods(http.MethodOptions)
+	r.Handle(sessionPrefix+"/xhr_send", mb.cookieCorsNoCache(h.xhrSend)).Methods(http.MethodPost)
+	r.Handle(sessionPrefix+"/xhr_send$", mb.cookieCorsCacheFor(xhrOptions)).Methods(http.MethodOptions)
+	r.Handle(sessionPrefix+"/xhr", mb.cookieCorsNoCache(h.xhrPoll)).Methods(http.MethodPost)
+	r.Handle(sessionPrefix+"/xhr", mb.cookieCorsCacheFor(xhrOptions)).Methods(http.MethodOptions)
+	r.Handle(sessionPrefix+"/xhr_streaming", mb.cookieCorsNoCache(h.xhrStreaming)).Methods(http.MethodPost)
+	r.Handle(sessionPrefix+"/xhr_streaming", mb.cookieCorsCacheFor(xhrOptions)).Methods(http.MethodOptions)
 
-	r.Handle(sessionPrefix+"/eventsource", cookieMW(xhrCorsMW(noCacheMW(http.HandlerFunc(h.eventSource))))).Methods(http.MethodGet)
+	r.Handle(sessionPrefix+"/eventsource", mb.cookieCorsNoCache(h.eventSource)).Methods(http.MethodGet)
 
-	r.Handle(sessionPrefix+"/htmlfile", cookieMW(xhrCorsMW(noCacheMW(http.HandlerFunc(h.htmlFile))))).Methods(http.MethodGet)
+	r.Handle(sessionPrefix+"/htmlfile", mb.cookieCorsNoCache(h.htmlFile)).Methods(http.MethodGet)
 
-	r.Handle(sessionPrefix+"/jsonp", cookieMW(xhrCorsMW(noCacheMW(http.HandlerFunc(h.jsonp))))).Methods(http.MethodGet)
-	r.Handle(sessionPrefix+"/jsonp", cookieMW(xhrCorsMW(cacheForMW(http.HandlerFunc(xhrOptions))))).Methods(http.MethodOptions)
-	r.Handle(sessionPrefix+"/jsonp_send", cookieMW(xhrCorsMW(noCacheMW(http.HandlerFunc(h.jsonpSend))))).Methods(http.MethodPost)
+	r.Handle(sessionPrefix+"/jsonp", mb.cookieCorsNoCache(h.jsonp)).Methods(http.MethodGet)
+	r.Handle(sessionPrefix+"/jsonp", mb.cookieCorsCacheFor(xhrOptions)).Methods(http.MethodOptions)
+	r.Handle(sessionPrefix+"/jsonp_send", mb.cookieCorsNoCache(h.jsonpSend)).Methods(http.MethodPost)
 
-	r.Handle("/iframe[0-9-.a-z_]*.html", cacheForMW(http.HandlerFunc(h.iframe))).Methods(http.MethodGet)
+	r.Handle("/iframe[0-9-.a-z_]*.html", toMW(cacheFor)(http.HandlerFunc(h.iframe))).Methods(http.MethodGet)
 
 	if opts.Websocket {
 		r.HandleFunc(sessionPrefix+"/websocket", h.sockjsWebsocket).Methods(http.MethodGet)
@@ -77,8 +94,6 @@ func NewHandler(opts Options, handlerFunc func(Session)) *Handler {
 	h.router = r
 	return h
 }
-
-func (h *Handler) Prefix() string { return "" }
 
 func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
 	h.router.ServeHTTP(rw, req)

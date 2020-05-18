@@ -28,7 +28,7 @@ func BenchmarkSimple(b *testing.B) {
 	server := httptest.NewServer(h)
 	defer server.Close()
 
-	req, _ := http.NewRequest("POST", server.URL+fmt.Sprintf("/echo/server/%d/xhr_streaming", 1000), nil)
+	req, _ := http.NewRequest("POST", server.URL+fmt.Sprintf("/server/%d/xhr_streaming", 1000), nil)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
 		log.Fatal(err)
@@ -36,7 +36,6 @@ func BenchmarkSimple(b *testing.B) {
 	for n := 0; n < b.N; n++ {
 		messages <- "some message"
 	}
-	fmt.Println(b.N)
 	close(messages)
 	resp.Body.Close()
 }
@@ -57,7 +56,7 @@ func BenchmarkMessages(b *testing.B) {
 		wg.Add(1)
 		go func(session int) {
 			reqc := 0
-			req, _ := http.NewRequest("POST", server.URL+fmt.Sprintf("/echo/server/%d/xhr_streaming", session), nil)
+			req, _ := http.NewRequest("POST", server.URL+fmt.Sprintf("/server/%d/xhr_streaming", session), nil)
 			for {
 				reqc++
 				resp, err := http.DefaultClient.Do(req)

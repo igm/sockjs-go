@@ -19,9 +19,6 @@ func init() {
 
 func TestHandler_Create(t *testing.T) {
 	handler := NewHandler(testOptions, nil)
-	//if handler.Prefix() != "/echo" {
-	//	t.Errorf("Prefix not properly set, got '%s' expected '%s'", handler.Prefix(), "/echo")
-	//}
 	if handler.sessions == nil {
 		t.Errorf("Handler session map not made")
 	}
@@ -44,9 +41,6 @@ func TestHandler_Create(t *testing.T) {
 
 func TestHandler_RootPrefixInfoHandler(t *testing.T) {
 	handler := NewHandler(testOptions, nil)
-	if handler.Prefix() != "" {
-		t.Errorf("Prefix not properly set, got '%s' expected '%s'", handler.Prefix(), "")
-	}
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
