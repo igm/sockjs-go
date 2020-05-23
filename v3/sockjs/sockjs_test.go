@@ -1,9 +1,12 @@
 package sockjs
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/julienschmidt/httprouter"
 )
 
 func TestSockJS_ServeHTTP(t *testing.T) {
@@ -61,4 +64,10 @@ func TestSockJS_ServeHTTP_Prefix(t *testing.T) {
 	if rec.Code != http.StatusOK {
 		t.Errorf("Unexpected response status, got '%d' expected '%d'", rec.Code, http.StatusOK)
 	}
+}
+
+func requestWithSession(r *http.Request, session string) *http.Request {
+	ctx := r.Context()
+	ctx = context.WithValue(ctx, httprouter.ParamsKey, httprouter.Params([]httprouter.Param{{Key: "session", Value: session}}))
+	return r.WithContext(ctx)
 }

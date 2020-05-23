@@ -12,8 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/gorilla/mux"
-
 	"github.com/gorilla/websocket"
 )
 
@@ -25,7 +23,7 @@ func BenchmarkServe(b *testing.B) {
 	defer server.Close()
 
 	req, _ := http.NewRequest("POST", server.URL+"/server/session/xhr_send", nil)
-	req = mux.SetURLVars(req, map[string]string{"session": "session"})
+	req = requestWithSession(req, "session")
 	rw := httptest.NewRecorder()
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
@@ -169,7 +167,7 @@ func BenchmarkMessageWebsocket(b *testing.B) {
 func BenchmarkHandler_ParseSessionID(b *testing.B) {
 	h := &Handler{}
 	req, _ := http.NewRequest("POST", "/server/session/xhr_streaming", nil)
-	req = mux.SetURLVars(req, map[string]string{"session": "session"})
+	req = requestWithSession(req, "session")
 
 	b.ReportAllocs()
 	b.ResetTimer()

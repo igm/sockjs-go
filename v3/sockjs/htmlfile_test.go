@@ -6,15 +6,13 @@ import (
 	"runtime"
 	"strings"
 	"testing"
-
-	"github.com/gorilla/mux"
 )
 
 func TestHandler_htmlFileNoCallback(t *testing.T) {
 	h := newTestHandler()
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/server/session/htmlfile", nil)
-	req = mux.SetURLVars(req, map[string]string{"session": "session"})
+	req = requestWithSession(req, "session")
 	h.htmlFile(rw, req)
 	if rw.Code != http.StatusBadRequest {
 		t.Errorf("Unexpected response code, got '%d', expected '%d'", rw.Code, http.StatusBadRequest)
@@ -29,7 +27,7 @@ func TestHandler_htmlFile(t *testing.T) {
 	h := newTestHandler()
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("GET", "/server/session/htmlfile?c=testCallback", nil)
-	req = mux.SetURLVars(req, map[string]string{"session": "session"})
+	req = requestWithSession(req, "session")
 	go func() {
 		var sess *session
 		for exists := false; !exists; {
@@ -73,7 +71,7 @@ func TestHandler_cannotIntoXSS(t *testing.T) {
 	rw := httptest.NewRecorder()
 	// test simple injection
 	req, _ := http.NewRequest("GET", "/server/session/htmlfile?c=fake%3Balert(1337)", nil)
-	req = mux.SetURLVars(req, map[string]string{"session": "session"})
+	req = requestWithSession(req, "session")
 	h.htmlFile(rw, req)
 	if rw.Code != http.StatusBadRequest {
 		t.Errorf("Unexpected response code, got '%d', expected '%d'", rw.Code, http.StatusBadRequest)
@@ -83,7 +81,7 @@ func TestHandler_cannotIntoXSS(t *testing.T) {
 	rw = httptest.NewRecorder()
 	// test simple injection
 	req, _ = http.NewRequest("GET", "/server/session/htmlfile?c=fake%2Dalert", nil)
-	req = mux.SetURLVars(req, map[string]string{"session": "session"})
+	req = requestWithSession(req, "session")
 	h.htmlFile(rw, req)
 	if rw.Code != http.StatusBadRequest {
 		t.Errorf("Unexpected response code, got '%d', expected '%d'", rw.Code, http.StatusBadRequest)

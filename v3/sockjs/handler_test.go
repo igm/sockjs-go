@@ -7,8 +7,6 @@ import (
 	"net/http/httptest"
 	"testing"
 	"time"
-
-	"github.com/gorilla/mux"
 )
 
 var testOptions = DefaultOptions
@@ -72,21 +70,22 @@ func TestHandler_RootPrefixInfoHandler(t *testing.T) {
 	}
 }
 
-//func TestHandler_ParseSessionId(t *testing.T) {
-//	h := Handler{prefix: "/prefix"}
-//	url, _ := url.Parse("http://server:80/server/session/whatever")
-//	if session, err := h.parseSessionID(url); session != "session" || err != nil {
-//		t.Errorf("Wrong session parsed, got '%s' expected '%s' with error = '%v'", session, "session", err)
-//	}
-//}
+func TestHandler_ParseSessionId(t *testing.T) {
+	h := Handler{}
+	req, _ := http.NewRequest("POST", "http://server:80/server/session/whatever/follows", nil)
+	req = requestWithSession(req, "session")
+	if session, err := h.parseSessionID(req); session != "session" || err != nil {
+		t.Errorf("Wrong session parsed, got '%s' expected '%s' with error = '%v'", session, "session", err)
+	}
+}
 
 func TestHandler_SessionByRequest(t *testing.T) {
 	h := NewHandler("", testOptions, nil)
 	h.options.DisconnectDelay = 10 * time.Millisecond
 	var handlerFuncCalled = make(chan *session)
 	h.handlerFunc = func(s *session) { handlerFuncCalled <- s }
-	req, _ := http.NewRequest("POST", "/server/sessionid/whatever/follows", nil)
-	req = mux.SetURLVars(req, map[string]string{"session": "sessionid"})
+	req, _ := http.NewRequest("POST", "/server/session/whatever/follows", nil)
+	req = requestWithSession(req, "session")
 	sess, err := h.sessionByRequest(req)
 	if sess == nil || err != nil {
 		t.Errorf("session should be returned")
@@ -101,15 +100,15 @@ func TestHandler_SessionByRequest(t *testing.T) {
 		}
 	}
 	// test session is reused for multiple requests with same sessionID
-	req2, _ := http.NewRequest("POST", "/server/sessionid/whatever", nil)
-	req2 = mux.SetURLVars(req2, map[string]string{"session": "sessionid"})
+	req2, _ := http.NewRequest("POST", "/server/session/whatever", nil)
+	req2 = requestWithSession(req, "session")
 	if sess2, err := h.sessionByRequest(req2); sess2 != sess || err != nil {
 		t.Errorf("Expected error, got session: '%v'", sess)
 	}
 	// test session expires after timeout
 	time.Sleep(15 * time.Millisecond)
 	h.sessionsMux.Lock()
-	if _, exists := h.sessions["sessionid"]; exists {
+	if _, exists := h.sessions["session"]; exists {
 		t.Errorf("session should not exist in handler after timeout")
 	}
 	h.sessionsMux.Unlock()

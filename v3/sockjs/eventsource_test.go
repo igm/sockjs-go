@@ -7,14 +7,12 @@ import (
 	"runtime"
 	"testing"
 	"time"
-
-	"github.com/gorilla/mux"
 )
 
 func TestHandler_EventSource(t *testing.T) {
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/session/eventsource", nil)
-	req = mux.SetURLVars(req, map[string]string{"session": "session"})
+	req = requestWithSession(req, "session")
 	h := newTestHandler()
 	h.options.ResponseLimit = 1024
 	go func() {
@@ -58,8 +56,8 @@ func TestHandler_EventSourceMultipleConnections(t *testing.T) {
 	h := newTestHandler()
 	h.options.ResponseLimit = 1024
 	rw := httptest.NewRecorder()
-	req, _ := http.NewRequest("POST", "/server/sess/eventsource", nil)
-	req = mux.SetURLVars(req, map[string]string{"session": "sess"})
+	req, _ := http.NewRequest("POST", "/server/session/eventsource", nil)
+	req = requestWithSession(req, "session")
 	go func() {
 		rw := httptest.NewRecorder()
 		h.eventSource(rw, req)
@@ -67,7 +65,7 @@ func TestHandler_EventSourceMultipleConnections(t *testing.T) {
 			t.Errorf("wrong, got '%v'", rw.Body)
 		}
 		h.sessionsMux.Lock()
-		sess := h.sessions["sess"]
+		sess := h.sessions["session"]
 		sess.close()
 		h.sessionsMux.Unlock()
 	}()
@@ -84,7 +82,7 @@ func TestHandler_EventSourceConnectionInterrupted(t *testing.T) {
 	req = req.WithContext(ctx)
 	rw := httptest.NewRecorder()
 	cancel()
-	req = mux.SetURLVars(req, map[string]string{"session": "session"})
+	req = requestWithSession(req, "session")
 	h.eventSource(rw, req)
 	select {
 	case <-sess.closeCh:

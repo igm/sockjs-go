@@ -2,9 +2,10 @@ package sockjs
 
 import (
 	"net/http"
+	"strings"
 	"sync"
 
-	"github.com/gorilla/mux"
+	"github.com/julienschmidt/httprouter"
 )
 
 type Handler struct {
@@ -14,9 +15,18 @@ type Handler struct {
 
 	sessionsMux sync.Mutex
 	sessions    map[string]*session
+
+	infoOptions   http.Handler
+	infoGet       http.Handler
+	iframeHandler http.Handler
+
+	welcomePath   string
+	infoPath      string
+	iframePath    string
+	websocketPath string
 }
 
-const sessionPrefix = "/{server:[^/.]+}/{session:[^/.]+}"
+const sessionPrefix = "/:server/:session"
 
 func toMW(f func(rw http.ResponseWriter, req *http.Request)) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -59,49 +69,67 @@ func NewHandler(prefix string, opts Options, handlerFunc func(Session)) *Handler
 		sessions:    make(map[string]*session),
 	}
 
-	r := mux.NewRouter()
+	r := httprouter.New()
 
 	mb := middlewareBuilder{opts: opts}
+	h.infoOptions = mb.cookieCorsCacheFor(opts.info)
+	h.infoGet = mb.cookieCorsNoCache(opts.info)
+	h.iframeHandler = toMW(cacheFor)(http.HandlerFunc(h.iframe))
 
-	r.HandleFunc("/", welcomeHandler).Methods(http.MethodGet)
-	r.Handle("/info", mb.cookieCorsCacheFor(opts.info)).Methods(http.MethodOptions)
-	r.Handle("/info", mb.cookieCorsNoCache(opts.info)).Methods(http.MethodGet)
+	r.Handler(http.MethodPost, sessionPrefix+"/xhr_send", mb.cookieCorsNoCache(h.xhrSend))
+	r.Handler(http.MethodOptions, sessionPrefix+"/xhr_send", mb.cookieCorsCacheFor(xhrOptions))
+	r.Handler(http.MethodPost, sessionPrefix+"/xhr", mb.cookieCorsNoCache(h.xhrPoll))
+	r.Handler(http.MethodOptions, sessionPrefix+"/xhr", mb.cookieCorsCacheFor(xhrOptions))
+	r.Handler(http.MethodPost, sessionPrefix+"/xhr_streaming", mb.cookieCorsNoCache(h.xhrStreaming))
+	r.Handler(http.MethodOptions, sessionPrefix+"/xhr_streaming", mb.cookieCorsCacheFor(xhrOptions))
 
-	r.Handle(sessionPrefix+"/xhr_send", mb.cookieCorsNoCache(h.xhrSend)).Methods(http.MethodPost)
-	r.Handle(sessionPrefix+"/xhr_send$", mb.cookieCorsCacheFor(xhrOptions)).Methods(http.MethodOptions)
-	r.Handle(sessionPrefix+"/xhr", mb.cookieCorsNoCache(h.xhrPoll)).Methods(http.MethodPost)
-	r.Handle(sessionPrefix+"/xhr", mb.cookieCorsCacheFor(xhrOptions)).Methods(http.MethodOptions)
-	r.Handle(sessionPrefix+"/xhr_streaming", mb.cookieCorsNoCache(h.xhrStreaming)).Methods(http.MethodPost)
-	r.Handle(sessionPrefix+"/xhr_streaming", mb.cookieCorsCacheFor(xhrOptions)).Methods(http.MethodOptions)
+	r.Handler(http.MethodGet, sessionPrefix+"/eventsource", mb.cookieCorsNoCache(h.eventSource))
 
-	r.Handle(sessionPrefix+"/eventsource", mb.cookieCorsNoCache(h.eventSource)).Methods(http.MethodGet)
+	r.Handler(http.MethodGet, sessionPrefix+"/htmlfile", mb.cookieCorsNoCache(h.htmlFile))
 
-	r.Handle(sessionPrefix+"/htmlfile", mb.cookieCorsNoCache(h.htmlFile)).Methods(http.MethodGet)
-
-	r.Handle(sessionPrefix+"/jsonp", mb.cookieCorsNoCache(h.jsonp)).Methods(http.MethodGet)
-	r.Handle(sessionPrefix+"/jsonp", mb.cookieCorsCacheFor(xhrOptions)).Methods(http.MethodOptions)
-	r.Handle(sessionPrefix+"/jsonp_send", mb.cookieCorsNoCache(h.jsonpSend)).Methods(http.MethodPost)
-
-	r.Handle("/iframe[0-9-.a-z_]*.html", toMW(cacheFor)(http.HandlerFunc(h.iframe))).Methods(http.MethodGet)
+	r.Handler(http.MethodGet, sessionPrefix+"/jsonp", mb.cookieCorsNoCache(h.jsonp))
+	r.Handler(http.MethodOptions, sessionPrefix+"/jsonp", mb.cookieCorsCacheFor(xhrOptions))
+	r.Handler(http.MethodPost, sessionPrefix+"/jsonp_send", mb.cookieCorsNoCache(h.jsonpSend))
 
 	if opts.Websocket {
-		r.HandleFunc(sessionPrefix+"/websocket", h.sockjsWebsocket).Methods(http.MethodGet)
-	}
-	if opts.RawWebsocket {
-		r.HandleFunc("/websocket", h.rawWebsocket).Methods(http.MethodGet)
+		r.HandlerFunc(http.MethodGet, sessionPrefix+"/websocket", h.sockjsWebsocket)
 	}
 
+	h.welcomePath = prefix + "/"
+	h.infoPath = prefix + "/info"
+	h.iframePath = prefix + "/iframe"
+	h.websocketPath = prefix + "/websocket"
 	h.router = http.StripPrefix(prefix, r)
+
 	return h
 }
 
 func (h *Handler) ServeHTTP(rw http.ResponseWriter, req *http.Request) {
+	path := req.URL.Path
+	if path == h.welcomePath {
+		welcomeHandler(rw, req)
+		return
+	} else if path == h.infoPath {
+		if req.Method == http.MethodGet {
+			h.infoGet.ServeHTTP(rw, req)
+			return
+		} else if req.Method == http.MethodOptions {
+			h.infoOptions.ServeHTTP(rw, req)
+			return
+		}
+	} else if path == h.websocketPath && h.options.RawWebsocket {
+		h.rawWebsocket(rw, req)
+		return
+	} else if strings.HasPrefix(path, h.iframePath) && req.Method == http.MethodGet {
+		h.iframeHandler.ServeHTTP(rw, req)
+		return
+	}
 	h.router.ServeHTTP(rw, req)
 }
 
 func (h *Handler) parseSessionID(req *http.Request) (string, error) {
-	vars := mux.Vars(req)
-	sessionID := vars["session"]
+	params := httprouter.ParamsFromContext(req.Context())
+	sessionID := params.ByName("session")
 	if sessionID == "" {
 		return "", errSessionParse
 	}
