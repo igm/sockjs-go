@@ -17,6 +17,22 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+func BenchmarkServe(b *testing.B) {
+	h := NewHandler("", DefaultOptions, func(session *session) {
+		b.Fatal("handler should not be called")
+	})
+	server := httptest.NewServer(h)
+	defer server.Close()
+
+	req, _ := http.NewRequest("POST", server.URL+"/server/session/xhr_send", nil)
+	req = mux.SetURLVars(req, map[string]string{"session": "session"})
+	rw := httptest.NewRecorder()
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		h.ServeHTTP(rw, req)
+	}
+}
+
 func BenchmarkSimple(b *testing.B) {
 	var messages = make(chan string, 10)
 	h := NewHandler("", DefaultOptions, func(session *session) {
