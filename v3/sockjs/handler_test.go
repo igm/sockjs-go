@@ -8,6 +8,9 @@ import (
 	"net/url"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 var testOptions = DefaultOptions
@@ -120,5 +123,28 @@ func TestHandler_SessionByRequest(t *testing.T) {
 	req, _ = http.NewRequest("POST", "", nil)
 	if _, err := h.sessionByRequest(req); err == nil {
 		t.Errorf("Expected parser sessionID from URL error, got 'nil'")
+	}
+}
+
+func TestHandler_StrictPathMatching(t *testing.T) {
+	handler := NewHandler("/echo", testOptions, nil)
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	cases := []struct {
+		url            string
+		expectedStatus int
+	}{
+		{url: "/echo", expectedStatus: http.StatusOK},
+		{url: "/test/echo", expectedStatus: http.StatusNotFound},
+		{url: "/echo/test/test/echo", expectedStatus: http.StatusNotFound},
+	}
+
+	for _, urlCase := range cases {
+		t.Run(urlCase.url, func(t *testing.T) {
+			resp, err := http.Get(server.URL + urlCase.url)
+			require.NoError(t, err)
+			assert.Equal(t, urlCase.expectedStatus, resp.StatusCode)
+		})
 	}
 }
