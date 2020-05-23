@@ -35,12 +35,12 @@ func TestSockJS_ServeHTTP(t *testing.T) {
 }
 
 func TestSockJS_ServeHTTP_Prefix(t *testing.T) {
-	h := NewHandler("", DefaultOptions, func(s Session) {
+	h := NewHandler("/connection/sockjs", DefaultOptions, func(s Session) {
 		_ = s.Close(3000, "")
 	})
 
 	mux := http.NewServeMux()
-	mux.Handle("/connection/sockjs/", http.StripPrefix("/connection/sockjs", h))
+	mux.Handle("/connection/sockjs/", h)
 
 	server := httptest.NewServer(mux)
 	req, _ := http.NewRequest("GET", server.URL+"/connection/sockjs/foo/bar", nil)

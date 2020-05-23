@@ -14,6 +14,7 @@ import (
 func TestHandler_EventSource(t *testing.T) {
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/session/eventsource", nil)
+	req = mux.SetURLVars(req, map[string]string{"session": "session"})
 	h := newTestHandler()
 	h.options.ResponseLimit = 1024
 	go func() {
@@ -37,7 +38,6 @@ func TestHandler_EventSource(t *testing.T) {
 		sess.recv.close()
 		sess.mux.RUnlock()
 	}()
-	req = mux.SetURLVars(req, map[string]string{"session": "session"})
 	h.eventSource(rw, req)
 
 	contentType := rw.Header().Get("content-type")
@@ -59,6 +59,7 @@ func TestHandler_EventSourceMultipleConnections(t *testing.T) {
 	h.options.ResponseLimit = 1024
 	rw := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/server/sess/eventsource", nil)
+	req = mux.SetURLVars(req, map[string]string{"session": "sess"})
 	go func() {
 		rw := httptest.NewRecorder()
 		h.eventSource(rw, req)
@@ -70,7 +71,6 @@ func TestHandler_EventSourceMultipleConnections(t *testing.T) {
 		sess.close()
 		h.sessionsMux.Unlock()
 	}()
-	req = mux.SetURLVars(req, map[string]string{"session": "sess"})
 	h.eventSource(rw, req)
 }
 
