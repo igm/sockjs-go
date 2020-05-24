@@ -56,10 +56,13 @@ type session struct {
 	// once the session timeouts this channel also closes
 	closeCh          chan struct{}
 	startHandlerOnce sync.Once
+	context          context.Context
+	cancelFunc       func()
 }
 
 // session is a central component that handles receiving and sending frames. It maintains internal state
 func newSession(req *http.Request, sessionID string, sessionTimeoutInterval, heartbeatInterval time.Duration) *session {
+	context, cancel := context.WithCancel(context.Background())
 	s := &session{
 		id:                     sessionID,
 		req:                    req,
@@ -68,9 +71,11 @@ func newSession(req *http.Request, sessionID string, sessionTimeoutInterval, hea
 		closeCh:                make(chan struct{}),
 		sessionTimeoutInterval: sessionTimeoutInterval,
 		receiverType:           ReceiverTypeNone,
+		context:                context,
+		cancelFunc:             cancel,
 	}
 
-	s.mux.Lock() // "go test -race" complains if ommited, not sure why as no race can happen here
+	s.mux.Lock()
 	s.timer = time.AfterFunc(sessionTimeoutInterval, s.close)
 	s.mux.Unlock()
 	return s
@@ -170,6 +175,7 @@ func (s *session) closing() {
 			_ = s.recv.sendFrame(s.closeFrame)
 			s.recv.close()
 		}
+		s.cancelFunc()
 	}
 }
 
@@ -182,6 +188,7 @@ func (s *session) close() {
 		s.state = SessionClosed
 		s.timer.Stop()
 		close(s.closeCh)
+		s.cancelFunc()
 	}
 }
 
@@ -244,4 +251,10 @@ func (s *session) ReceiverType() ReceiverType {
 	s.mux.RLock()
 	defer s.mux.RUnlock()
 	return s.receiverType
+}
+
+// Context returns session context, the context is cancelled
+// whenever the session gets into closing or closed state
+func (s *session) Context() context.Context {
+	return s.context
 }
