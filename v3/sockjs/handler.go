@@ -11,7 +11,7 @@ import (
 type Handler struct {
 	prefix      string
 	options     Options
-	handlerFunc func(*session)
+	handlerFunc func(Session)
 	mappings    []*mapping
 
 	sessionsMux sync.Mutex

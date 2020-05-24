@@ -28,7 +28,7 @@ func (h *Handler) rawWebsocket(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	if h.handlerFunc != nil {
-		go h.handlerFunc(sess)
+		go h.handlerFunc(Session{sess})
 	}
 	readCloseCh := make(chan struct{})
 	go func() {

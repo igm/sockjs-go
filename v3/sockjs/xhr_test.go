@@ -185,6 +185,6 @@ func newTestHandler() *Handler {
 	h := &Handler{sessions: make(map[string]*session)}
 	h.options.HeartbeatDelay = time.Hour
 	h.options.DisconnectDelay = time.Hour
-	h.handlerFunc = func(s *session) {}
+	h.handlerFunc = func(s Session) {}
 	return h
 }

@@ -91,8 +91,8 @@ func TestHandler_ParseSessionId(t *testing.T) {
 func TestHandler_SessionByRequest(t *testing.T) {
 	h := NewHandler("", testOptions, nil)
 	h.options.DisconnectDelay = 10 * time.Millisecond
-	var handlerFuncCalled = make(chan *session)
-	h.handlerFunc = func(s *session) { handlerFuncCalled <- s }
+	var handlerFuncCalled = make(chan Session)
+	h.handlerFunc = func(s Session) { handlerFuncCalled <- s }
 	req, _ := http.NewRequest("POST", "/server/sessionid/whatever/follows", nil)
 	sess, err := h.sessionByRequest(req)
 	if sess == nil || err != nil {
@@ -100,7 +100,7 @@ func TestHandler_SessionByRequest(t *testing.T) {
 		// test handlerFunc was called
 		select {
 		case s := <-handlerFuncCalled: // ok
-			if s != sess {
+			if s.session != sess {
 				t.Errorf("Handler was not passed correct session")
 			}
 		case <-time.After(100 * time.Millisecond):

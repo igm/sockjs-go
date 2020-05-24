@@ -30,7 +30,9 @@ var (
 	errSessionParse            = errors.New("sockjs: unable to parse URL for session")
 )
 
-type Session = *session
+type Session struct {
+	*session
+}
 
 type session struct {
 	mux   sync.RWMutex
