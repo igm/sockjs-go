@@ -38,7 +38,7 @@ func NewHandler(prefix string, opts Options, handlerFunc func(Session)) *Handler
 	h.mappings = []*mapping{
 		newMapping("GET", "^[/]?$", welcomeHandler),
 		newMapping("OPTIONS", "^/info$", opts.cookie, xhrCors, cacheFor, opts.info),
-		newMapping("GET", "^/info$", xhrCors, noCache, opts.info),
+		newMapping("GET", "^/info$", opts.cookie, xhrCors, noCache, opts.info),
 		// XHR
 		newMapping("POST", sessionPrefix+"/xhr_send$", opts.cookie, xhrCors, noCache, h.xhrSend),
 		newMapping("OPTIONS", sessionPrefix+"/xhr_send$", opts.cookie, xhrCors, cacheFor, xhrOptions),
