@@ -1,6 +1,9 @@
 package sockjs
 
-import "net/http"
+import (
+	"context"
+	"net/http"
+)
 
 // Session represents a connection between server and client.
 type Session interface {
@@ -16,4 +19,6 @@ type Session interface {
 	Close(status uint32, reason string) error
 	//Gets the state of the session. SessionOpening/SessionActive/SessionClosing/SessionClosed;
 	GetSessionState() SessionState
+	// Context returns the session context (derived from the HTTP request)
+	Context() context.Context
 }
