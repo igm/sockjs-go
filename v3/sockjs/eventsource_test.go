@@ -1,6 +1,7 @@
 package sockjs
 
 import (
+	"bytes"
 	"context"
 	"net/http"
 	"net/http/httptest"
@@ -89,5 +90,20 @@ func TestHandler_EventSourceConnectionInterrupted(t *testing.T) {
 	sess.mux.Lock()
 	if sess.state != SessionClosed {
 		t.Errorf("session should be closed")
+	}
+}
+
+func TestEventSourceFrameWriter(t *testing.T) {
+	writer := new(eventSourceFrameWriter)
+	out := new(bytes.Buffer)
+
+	// Confirm that "important" characters are escaped, but others pass
+	// through unmodified.
+	_, err := writer.write(out, "escaped: %\r\n;unescaped: +&#")
+	if err != nil {
+		t.Errorf("unexpected write error: %s", err)
+	}
+	if out.String() != "data: escaped: %25%0D%0A;unescaped: +&#\r\n\r\n" {
+		t.Errorf("wrong, got '%v'", out.String())
 	}
 }
