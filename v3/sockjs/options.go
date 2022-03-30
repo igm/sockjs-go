@@ -42,7 +42,7 @@ type Options struct {
 	RawWebsocket bool
 	// Provide a custom Upgrader for Websocket connections to enable features like compression.
 	// See https://godoc.org/github.com/gorilla/websocket#Upgrader for more details.
-	WebsocketUpgrader *websocket.Upgrader
+	WebsocketUpgrader upgrader
 	// WebsocketWriteTimeout is a custom write timeout for Websocket underlying network connection.
 	// A zero value means writes will not time out.
 	WebsocketWriteTimeout time.Duration
@@ -135,4 +135,8 @@ func generateEntropy() int32 {
 	entropy := entropy.Int31()
 	entropyMutex.Unlock()
 	return entropy
+}
+
+type upgrader interface {
+	Upgrade(w http.ResponseWriter, r *http.Request, responseHeader http.Header) (*websocket.Conn, error)
 }
