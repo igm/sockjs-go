@@ -68,6 +68,15 @@ type Options struct {
 	// won't be set at all. If this function is nil then Origin option above will
 	// be taken into account.
 	CheckOrigin func(*http.Request) bool
+
+	// AllowedMethods restricts the methods that a handler can use besides Websocket and/or RawWebsocket.
+	// The AllowedMethods contains a list of ReceiverType values, specifying the allowed methods.
+	// When empty, the handler will be allowed to use all methods.
+	// When set only the specified methods in the list + Websocket and/or RawWebsocket will be accepted by the handler.
+	// Including ReceiverTypeNone in the array ignore any additional methods, remaining only Websocket and/or RawWebsocket.
+	// Duplicated elements are ignored, along with RawWebsocket and Websocket ReceiverTypes, as they have their own distinct flags.
+	// By default AllowedMethods is empty allowing handler to use all method, as it was before, having backwards compatibilty
+	AllowedMethods []ReceiverType
 }
 
 // DefaultOptions is a convenient set of options to be used for sockjs
@@ -80,6 +89,7 @@ var DefaultOptions = Options{
 	DisconnectDelay:   5 * time.Second,
 	ResponseLimit:     128 * 1024,
 	WebsocketUpgrader: &websocket.Upgrader{},
+	AllowedMethods:    []ReceiverType{},
 }
 
 type info struct {
