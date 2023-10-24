@@ -116,72 +116,50 @@ func (h *Handler) fillMappingsWithAllowedMethods() {
 		newMapping("GET", "^/iframe[0-9-.a-z_]*.html$", cacheFor, h.iframe),
 	}
 
-	// map of "mappings arrays" indexed by its ReceiverType to access in O(1)
-	methodsByReceiverType := map[ReceiverType][]*mapping{
-		ReceiverTypeXHR: {
+	// Adding XHR to mapping
+	if !h.options.DisableXHR {
+		h.mappings = append(h.mappings,
 			newMapping("POST", sessionPrefix+"/xhr$", h.options.cookie, xhrCors, noCache, h.xhrPoll),
 			newMapping("OPTIONS", sessionPrefix+"/xhr$", h.options.cookie, xhrCors, cacheFor, xhrOptions),
-		},
-		ReceiverTypeXHRStreaming: {
+		)
+	}
+
+	// Adding XHRStreaming to mapping
+	if !h.options.DisableXHRStreaming {
+		h.mappings = append(h.mappings,
 			newMapping("POST", sessionPrefix+"/xhr_streaming$", h.options.cookie, xhrCors, noCache, h.xhrStreaming),
 			newMapping("OPTIONS", sessionPrefix+"/xhr_streaming$", h.options.cookie, xhrCors, cacheFor, xhrOptions),
-		},
-		ReceiverTypeEventSource: {
+		)
+	}
+
+	// Adding EventSource to mapping
+	if !h.options.DisableEventSource {
+		h.mappings = append(h.mappings,
 			newMapping("GET", sessionPrefix+"/eventsource$", h.options.cookie, xhrCors, noCache, h.eventSource),
-		},
-		ReceiverTypeHtmlFile: {
+		)
+	}
+
+	// Adding HtmlFile to mapping
+	if !h.options.DisableHtmlFile {
+		h.mappings = append(h.mappings,
 			newMapping("GET", sessionPrefix+"/htmlfile$", h.options.cookie, xhrCors, noCache, h.htmlFile),
-		},
-		ReceiverTypeJSONP: {
+		)
+	}
+
+	// Adding JSONP to mapping
+	if !h.options.DisableJSONP {
+		h.mappings = append(h.mappings,
 			newMapping("GET", sessionPrefix+"/jsonp$", h.options.cookie, xhrCors, noCache, h.jsonp),
 			newMapping("OPTIONS", sessionPrefix+"/jsonp$", h.options.cookie, xhrCors, cacheFor, xhrOptions),
 			newMapping("POST", sessionPrefix+"/jsonp_send$", h.options.cookie, xhrCors, noCache, h.jsonpSend),
-		},
-	}
-
-	// using map to reduce AllowedMethods to uniq keys
-	var indexedAllowedMethods map[ReceiverType]bool
-
-	if len(h.options.AllowedMethods) > 0 {
-		indexedAllowedMethods = make(map[ReceiverType]bool)
-
-		// iterate over options.AllowedMethods, checking if ReceiverTypeNone is present and removing duplicates
-		for _, rtype := range h.options.AllowedMethods {
-
-			if rtype == ReceiverTypeNone {
-				// if ReceiverTypeNone is within the list no additional methods is allowed
-				// only Websocket and/or RawWebsocket will remain, returning now before fill additional methods
-				return
-			}
-
-			// ignoring RawWebSocket and WebSocket type, as they have their own distinct flags and will be treated elsewhere
-			if rtype != ReceiverTypeRawWebsocket && rtype != ReceiverTypeWebsocket {
-				indexedAllowedMethods[rtype] = true
-			}
-		}
-
-	} else {
-		// enable all methods
-		indexedAllowedMethods = map[ReceiverType]bool{
-			ReceiverTypeXHR:          true,
-			ReceiverTypeXHRStreaming: true,
-			ReceiverTypeEventSource:  true,
-			ReceiverTypeHtmlFile:     true,
-			ReceiverTypeJSONP:        true,
-		}
+		)
 	}
 
 	// when adding XHRPoll or/and XHRStreaming xhr_send must be added too (only once)
-	if indexedAllowedMethods[ReceiverTypeXHR] || indexedAllowedMethods[ReceiverTypeXHRStreaming] {
+	if !h.options.DisableXHR || !h.options.DisableXHRStreaming {
 		h.mappings = append(h.mappings,
 			newMapping("POST", sessionPrefix+"/xhr_send$", h.options.cookie, xhrCors, noCache, h.xhrSend),
 			newMapping("OPTIONS", sessionPrefix+"/xhr_send$", h.options.cookie, xhrCors, cacheFor, xhrOptions),
 		)
 	}
-
-	// Adding uniq allowed methods
-	for rtype := range indexedAllowedMethods {
-		h.mappings = append(h.mappings, methodsByReceiverType[rtype]...)
-	}
-
 }

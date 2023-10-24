@@ -69,27 +69,37 @@ type Options struct {
 	// be taken into account.
 	CheckOrigin func(*http.Request) bool
 
-	// AllowedMethods restricts the methods that a handler can use besides Websocket and/or RawWebsocket.
-	// The AllowedMethods contains a list of ReceiverType values, specifying the allowed methods.
-	// When empty, the handler will be allowed to use all methods.
-	// When set only the specified methods in the list + Websocket and/or RawWebsocket will be accepted by the handler.
-	// Including ReceiverTypeNone in the array ignore any additional methods, remaining only Websocket and/or RawWebsocket.
-	// Duplicated elements are ignored, along with RawWebsocket and Websocket ReceiverTypes, as they have their own distinct flags.
-	// By default AllowedMethods is empty allowing handler to use all method, as it was before, having backwards compatibilty
-	AllowedMethods []ReceiverType
+	// DisableXHR This option can be used to restric handler to use XHR method. By default DisableXHR is false, meaning that handler is allowed to use XHR
+	DisableXHR bool
+
+	// DisableXHRStreaming This option can be used to restric handler to use XHRStreaming method. By default DisableXHRStreaming is false, meaning that handler is allowed to use XHRStreaming
+	DisableXHRStreaming bool
+
+	// DisableEventSource This option can be used to restric handler to use EventSource method. By default DisableEventSource is false, meaning that handler is allowed to use EventSource
+	DisableEventSource bool
+
+	// DisableHtmlFile This option can be used to restric handler to use HtmlFile method. By default DisableHtmlFile is false, meaning that handler is allowed to use HtmlFile
+	DisableHtmlFile bool
+
+	// DisableJSONP is option can be used to restric handler to use JSONP  method. By default DisableJSONP is false, meaning that handler is allowed to use JSONP
+	DisableJSONP bool
 }
 
 // DefaultOptions is a convenient set of options to be used for sockjs
 var DefaultOptions = Options{
-	Websocket:         true,
-	RawWebsocket:      false,
-	JSessionID:        nil,
-	SockJSURL:         "//cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js",
-	HeartbeatDelay:    25 * time.Second,
-	DisconnectDelay:   5 * time.Second,
-	ResponseLimit:     128 * 1024,
-	WebsocketUpgrader: &websocket.Upgrader{},
-	AllowedMethods:    []ReceiverType{},
+	Websocket:           true,
+	RawWebsocket:        false,
+	JSessionID:          nil,
+	SockJSURL:           "//cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js",
+	HeartbeatDelay:      25 * time.Second,
+	DisconnectDelay:     5 * time.Second,
+	ResponseLimit:       128 * 1024,
+	WebsocketUpgrader:   &websocket.Upgrader{},
+	DisableXHR:          false,
+	DisableXHRStreaming: false,
+	DisableEventSource:  false,
+	DisableHtmlFile:     false,
+	DisableJSONP:        false,
 }
 
 type info struct {
