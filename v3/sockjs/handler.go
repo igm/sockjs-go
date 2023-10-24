@@ -102,7 +102,7 @@ func (h *Handler) sessionByRequest(req *http.Request) (*session, error) {
 	return sess, nil
 }
 
-// fillMappingsWithAllowedMethods adds only allowed methods to handler.mappings, by checking Options.AllowedMethods
+// fillMappingsWithAllowedMethods adds only allowed methods to handler.mappings, by if method is not disabled
 func (h *Handler) fillMappingsWithAllowedMethods() {
 
 	xhrCors := xhrCorsFactory(h.options)

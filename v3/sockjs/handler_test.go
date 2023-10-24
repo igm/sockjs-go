@@ -154,3 +154,49 @@ func TestHandler_StrictPathMatching(t *testing.T) {
 		})
 	}
 }
+
+func TestHandler_DisabledMethods(t *testing.T) {
+	disabledMethodsOptions := testOptions
+	disabledMethodsOptions.DisableXHR = true
+	disabledMethodsOptions.DisableJSONP = true
+	disabledMethodsOptions.DisableHtmlFile = true
+	disabledMethodsOptions.DisableEventSource = true
+	disabledMethodsOptions.DisableXHRStreaming = true
+
+	handler := NewHandler("/test", disabledMethodsOptions, nil)
+	server := httptest.NewServer(handler)
+	defer server.Close()
+
+	cases := []struct {
+		url            string
+		expectedStatus int
+		HTTPMethod     string
+	}{
+		{url: "/test", expectedStatus: http.StatusOK, HTTPMethod: "GET"},
+		// XHR
+		{url: "/test/xhr", expectedStatus: http.StatusNotFound, HTTPMethod: "POST"},
+		{url: "/test/xhr_streaming", expectedStatus: http.StatusNotFound, HTTPMethod: "POST"},
+		{url: "/test/xhr_send", expectedStatus: http.StatusNotFound, HTTPMethod: "POST"},
+
+		// EventStream
+		{url: "/test/eventsource", expectedStatus: http.StatusNotFound, HTTPMethod: "GET"},
+
+		//Htmlfile
+		{url: "/test/htmlfile", expectedStatus: http.StatusNotFound, HTTPMethod: "GET"},
+
+		// JSONP
+		{url: "/test/jsonp", expectedStatus: http.StatusNotFound, HTTPMethod: "GET"},
+		{url: "/test/jsonp_send", expectedStatus: http.StatusNotFound, HTTPMethod: "POST"},
+	}
+
+	for _, urlCase := range cases {
+		t.Run(urlCase.url, func(t *testing.T) {
+
+			req, err := http.NewRequest(urlCase.HTTPMethod, server.URL+urlCase.url, nil)
+			require.NoError(t, err)
+			res, err := http.DefaultClient.Do(req)
+			require.NoError(t, err)
+			assert.Equal(t, urlCase.expectedStatus, res.StatusCode)
+		})
+	}
+}
