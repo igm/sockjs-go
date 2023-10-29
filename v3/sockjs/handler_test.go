@@ -2,6 +2,7 @@ package sockjs
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -163,40 +164,76 @@ func TestHandler_DisabledMethods(t *testing.T) {
 	disabledMethodsOptions.DisableEventSource = true
 	disabledMethodsOptions.DisableXHRStreaming = true
 
-	handler := NewHandler("/test", disabledMethodsOptions, nil)
+	handler := NewHandler("", disabledMethodsOptions, nil)
 	server := httptest.NewServer(handler)
 	defer server.Close()
 
+	fmt.Println(server.URL)
+
 	cases := []struct {
-		url            string
+		URL            string
 		expectedStatus int
 		HTTPMethod     string
 	}{
-		{url: "/test", expectedStatus: http.StatusOK, HTTPMethod: "GET"},
+
+		{
+			URL:            "/",
+			expectedStatus: http.StatusOK,
+			HTTPMethod:     "GET",
+		},
 		// XHR
-		{url: "/test/xhr", expectedStatus: http.StatusNotFound, HTTPMethod: "POST"},
-		{url: "/test/xhr_streaming", expectedStatus: http.StatusNotFound, HTTPMethod: "POST"},
-		{url: "/test/xhr_send", expectedStatus: http.StatusNotFound, HTTPMethod: "POST"},
+		{
+			URL:            "/server/session/xhr",
+			expectedStatus: http.StatusNotFound,
+			HTTPMethod:     "POST",
+		},
+		{
+			URL:            "/server/session/xhr_streaming",
+			expectedStatus: http.StatusNotFound,
+			HTTPMethod:     "POST",
+		},
+		{
+			URL:            "/server/session/xhr_send",
+			expectedStatus: http.StatusNotFound,
+			HTTPMethod:     "POST",
+		},
 
 		// EventStream
-		{url: "/test/eventsource", expectedStatus: http.StatusNotFound, HTTPMethod: "GET"},
+		{
+			URL:            "/server/session/eventsource",
+			expectedStatus: http.StatusNotFound,
+			HTTPMethod:     "GET",
+		},
 
 		//Htmlfile
-		{url: "/test/htmlfile", expectedStatus: http.StatusNotFound, HTTPMethod: "GET"},
+		{
+			URL:            "/server/session/htmlfile",
+			expectedStatus: http.StatusNotFound,
+			HTTPMethod:     "GET",
+		},
 
 		// JSONP
-		{url: "/test/jsonp", expectedStatus: http.StatusNotFound, HTTPMethod: "GET"},
-		{url: "/test/jsonp_send", expectedStatus: http.StatusNotFound, HTTPMethod: "POST"},
+		{
+			URL:            "/server/session/jsonp",
+			expectedStatus: http.StatusNotFound,
+			HTTPMethod:     "GET",
+		},
+		{
+			URL:            "/server/session/jsonp_send",
+			expectedStatus: http.StatusNotFound,
+			HTTPMethod:     "POST",
+		},
 	}
 
 	for _, urlCase := range cases {
-		t.Run(urlCase.url, func(t *testing.T) {
+		t.Run(urlCase.URL, func(t *testing.T) {
 
-			req, err := http.NewRequest(urlCase.HTTPMethod, server.URL+urlCase.url, nil)
+			req, err := http.NewRequest(urlCase.HTTPMethod, server.URL+urlCase.URL, nil)
 			require.NoError(t, err)
-			res, err := http.DefaultClient.Do(req)
+			resp, err := http.DefaultClient.Do(req)
 			require.NoError(t, err)
-			assert.Equal(t, urlCase.expectedStatus, res.StatusCode)
+			fmt.Printf("URL: %v, Expected: %v, Result: %v\n", urlCase.URL, urlCase.expectedStatus, resp.StatusCode)
+			assert.Equal(t, urlCase.expectedStatus, resp.StatusCode)
 		})
 	}
 }
