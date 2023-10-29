@@ -2,7 +2,6 @@ package sockjs
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -165,10 +164,11 @@ func TestHandler_DisabledMethods(t *testing.T) {
 	disabledMethodsOptions.DisableXHRStreaming = true
 
 	handler := NewHandler("", disabledMethodsOptions, nil)
-	server := httptest.NewServer(handler)
-	defer server.Close()
 
-	fmt.Println(server.URL)
+	// Two servers are created to compared the different options
+	server := httptest.NewServer(handler)
+
+	defer server.Close()
 
 	cases := []struct {
 		URL            string
@@ -230,9 +230,10 @@ func TestHandler_DisabledMethods(t *testing.T) {
 
 			req, err := http.NewRequest(urlCase.HTTPMethod, server.URL+urlCase.URL, nil)
 			require.NoError(t, err)
+
 			resp, err := http.DefaultClient.Do(req)
 			require.NoError(t, err)
-			fmt.Printf("URL: %v, Expected: %v, Result: %v\n", urlCase.URL, urlCase.expectedStatus, resp.StatusCode)
+
 			assert.Equal(t, urlCase.expectedStatus, resp.StatusCode)
 		})
 	}
