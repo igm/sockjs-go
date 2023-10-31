@@ -235,6 +235,7 @@ func TestHandler_DisabledMethods(t *testing.T) {
 			require.NoError(t, err)
 
 			assert.Equal(t, urlCase.expectedStatus, resp.StatusCode)
+			assert.NoError(t, resp.Body.Close())
 		})
 	}
 }
