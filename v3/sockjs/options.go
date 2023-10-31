@@ -72,7 +72,7 @@ type Options struct {
 	// DisableXHR This option can be used to restrict handler to use XHR method. By default, DisableXHR is false, meaning that handler is allowed to use XHR
 	DisableXHR bool
 
-	// DisableXHRStreaming This option can be used to restric handler to use XHRStreaming method. By default DisableXHRStreaming is false, meaning that handler is allowed to use XHRStreaming
+	// DisableXHRStreaming This option can be used to restrict handler to use XHRStreaming method. By default, DisableXHRStreaming is false, meaning that handler is allowed to use XHRStreaming
 	DisableXHRStreaming bool
 
 	// DisableEventSource This option can be used to restric handler to use EventSource method. By default DisableEventSource is false, meaning that handler is allowed to use EventSource
