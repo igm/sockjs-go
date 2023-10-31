@@ -81,7 +81,7 @@ type Options struct {
 	// DisableHtmlFile This option can be used to restric handler to use HtmlFile method. By default DisableHtmlFile is false, meaning that handler is allowed to use HtmlFile
 	DisableHtmlFile bool
 
-	// DisableJSONP is option can be used to restric handler to use JSONP  method. By default DisableJSONP is false, meaning that handler is allowed to use JSONP
+	// DisableJSONP is option can be used to restrict handler to use JSONP  method. By default, DisableJSONP is false, meaning that handler is allowed to use JSONP
 	DisableJSONP bool
 }
 
