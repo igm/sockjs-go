@@ -69,7 +69,7 @@ type Options struct {
 	// be taken into account.
 	CheckOrigin func(*http.Request) bool
 
-	// DisableXHR This option can be used to restric handler to use XHR method. By default DisableXHR is false, meaning that handler is allowed to use XHR
+	// DisableXHR This option can be used to restrict handler to use XHR method. By default, DisableXHR is false, meaning that handler is allowed to use XHR
 	DisableXHR bool
 
 	// DisableXHRStreaming This option can be used to restric handler to use XHRStreaming method. By default DisableXHRStreaming is false, meaning that handler is allowed to use XHRStreaming
