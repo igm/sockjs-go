@@ -78,7 +78,8 @@ type Options struct {
 	// DisableEventSource This option can be used to restrict handler to use EventSource method. By default, DisableEventSource is false, meaning that handler is allowed to use EventSource
 	DisableEventSource bool
 
-	// DisableHtmlFile This option can be used to restric handler to use HtmlFile method. By default DisableHtmlFile is false, meaning that handler is allowed to use HtmlFile
+	// DisableHtmlFile This option can be used to restrict handler to use HtmlFile method. By default, DisableHtmlFile is false, meaning that handler is allowed to use HtmlFile
+
 	DisableHtmlFile bool
 
 	// DisableJSONP is option can be used to restrict handler to use JSONP  method. By default, DisableJSONP is false, meaning that handler is allowed to use JSONP
