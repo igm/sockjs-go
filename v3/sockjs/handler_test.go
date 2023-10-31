@@ -165,7 +165,7 @@ func TestHandler_DisabledMethods(t *testing.T) {
 
 	handler := NewHandler("", disabledMethodsOptions, nil)
 
-	// Two servers are created to compared the different options
+	// Two servers are created to compare the different options
 	server := httptest.NewServer(handler)
 
 	defer server.Close()
