@@ -34,29 +34,9 @@ func NewHandler(prefix string, opts Options, handlerFunc func(Session)) *Handler
 		handlerFunc: handlerFunc,
 		sessions:    make(map[string]*session),
 	}
-	xhrCors := xhrCorsFactory(opts)
-	h.mappings = []*mapping{
-		newMapping("GET", "^[/]?$", welcomeHandler),
-		newMapping("OPTIONS", "^/info$", opts.cookie, xhrCors, cacheFor, opts.info),
-		newMapping("GET", "^/info$", opts.cookie, xhrCors, noCache, opts.info),
-		// XHR
-		newMapping("POST", sessionPrefix+"/xhr_send$", opts.cookie, xhrCors, noCache, h.xhrSend),
-		newMapping("OPTIONS", sessionPrefix+"/xhr_send$", opts.cookie, xhrCors, cacheFor, xhrOptions),
-		newMapping("POST", sessionPrefix+"/xhr$", opts.cookie, xhrCors, noCache, h.xhrPoll),
-		newMapping("OPTIONS", sessionPrefix+"/xhr$", opts.cookie, xhrCors, cacheFor, xhrOptions),
-		newMapping("POST", sessionPrefix+"/xhr_streaming$", opts.cookie, xhrCors, noCache, h.xhrStreaming),
-		newMapping("OPTIONS", sessionPrefix+"/xhr_streaming$", opts.cookie, xhrCors, cacheFor, xhrOptions),
-		// EventStream
-		newMapping("GET", sessionPrefix+"/eventsource$", opts.cookie, xhrCors, noCache, h.eventSource),
-		// Htmlfile
-		newMapping("GET", sessionPrefix+"/htmlfile$", opts.cookie, xhrCors, noCache, h.htmlFile),
-		// JsonP
-		newMapping("GET", sessionPrefix+"/jsonp$", opts.cookie, xhrCors, noCache, h.jsonp),
-		newMapping("OPTIONS", sessionPrefix+"/jsonp$", opts.cookie, xhrCors, cacheFor, xhrOptions),
-		newMapping("POST", sessionPrefix+"/jsonp_send$", opts.cookie, xhrCors, noCache, h.jsonpSend),
-		// IFrame
-		newMapping("GET", "^/iframe[0-9-.a-z_]*.html$", cacheFor, h.iframe),
-	}
+
+	h.fillMappingsWithAllowedMethods()
+
 	if opts.Websocket {
 		h.mappings = append(h.mappings, newMapping("GET", sessionPrefix+"/websocket$", h.sockjsWebsocket))
 	}
@@ -120,4 +100,66 @@ func (h *Handler) sessionByRequest(req *http.Request) (*session, error) {
 	}
 	sess.setCurrentRequest(req)
 	return sess, nil
+}
+
+// fillMappingsWithAllowedMethods adds only allowed methods to handler.mappings, by if method is not disabled
+func (h *Handler) fillMappingsWithAllowedMethods() {
+
+	xhrCors := xhrCorsFactory(h.options)
+
+	// Default Methods
+	h.mappings = []*mapping{
+		newMapping("GET", "^[/]?$", welcomeHandler),
+		newMapping("OPTIONS", "^/info$", h.options.cookie, xhrCors, cacheFor, h.options.info),
+		newMapping("GET", "^/info$", h.options.cookie, xhrCors, noCache, h.options.info),
+		// IFrame
+		newMapping("GET", "^/iframe[0-9-.a-z_]*.html$", cacheFor, h.iframe),
+	}
+
+	// Adding XHR to mapping
+	if !h.options.DisableXHR {
+		h.mappings = append(h.mappings,
+			newMapping("POST", sessionPrefix+"/xhr$", h.options.cookie, xhrCors, noCache, h.xhrPoll),
+			newMapping("OPTIONS", sessionPrefix+"/xhr$", h.options.cookie, xhrCors, cacheFor, xhrOptions),
+		)
+	}
+
+	// Adding XHRStreaming to mapping
+	if !h.options.DisableXHRStreaming {
+		h.mappings = append(h.mappings,
+			newMapping("POST", sessionPrefix+"/xhr_streaming$", h.options.cookie, xhrCors, noCache, h.xhrStreaming),
+			newMapping("OPTIONS", sessionPrefix+"/xhr_streaming$", h.options.cookie, xhrCors, cacheFor, xhrOptions),
+		)
+	}
+
+	// Adding EventSource to mapping
+	if !h.options.DisableEventSource {
+		h.mappings = append(h.mappings,
+			newMapping("GET", sessionPrefix+"/eventsource$", h.options.cookie, xhrCors, noCache, h.eventSource),
+		)
+	}
+
+	// Adding HtmlFile to mapping
+	if !h.options.DisableHtmlFile {
+		h.mappings = append(h.mappings,
+			newMapping("GET", sessionPrefix+"/htmlfile$", h.options.cookie, xhrCors, noCache, h.htmlFile),
+		)
+	}
+
+	// Adding JSONP to mapping
+	if !h.options.DisableJSONP {
+		h.mappings = append(h.mappings,
+			newMapping("GET", sessionPrefix+"/jsonp$", h.options.cookie, xhrCors, noCache, h.jsonp),
+			newMapping("OPTIONS", sessionPrefix+"/jsonp$", h.options.cookie, xhrCors, cacheFor, xhrOptions),
+			newMapping("POST", sessionPrefix+"/jsonp_send$", h.options.cookie, xhrCors, noCache, h.jsonpSend),
+		)
+	}
+
+	// when adding XHRPoll or/and XHRStreaming xhr_send must be added too (only once)
+	if !h.options.DisableXHR || !h.options.DisableXHRStreaming {
+		h.mappings = append(h.mappings,
+			newMapping("POST", sessionPrefix+"/xhr_send$", h.options.cookie, xhrCors, noCache, h.xhrSend),
+			newMapping("OPTIONS", sessionPrefix+"/xhr_send$", h.options.cookie, xhrCors, cacheFor, xhrOptions),
+		)
+	}
 }

@@ -68,18 +68,39 @@ type Options struct {
 	// won't be set at all. If this function is nil then Origin option above will
 	// be taken into account.
 	CheckOrigin func(*http.Request) bool
+
+	// DisableXHR This option can be used to restrict handler to use XHR method. By default, DisableXHR is false, meaning that handler is allowed to use XHR
+	DisableXHR bool
+
+	// DisableXHRStreaming This option can be used to restrict handler to use XHRStreaming method. By default, DisableXHRStreaming is false, meaning that handler is allowed to use XHRStreaming
+	DisableXHRStreaming bool
+
+	// DisableEventSource This option can be used to restrict handler to use EventSource method. By default, DisableEventSource is false, meaning that handler is allowed to use EventSource
+	DisableEventSource bool
+
+	// DisableHtmlFile This option can be used to restrict handler to use HtmlFile method. By default, DisableHtmlFile is false, meaning that handler is allowed to use HtmlFile
+
+	DisableHtmlFile bool
+
+	// DisableJSONP is option can be used to restrict handler to use JSONP  method. By default, DisableJSONP is false, meaning that handler is allowed to use JSONP
+	DisableJSONP bool
 }
 
 // DefaultOptions is a convenient set of options to be used for sockjs
 var DefaultOptions = Options{
-	Websocket:         true,
-	RawWebsocket:      false,
-	JSessionID:        nil,
-	SockJSURL:         "//cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js",
-	HeartbeatDelay:    25 * time.Second,
-	DisconnectDelay:   5 * time.Second,
-	ResponseLimit:     128 * 1024,
-	WebsocketUpgrader: &websocket.Upgrader{},
+	Websocket:           true,
+	RawWebsocket:        false,
+	JSessionID:          nil,
+	SockJSURL:           "//cdn.jsdelivr.net/npm/sockjs-client@1/dist/sockjs.min.js",
+	HeartbeatDelay:      25 * time.Second,
+	DisconnectDelay:     5 * time.Second,
+	ResponseLimit:       128 * 1024,
+	WebsocketUpgrader:   &websocket.Upgrader{},
+	DisableXHR:          false,
+	DisableXHRStreaming: false,
+	DisableEventSource:  false,
+	DisableHtmlFile:     false,
+	DisableJSONP:        false,
 }
 
 type info struct {

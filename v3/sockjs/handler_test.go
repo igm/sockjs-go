@@ -154,3 +154,88 @@ func TestHandler_StrictPathMatching(t *testing.T) {
 		})
 	}
 }
+
+func TestHandler_DisabledMethods(t *testing.T) {
+	disabledMethodsOptions := testOptions
+	disabledMethodsOptions.DisableXHR = true
+	disabledMethodsOptions.DisableJSONP = true
+	disabledMethodsOptions.DisableHtmlFile = true
+	disabledMethodsOptions.DisableEventSource = true
+	disabledMethodsOptions.DisableXHRStreaming = true
+
+	handler := NewHandler("", disabledMethodsOptions, nil)
+
+	// Two servers are created to compare the different options
+	server := httptest.NewServer(handler)
+
+	defer server.Close()
+
+	cases := []struct {
+		URL            string
+		expectedStatus int
+		HTTPMethod     string
+	}{
+
+		{
+			URL:            "/",
+			expectedStatus: http.StatusOK,
+			HTTPMethod:     "GET",
+		},
+		// XHR
+		{
+			URL:            "/server/session/xhr",
+			expectedStatus: http.StatusNotFound,
+			HTTPMethod:     "POST",
+		},
+		{
+			URL:            "/server/session/xhr_streaming",
+			expectedStatus: http.StatusNotFound,
+			HTTPMethod:     "POST",
+		},
+		{
+			URL:            "/server/session/xhr_send",
+			expectedStatus: http.StatusNotFound,
+			HTTPMethod:     "POST",
+		},
+
+		// EventStream
+		{
+			URL:            "/server/session/eventsource",
+			expectedStatus: http.StatusNotFound,
+			HTTPMethod:     "GET",
+		},
+
+		//Htmlfile
+		{
+			URL:            "/server/session/htmlfile",
+			expectedStatus: http.StatusNotFound,
+			HTTPMethod:     "GET",
+		},
+
+		// JSONP
+		{
+			URL:            "/server/session/jsonp",
+			expectedStatus: http.StatusNotFound,
+			HTTPMethod:     "GET",
+		},
+		{
+			URL:            "/server/session/jsonp_send",
+			expectedStatus: http.StatusNotFound,
+			HTTPMethod:     "POST",
+		},
+	}
+
+	for _, urlCase := range cases {
+		t.Run(urlCase.URL, func(t *testing.T) {
+
+			req, err := http.NewRequest(urlCase.HTTPMethod, server.URL+urlCase.URL, nil)
+			require.NoError(t, err)
+
+			resp, err := http.DefaultClient.Do(req)
+			require.NoError(t, err)
+
+			assert.Equal(t, urlCase.expectedStatus, resp.StatusCode)
+			assert.NoError(t, resp.Body.Close())
+		})
+	}
+}
