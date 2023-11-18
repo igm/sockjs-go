@@ -1,6 +1,7 @@
 package sockjs
 
 import (
+	"context"
 	"errors"
 	"net/http"
 	"sync"
@@ -215,4 +216,11 @@ func (s *session) GetSessionState() SessionState {
 
 func (s *session) Request() *http.Request {
 	return s.req
+}
+
+func (s *session) Context() context.Context {
+	if s.req != nil {
+		return s.req.Context()
+	}
+	return nil
 }
